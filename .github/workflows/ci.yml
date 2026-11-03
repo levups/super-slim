@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   gem:
-    uses: next-gen-gems/.github/.github/workflows/gem-ci.yml@ci/shared
+    uses: next-gen-gems/.github/.github/workflows/gem-ci.yml@main
     with:
       test-command: |
         bundle exec rake test:slimx
