@@ -1,6 +1,4 @@
-    with:
-      gemfiles: '["Gemfile", "gemfiles/rails_8_0.gemfile"]'
-      test-command: |name: CI
+name: CI
 
 on:
   push:
@@ -19,7 +17,6 @@ jobs:
   gem:
     uses: next-gen-gems/.github/.github/workflows/gem-ci.yml@main
     with:
-      gemfiles: '["Gemfile", "gemfiles/rails_8_0.gemfile"]'
       test-command: |
         bundle exec rake test:slimx
         bundle exec rake test:slim_suite
