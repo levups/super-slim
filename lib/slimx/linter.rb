@@ -65,7 +65,7 @@ module SlimX
       nodes = parser.call(source)
       visits = Document.visits_of(nodes)
       document = Document.new(path:, lines: source.split(/\r?\n/), nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
-                              visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
+        visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
       offenses = @rules.flat_map { it.offenses(document, source) }
       # sort_by is not stable: the index keeps offenses of one line in rule order.
       offenses.each_with_index.sort_by { |offense, index| [offense.lineno, index] }.map(&:first)

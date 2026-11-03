@@ -10,32 +10,48 @@ require "slimx"
 directory = ARGV.fetch(0)
 templates = Dir[File.join(directory, "**/*.slim")].sort.to_h { [it, File.read(it)] }
 XML_EXTENSIONS = %w[.rss.slim .atom.slim .xml.slim].freeze
-format_by_path = templates.keys.to_h { |path| [path, XML_EXTENSIONS.any? { path.end_with?(it) } ? :xml : :html] }
+format_by_path = templates.keys.to_h { |path| [path, (XML_EXTENSIONS.any? { path.end_with?(it) }) ? :xml : :html] }
 
 Temple::Generators::RailsOutputBuffer.set_options(capture_generator: Temple::Generators::StringBuffer)
 Slim::Engine.remove :StaticAnalyzer
 slim_engine_by_format = %i[html xml].to_h do |format|
   [format, Slim::Engine.new(format:, sort_attrs: false, pretty: false, generator: Temple::Generators::RailsOutputBuffer,
-                            disable_capture: true, use_html_safe: true)]
+    disable_capture: true, use_html_safe: true)]
 end
 compile_with_slim = ->(path, source) { slim_engine_by_format.fetch(format_by_path[path]).call(source) }
 compile_with_slimx = ->(path, source) { SlimX.compile(source, file: path, format: format_by_path[path], rails: true, html_safe: true) }
 
 failures = templates.filter_map do |path, source|
-  code = compile_with_slimx.(path, source)
+  code = compile_with_slimx.call(path, source)
   errors = Prism.parse("def template\n#{code}\nend").errors
   "#{path}: #{errors.first.message}" if errors.any?
-rescue StandardError => exception
+rescue => exception
   "#{path}: #{exception.class}: #{exception.message.lines.first}"
 end
 puts failures.first(20), "#{failures.size} failures / #{templates.size} templates"
 
 def measure(label, templates, compiler)
-  3.times { templates.each { |path, source| compiler.(path, source) rescue nil } }
+  3.times {
+    templates.each { |path, source|
+      begin
+        compiler.call(path, source)
+      rescue
+        nil
+      end
+    }
+  }
   GC.start
   allocations = GC.stat(:total_allocated_objects)
   started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  5.times { templates.each { |path, source| compiler.(path, source) rescue nil } }
+  5.times {
+    templates.each { |path, source|
+      begin
+        compiler.call(path, source)
+      rescue
+        nil
+      end
+    }
+  }
   milliseconds = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000 / 5
   printf("%-9s %7.1f ms  %9d allocations per corpus\n", label, milliseconds, (GC.stat(:total_allocated_objects) - allocations) / 5)
 end

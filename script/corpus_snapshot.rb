@@ -31,8 +31,8 @@ snapshot = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   tilt_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format:, strict: false) }
   record = {
     "tilt" => tilt_code.start_with?("error:") ? tilt_code : Digest::SHA256.hexdigest(tilt_code),
-    "rails" => digest_or_error.() { SlimX.compile(source, file: path, format:, rails: true, strict: false) },
-    "fmt" => digest_or_error.() { SlimX::Formatter.new.call(source) },
+    "rails" => digest_or_error.call { SlimX.compile(source, file: path, format:, rails: true, strict: false) },
+    "fmt" => digest_or_error.call { SlimX::Formatter.new.call(source) },
     "lint" => Corpus.outcome { linter.call(path, source).map { "#{it.rule}:#{it.lineno}: #{it.message}" } }
   }
   record["html"] = tilt_code.start_with?("error:") ? tilt_code : Corpus.render(tilt_code, path, source) if render

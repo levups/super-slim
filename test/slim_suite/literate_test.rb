@@ -9,7 +9,7 @@ require "slimx/tilt"
 
 class LiterateTest < Minitest::Test
   SPECIFICATION_PATH = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/literate/TESTS.md")
-  REFERENCE_OPTIONS = { format: :html, sort_attrs: false, pretty: false }.freeze
+  REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
   UNSUPPORTED_OPTIONS = %i[disable_escape].freeze
   DROPPED_FEATURES = ["IE conditional comment"].freeze
 
@@ -32,7 +32,7 @@ class LiterateTest < Minitest::Test
         lines.shift(block.size + 1)
         case fence[1]
         # The options blocks are Ruby hash literals written by Slim itself, in a gem we installed.
-        when "options" then options_by_depth.last.update(eval("{#{block.join("\n")}}"))
+        when "options" then options_by_depth.last.update(eval("{#{block.join("\n")}}", binding, __FILE__, __LINE__)) # rubocop:disable Security/Eval
         when "slim" then examples << Example.new(title.join(" / "), block.join("\n"), options_by_depth.last.dup)
         end
       end
@@ -66,7 +66,7 @@ class LiterateTest < Minitest::Test
 
   def outcome
     yield
-  rescue StandardError => exception
+  rescue => exception
     "error: #{exception.message.lines.first}"
   end
 end

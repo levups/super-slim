@@ -12,11 +12,16 @@ module SlimX
 
     def escape_html_safe(value)
       string = value.to_s
-      string.html_safe? || value.html_safe? ? string : ERB::Escape.html_escape(string)
+      (string.html_safe? || value.html_safe?) ? string : ERB::Escape.html_escape(string)
     end
 
     def class_value(value, escape, html_safe)
-      value = value.flatten.map(&:to_s).reject(&:empty?).join(" ") if value.is_a?(Array)
+      if value.is_a?(Array)
+        value = value.flatten.filter_map do
+          string = it.to_s
+          string unless string.empty?
+        end.join(" ")
+      end
       return value.to_s unless escape
 
       html_safe ? escape_html_safe(value) : escape_html(value)

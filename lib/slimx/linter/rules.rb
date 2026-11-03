@@ -4,11 +4,14 @@ module SlimX
   class Linter
     module Rules
       def self.all
-        constants.map { const_get(it) }.select { it < Rule }
+        constants.filter_map do
+          rule = const_get(it)
+          rule if rule < Rule
+        end
       end
 
       class Rule
-        DEFAULTS = { enabled: true }.freeze
+        DEFAULTS = {enabled: true}.freeze
 
         def self.rule_name
           name.split("::").last
@@ -158,7 +161,7 @@ module SlimX
       # Slim-lint's rules on code and tags.
 
       class LineLength < Rule
-        DEFAULTS = { enabled: true, max: 120 }.freeze
+        DEFAULTS = {enabled: true, max: 120}.freeze
 
         def offenses(document, _source)
           max = options[:max]
@@ -187,15 +190,18 @@ module SlimX
       end
 
       class ConsecutiveControlStatements < Rule
-        DEFAULTS = { enabled: true, max: 2 }.freeze
+        DEFAULTS = {enabled: true, max: 2}.freeze
 
         def offenses(document, _source)
           sibling_lists = [document.nodes, *document.visits.filter_map { |node,| Document.children_of(node) }]
           sibling_lists.select! { |siblings| siblings.count { flat_control?(it) } > options[:max] }
           sibling_lists.flat_map do |siblings|
             siblings.chunk_while { |control, following| flat_control?(control) && flat_control?(following) }
-              .select { it.size > options[:max] && flat_control?(it.first) }
-              .map { offense(document, document.line_of(it.first), "Merge these #{it.size} lines of Ruby into a `ruby:` block") }
+              .filter_map do
+                next unless it.size > options[:max] && flat_control?(it.first)
+
+                offense(document, document.line_of(it.first), "Merge these #{it.size} lines of Ruby into a `ruby:` block")
+              end
           end
         end
 
@@ -227,9 +233,9 @@ module SlimX
 
           document.enum_for(:each_node).filter_map do |node,|
             code = case node
-                   when AST::Control, AST::Output then node.code
-                   when AST::Tag then node.attributes.filter_map { it.code if it.respond_to?(:code) }.join(" ")
-                   end
+            when AST::Control, AST::Output then node.code
+            when AST::Tag then node.attributes.filter_map { it.code if it.respond_to?(:code) }.join(" ")
+            end
             next unless code && (variable = code[INSTANCE_VARIABLE])
 
             offense(document, document.line_of(node), "Pass `#{variable}` to the partial as a local")
@@ -238,7 +244,7 @@ module SlimX
       end
 
       class StrictLocals < Rule
-        DEFAULTS = { enabled: false }.freeze
+        DEFAULTS = {enabled: false}.freeze
 
         def offenses(document, _source)
           return [] if !document.partial? || document.lines.any? { it.match?(%r{\A\s*/#\s*locals:}) }
@@ -271,7 +277,6 @@ module SlimX
         def offenses(document, _source)
           missing_attribute(document, "img", "alt", 'Describe the image with `alt`, or mark it decorative with `alt=""`')
         end
-
       end
 
       class IframeTitle < Rule
@@ -287,7 +292,7 @@ module SlimX
       end
 
       class ButtonType < Rule
-        DEFAULTS = { enabled: false }.freeze
+        DEFAULTS = {enabled: false}.freeze
 
         def offenses(document, _source)
           missing_attribute(document, "button", "type", 'Say what the button does with `type="button"` or `type="submit"`')
@@ -318,8 +323,8 @@ module SlimX
 
       class BooleanAttributeValue < Rule
         BOOLEAN_ATTRIBUTES = %w[allowfullscreen async autofocus autoplay checked controls default defer disabled formnovalidate
-                                hidden inert ismap loop multiple muted nomodule novalidate open playsinline readonly required
-                                reversed selected].freeze
+          hidden inert ismap loop multiple muted nomodule novalidate open playsinline readonly required
+          reversed selected].freeze
 
         def offenses(document, _source)
           enum_for(:each_tag, document).flat_map do |tag,|
@@ -335,17 +340,19 @@ module SlimX
 
       class AriaRole < Rule
         ROLES = %w[alert alertdialog application article banner blockquote button caption cell checkbox code columnheader
-                   combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic
-                   grid gridcell group heading img insertion link list listbox listitem log main marquee math menu menubar
-                   menuitem menuitemcheckbox menuitemradio meter navigation none note option paragraph presentation
-                   progressbar radio radiogroup region row rowgroup rowheader scrollbar search searchbox separator slider
-                   spinbutton status strong subscript superscript switch tab table tablist tabpanel term textbox time timer
-                   toolbar tooltip tree treegrid treeitem].freeze
+          combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic
+          grid gridcell group heading img insertion link list listbox listitem log main marquee math menu menubar
+          menuitem menuitemcheckbox menuitemradio meter navigation none note option paragraph presentation
+          progressbar radio radiogroup region row rowgroup rowheader scrollbar search searchbox separator slider
+          spinbutton status strong subscript superscript switch tab table tablist tabpanel term textbox time timer
+          toolbar tooltip tree treegrid treeitem].freeze
 
         def offenses(document, _source)
           enum_for(:each_tag, document).flat_map do |tag,|
             literal_attributes(tag, "role").flat_map do |attribute|
-              literal_value(attribute).split.reject { ROLES.include?(it) || it.start_with?("doc-", "graphics-") }.map do |role|
+              literal_value(attribute).split.filter_map do |role|
+                next if ROLES.include?(role) || role.start_with?("doc-", "graphics-")
+
                 offense(document, document.line_of(tag), "`#{role}` is not an ARIA role")
               end
             end
@@ -355,11 +362,11 @@ module SlimX
 
       class AriaAttribute < Rule
         ATTRIBUTES = %w[activedescendant atomic autocomplete braillelabel brailleroledescription busy checked colcount
-                        colindex colindextext colspan controls current describedby description details disabled
-                        dropeffect errormessage expanded flowto grabbed haspopup hidden invalid keyshortcuts label
-                        labelledby level live modal multiline multiselectable orientation owns placeholder posinset
-                        pressed readonly relevant required roledescription rowcount rowindex rowindextext rowspan selected
-                        setsize sort valuemax valuemin valuenow valuetext].map { "aria-#{it}" }.freeze
+          colindex colindextext colspan controls current describedby description details disabled
+          dropeffect errormessage expanded flowto grabbed haspopup hidden invalid keyshortcuts label
+          labelledby level live modal multiline multiselectable orientation owns placeholder posinset
+          pressed readonly relevant required roledescription rowcount rowindex rowindextext rowspan selected
+          setsize sort valuemax valuemin valuenow valuetext].map { "aria-#{it}" }.freeze
 
         def offenses(document, _source)
           enum_for(:each_tag, document).flat_map do |tag,|
@@ -373,7 +380,7 @@ module SlimX
       end
 
       class DeprecatedClasses < Rule
-        DEFAULTS = { enabled: true, classes: {} }.freeze
+        DEFAULTS = {enabled: true, classes: {}}.freeze
 
         def offenses(document, _source)
           replacement_by_class = options[:classes]
@@ -390,7 +397,7 @@ module SlimX
       end
 
       class InlineStyles < Rule
-        DEFAULTS = { enabled: false }.freeze
+        DEFAULTS = {enabled: false}.freeze
 
         def offenses(document, _source)
           enum_for(:each_tag, document).filter_map do |tag,|
@@ -406,7 +413,8 @@ module SlimX
 
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
-            next unless node.is_a?(AST::TextBlock) && (lineno = document.line_of(node) || document.line_of(ancestors.last))
+            next unless node.is_a?(AST::TextBlock)
+            next unless (lineno = document.line_of(node) || document.line_of(ancestors.last))
 
             texts = node.children.grep(AST::Text)
             next unless texts.size == 1 && texts.first.text =~ LONE_INTERPOLATION
@@ -428,10 +436,10 @@ module SlimX
             text = $2
             lineno = document.line_of(node)
             message = if text.match?(READ_AS_SYNTAX_AFTER_TAG) && ancestors.any? && document.line_of(ancestors.last) == lineno
-                        "Write the text `| #{text}` on its own line, under the tag: inline, it would read as attributes"
-                      else
-                        "Write the text `| #{text}` instead of outputting a string"
-                      end
+              "Write the text `| #{text}` on its own line, under the tag: inline, it would read as attributes"
+            else
+              "Write the text `| #{text}` instead of outputting a string"
+            end
             offense(document, lineno, message)
           end
         end

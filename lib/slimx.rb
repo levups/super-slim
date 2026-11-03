@@ -46,7 +46,7 @@ module SlimX
     attr_accessor :tailwind_classes
 
     def compile(source, file: nil, shortcuts: Shortcuts::DEFAULT, strict: self.strict, tailwind_classes: self.tailwind_classes,
-                **compiler_options)
+      **compiler_options)
       ensure_formatted!(source, file, shortcuts, tailwind_classes) if strict
       Compiler.new(**compiler_options).call(Parser.new(file:, shortcuts:, tailwind_classes:).call(source))
     end
