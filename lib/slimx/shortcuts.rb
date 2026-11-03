@@ -34,10 +34,10 @@ module SlimX
       @additional_attributes_by_shortcut = {}
       definitions.each { |shortcut, definition| register(shortcut, definition) }
 
-      attribute_keys = Regexp.union(@attributes_by_shortcut.keys.sort_by { -it.size })
+      attribute_keys = Regexp.union(@attributes_by_shortcut.keys.sort_by { -_1.size })
       name_part = tailwind_classes ? TAILWIND_NAME_PART : SLIM_NAME_PART
       @attribute_pattern = /\A(#{attribute_keys}+)((?:#{name_part})*)/
-      tag_keys = Regexp.union(@tag_by_shortcut.keys.sort_by { -it.size })
+      tag_keys = Regexp.union(@tag_by_shortcut.keys.sort_by { -_1.size })
       @tag_pattern = /\A(?:#{tag_keys}|\*(?=[^\s]+)|(\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
     end
 

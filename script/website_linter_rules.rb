@@ -66,12 +66,12 @@ abort "Rules without an example: #{undocumented.join(", ")}" if undocumented.any
 ungrouped = EXAMPLE_BY_RULE.keys - RULES_BY_GROUP.values.flatten
 abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
 
-off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(it)::DEFAULTS[:enabled] }
+off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
 linter = SlimX::Linter.new(
-  off_by_default.to_h { [it, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
+  off_by_default.to_h { [_1, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
 )
 message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|
-  flagged = linter.call(example.path, example.flagged).find { it.rule == rule }
+  flagged = linter.call(example.path, example.flagged).find { _1.rule == rule }
   abort "#{rule}: the flagged example passes" unless flagged
   clean_offenses = linter.call(example.path, example.clean)
   abort "#{rule}: the clean example is flagged: #{clean_offenses.map(&:message).join(", ")}" if clean_offenses.any?
@@ -82,7 +82,7 @@ end
 def escape(text) = CGI.escapeHTML(text)
 
 def visible_source(rule, source)
-  source = source.gsub(/ +$/) { "·" * it.size } if rule == "TrailingWhitespace"
+  source = source.gsub(/ +$/) { "·" * _1.size } if rule == "TrailingWhitespace"
   source.gsub("\t", "→   ").gsub("​", "\\u200B")
 end
 

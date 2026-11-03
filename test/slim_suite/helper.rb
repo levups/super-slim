@@ -48,7 +48,7 @@ class TestSlim < Minitest::Test
     options = (Slim::Engine.thread_options || {}).to_hash.merge(options)
     unsupported = options.keys - SLIMX_OPTIONS - %i[use_html_safe] - NEUTRAL_OPTIONS.keys
     unsupported << :format unless [nil, :html, :xml].include?(options[:format])
-    unsupported += %i[sort_attrs pretty].select { options[it] }
+    unsupported += %i[sort_attrs pretty].select { options[_1] }
     skip "Unsupported options #{unsupported.uniq.inspect}" if unsupported.any?
   end
 

@@ -24,7 +24,7 @@ end
 linter = SlimX::Linter.new
 digest_or_error = ->(&block) { Corpus.compile_error_or { Digest::SHA256.hexdigest(block.call) } }
 
-paths = ARGV.flat_map { Dir[File.join(File.expand_path(it), "**/*.slim")] }.sort
+paths = ARGV.flat_map { Dir[File.join(File.expand_path(_1), "**/*.slim")] }.sort
 snapshot = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   source = File.read(path)
   format = Corpus.format_of(path)
@@ -33,7 +33,7 @@ snapshot = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
     "tilt" => tilt_code.start_with?("error:") ? tilt_code : Digest::SHA256.hexdigest(tilt_code),
     "rails" => digest_or_error.call { SlimX.compile(source, file: path, format:, rails: true, strict: false) },
     "fmt" => digest_or_error.call { SlimX::Formatter.new.call(source) },
-    "lint" => Corpus.outcome { linter.call(path, source).map { "#{it.rule}:#{it.lineno}: #{it.message}" } }
+    "lint" => Corpus.outcome { linter.call(path, source).map { "#{_1.rule}:#{_1.lineno}: #{_1.message}" } }
   }
   record["html"] = tilt_code.start_with?("error:") ? tilt_code : Corpus.render(tilt_code, path, source) if render
   [path, record]

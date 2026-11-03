@@ -47,19 +47,19 @@ page = Page.new(
   end
 )
 
-source_by_engine = ENGINES.to_h { [it, File.read(File.join(SOURCE_DIRECTORY, it.source_file))] }
+source_by_engine = ENGINES.to_h { [_1, File.read(File.join(SOURCE_DIRECTORY, _1.source_file))] }
 render_method_by_engine = ENGINES.to_h do |engine|
   method_name = :"render_#{engine.name.downcase.tr(" ", "_")}"
   Page.class_eval("def #{method_name}\n#{engine.compiler.call(source_by_engine[engine])}\nend", __FILE__, __LINE__)
   [engine, method_name]
 end
 
-html_by_engine = ENGINES.to_h { [it, page.public_send(render_method_by_engine[it]).gsub(/>\s+</, "><").strip] }
+html_by_engine = ENGINES.to_h { [_1, page.public_send(render_method_by_engine[_1]).gsub(/>\s+</, "><").strip] }
 reference_html = html_by_engine[ENGINES.first]
 html_by_engine.each do |engine, html|
   next if html == reference_html
 
-  offset = [(0...html.size).find { html[it] != reference_html[it] } - 60, 0].max
+  offset = [(0...html.size).find { html[_1] != reference_html[_1] } - 60, 0].max
   raise "#{engine.name} renders different HTML than SlimX:\n  #{reference_html[offset, 120]}\n  #{html[offset, 120]}"
 end
 
@@ -75,7 +75,7 @@ def iterations_per_second(engines, &block)
     benchmark.config(time: BENCHMARK_SECONDS, warmup: 2)
     engines.each { |engine| benchmark.report(engine.name) { yield(engine) } }
   end
-  report.entries.to_h { [it.label, it.stats.central_tendency.round] }
+  report.entries.to_h { [_1.label, _1.stats.central_tendency.round] }
 end
 
 compiles_per_second = iterations_per_second(ENGINES) { |engine| engine.compiler.call(source_by_engine[engine]) }
@@ -112,14 +112,14 @@ end
 
 def compile_timings(directory)
   slim_engine = Slim::Engine.new(format: :html, sort_attrs: false)
-  templates = Dir[File.join(directory, "**/*.slim")].map { File.read(it) }.select do |source|
+  templates = Dir[File.join(directory, "**/*.slim")].map { File.read(_1) }.select do |source|
     SlimX.compile(source, file: "corpus.slim") && slim_engine.call(source)
   rescue StandardError, ScriptError
     false
   end
   compile_corpus = {
-    "SlimX" => -> { templates.each { SlimX.compile(it, file: "corpus.slim") } },
-    "Slim" => -> { templates.each { slim_engine.call(it) } }
+    "SlimX" => -> { templates.each { SlimX.compile(_1, file: "corpus.slim") } },
+    "Slim" => -> { templates.each { slim_engine.call(_1) } }
   }
   {
     templates: templates.size,
@@ -134,7 +134,7 @@ PUBLIC_CORPUS_DIRECTORY = File.expand_path("../corpus/cache", __dir__)
 corpora = []
 corpora << {label: "A production Rails app", **compile_timings(File.expand_path(ENV["SLIMX_CORPUS"]))} if ENV["SLIMX_CORPUS"]
 if File.directory?(PUBLIC_CORPUS_DIRECTORY)
-  application_count = Dir.children(PUBLIC_CORPUS_DIRECTORY).count { File.directory?(File.join(PUBLIC_CORPUS_DIRECTORY, it)) }
+  application_count = Dir.children(PUBLIC_CORPUS_DIRECTORY).count { File.directory?(File.join(PUBLIC_CORPUS_DIRECTORY, _1)) }
   corpora << {label: "#{application_count} open-source projects", **compile_timings(PUBLIC_CORPUS_DIRECTORY)}
 end
 results[:corpora] = corpora
