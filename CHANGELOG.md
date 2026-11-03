@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Runs on Ruby 3.3: the floor follows the oldest Ruby still maintained.
+- Runs on Ruby 3.3: the floor follows the oldest Ruby still maintained. SlimX now depends on strscan 3.1.1 or later,
+  newer than the one Ruby 3.3 ships.
 
 ## 1.0.0 — 2026-11-03
 

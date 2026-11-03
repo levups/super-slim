@@ -20,4 +20,7 @@ Gem::Specification.new do |spec|
   spec.bindir = "exe"
   spec.executables = ["slimx"]
   spec.require_paths = ["lib"]
+
+  # StringScanner#peek_byte arrived in strscan 3.1.1, after the one Ruby 3.3 ships.
+  spec.add_dependency "strscan", ">= 3.1.1"
 end
