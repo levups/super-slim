@@ -8,7 +8,7 @@ module SlimX
         file: template.identifier,
         format: xml?(template) ? :xml : :html,
         rails: true,
-        **annotations(template),
+        **annotations(template)
       )
     end
 
@@ -25,7 +25,7 @@ module SlimX
     def annotations(template)
       return {} unless ActionView::Base.annotate_rendered_view_with_filenames && template.format == :html
 
-      { preamble: "<!-- BEGIN #{template.short_identifier} -->\n", postamble: "<!-- END #{template.short_identifier} -->\n" }
+      {preamble: "<!-- BEGIN #{template.short_identifier} -->\n", postamble: "<!-- END #{template.short_identifier} -->\n"}
     end
   end
 end

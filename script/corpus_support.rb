@@ -12,7 +12,7 @@ class Stub
   def method_missing(name, *_arguments, **_options, &block)
     return Stub.new unless block
 
-    yielded = block.call(*Array.new(block.arity.abs.clamp(0, 3)) { Stub.new })
+    yielded = yield(Array.new(block.arity.abs.clamp(0, 3)) { Stub.new })
     yielded.is_a?(String) ? yielded : Stub.new
   end
 
@@ -26,7 +26,7 @@ class Stub
   def map(&) = [Stub.new].map(&)
   def each_with_index(&) = [Stub.new].each_with_index(&)
   def to_a = [Stub.new]
-  def to_h = { "data-stub" => TEXT }
+  def to_h = {"data-stub" => TEXT}
   def html_safe? = false
   def present? = true
   def blank? = false
@@ -60,7 +60,7 @@ module Corpus
     def Object.const_missing(_name) = StubConstant
   end
 
-  def format_of(path) = XML_EXTENSIONS.any? { path.end_with?(it) } ? :xml : :html
+  def format_of(path) = (XML_EXTENSIONS.any? { path.end_with?(it) }) ? :xml : :html
 
   def outcome
     yield
@@ -76,7 +76,7 @@ module Corpus
 
   # Inside a lambda, a template's own `- return` ends the template, not this script's method.
   def render(code, path, source)
-    outcome { StubScope.new(source).instance_eval("-> {\n#{code}\n}.call", path, 0).to_s }
+    outcome { StubScope.new(source).instance_eval("-> {\n#{code}\n}.call", __FILE__, __LINE__).to_s }
   end
 
   def render_with_slim(source, path)

@@ -41,7 +41,7 @@ end
 # Authenticated requests are not throttled like anonymous ones: the token of the CI, or of gh on a laptop.
 def authorization_header
   token = ENV["GH_TOKEN"] || ENV["GITHUB_TOKEN"] || Open3.capture2("gh", "auth", "token").then { |output, status| output.strip if status.success? }
-  token.to_s.empty? ? {} : { "Authorization" => "token #{token}" }
+  token.to_s.empty? ? {} : {"Authorization" => "token #{token}"}
 end
 
 def fetch(http, download, headers)

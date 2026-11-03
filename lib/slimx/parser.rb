@@ -10,7 +10,7 @@ module SlimX
 
     TAB_SIZE = 4
     TAB = /\G((?: {#{TAB_SIZE}})*) {0,#{TAB_SIZE - 1}}\t/
-    DELIMITERS = { "(" => ")", "[" => "]", "{" => "}" }.freeze
+    DELIMITERS = {"(" => ")", "[" => "]", "{" => "}"}.freeze
     SUPPORTED_ENGINES = %w[javascript css ruby markdown].freeze
     # Engines Slim ships that SlimX deliberately refuses, so they fail loudly instead of parsing as a tag.
     UNSUPPORTED_ENGINES = %w[asciidoc textile rdoc coffee sass scss less erb builder creole wiki org].freeze
@@ -447,12 +447,12 @@ module SlimX
         if @scanner.match?(LINE_CONTINUATION)
           code << @scanner.getch << "\n"
           expect_next_line
-        elsif (chunk = @scanner.scan(depth == 0 ? CODE_CHUNK_BY_CLOSING[outer_closing] : NESTED_CODE_CHUNK_BY_OPENING[opening]))
+        elsif (chunk = @scanner.scan((depth == 0) ? CODE_CHUNK_BY_CLOSING[outer_closing] : NESTED_CODE_CHUNK_BY_OPENING[opening]))
           code << chunk
         else
           character = @scanner.getch
           if depth > 0
-            depth += character == opening ? 1 : -1
+            depth += (character == opening) ? 1 : -1
           else
             depth = 1
             opening = character
@@ -490,7 +490,7 @@ module SlimX
     end
 
     def syntax_error!(message)
-      error = SyntaxError.new(message, @file, @line, @lineno, @line && @scanner ? column : 0)
+      error = SyntaxError.new(message, @file, @line, @lineno, (@line && @scanner) ? column : 0)
       error.set_backtrace(["#{@file}:#{@lineno}", *caller])
       raise error
     end

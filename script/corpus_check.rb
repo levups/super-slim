@@ -35,7 +35,7 @@ CHECKS = %i[compile prism lines render format idempotence format_render lint].fr
 results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   source = File.read(path)
   failures = []
-  result = { path:, failures:, slim_unavailable: false, dropped_feature: false, rendered: false, render_error: nil }
+  result = {path:, failures:, slim_unavailable: false, dropped_feature: false, rendered: false, render_error: nil}
 
   slim_code = Corpus.compile_error_or { Slim::Engine.new(format: Corpus.format_of(path), sort_attrs: false).call(source) }
   slimx_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format: Corpus.format_of(path), strict: false) }

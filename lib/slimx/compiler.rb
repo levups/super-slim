@@ -12,7 +12,7 @@ module SlimX
         "html" => "<!DOCTYPE html>",
         "strict" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">',
         "frameset" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">',
-        "transitional" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">',
+        "transitional" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">'
       },
       xml: {
         "1.1" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">',
@@ -23,8 +23,8 @@ module SlimX
         "mobile" => '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">',
         "basic" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">',
         "transitional" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
-        "svg" => '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">',
-      },
+        "svg" => '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+      }
     }.freeze
 
     BLOCK_SELF_OPENING = /(\A(if|unless|else|elsif|when|in|begin|rescue|ensure|case)\b)|\bdo\s*(\|[^|]*\|\s*)?\z/
@@ -36,7 +36,7 @@ module SlimX
     ESCAPED_INTERPOLATION = /\A\\#\{/
     INTERPOLATION = /\A#\{((?>[^{}]|(\{(?>[^{}]|\g<1>)*\}))*)\}/
     UNESCAPED_INTERPOLATION_CODE = /\A\{.*\}\Z/
-    INTERPOLATION_FREE_TEXT = /\A([#\\]?[^#\\]*([#\\][^\\#\{][^#\\]*)*)/
+    INTERPOLATION_FREE_TEXT = /\A([#\\]?[^#\\]*([#\\][^\\#\{][^#\\]*)*)/ # rubocop:disable Style/RedundantRegexpEscape -- `#{` would open an interpolation
 
     def initialize(format: :html, rails: false, html_safe: String.method_defined?(:html_safe?), preamble: nil, postamble: nil)
       raise ArgumentError, "Invalid format #{format.inspect}" unless DOCTYPES.key?(format)
@@ -130,7 +130,7 @@ module SlimX
     end
 
     def with_do(code, children)
-      code.match?(BLOCK_SELF_OPENING) || AST.empty?(children) ? code : "#{code} do"
+      (code.match?(BLOCK_SELF_OPENING) || AST.empty?(children)) ? code : "#{code} do"
     end
 
     def compile_tag(tag)
@@ -139,7 +139,7 @@ module SlimX
       closed = tag.content.nil? || (AST.renders_nothing?(tag.content) && (@xml || VOID_ELEMENTS.key?(tag.name)))
       emit_static("<#{tag.name}")
       compile_attributes(tag.attributes)
-      emit_static(closed && @xml ? " />" : ">")
+      emit_static((closed && @xml) ? " />" : ">")
       return if closed && tag.content.nil?
 
       compile_children(tag.content)
@@ -228,7 +228,7 @@ module SlimX
       else
         classes = new_variable
         expressions = values.map { string_expression(it) }
-        emit_code(values.size == 1 ? "#{classes} = #{expressions.first}" : "#{classes} = ::SlimX::Runtime.join_classes(#{expressions.join(", ")})")
+        emit_code((values.size == 1) ? "#{classes} = #{expressions.first}" : "#{classes} = ::SlimX::Runtime.join_classes(#{expressions.join(", ")})")
         emit_code("unless #{classes}.empty?")
         emit_attribute("class", [[:raw, classes]])
         emit_code("end")
@@ -279,7 +279,7 @@ module SlimX
         [[:raw, "::SlimX::Runtime.class_value(#{value}, #{attribute.escape}, #{@html_safe})"]]
       when QuotedAttribute
         interpolation_parts(attribute.text).map do |kind, value, escape|
-          kind == :static && attribute.escape ? [:static, ERB::Escape.html_escape(value)] : [kind, value, escape]
+          (kind == :static && attribute.escape) ? [:static, ERB::Escape.html_escape(value)] : [kind, value, escape]
         end
       end
     end

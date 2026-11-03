@@ -8,12 +8,12 @@ require "slimx/tilt"
 
 SLIM_TEST_DIRECTORY = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/core")
 helper_source = File.read(File.join(SLIM_TEST_DIRECTORY, "helper.rb"))
-eval(helper_source[helper_source.index("class Env")..], TOPLEVEL_BINDING, File.join(SLIM_TEST_DIRECTORY, "helper.rb"))
+eval(helper_source[helper_source.index("class Env")..], TOPLEVEL_BINDING, File.join(SLIM_TEST_DIRECTORY, "helper.rb")) # rubocop:disable Security/Eval -- Slim's own test helper
 
 class TestSlim < Minitest::Test
-  REFERENCE_OPTIONS = { format: :html, sort_attrs: false, pretty: false }.freeze
+  REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
   SLIMX_OPTIONS = %i[file shortcut format].freeze
-  NEUTRAL_OPTIONS = { format: :html, sort_attrs: false, pretty: false, use_html_safe: nil }.freeze
+  NEUTRAL_OPTIONS = {format: :html, sort_attrs: false, pretty: false, use_html_safe: nil}.freeze
 
   def setup
     @env = Env.new
@@ -101,7 +101,7 @@ class TestSlim < Minitest::Test
 
   def assert_runtime_error(message, source, options = {})
     render_with_slimx(source, options)
-    raise Exception, "Runtime error expected"
+    flunk "Runtime error expected"
   rescue RuntimeError, SlimX::Error => exception
     assert_equal message, exception.message
   end

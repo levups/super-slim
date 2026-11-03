@@ -2,7 +2,7 @@
 
 module SlimX
   class Shortcuts
-    DEFAULT = { "#" => { attr: "id" }, "." => { attr: "class" } }.freeze
+    DEFAULT = {"#" => {attr: "id"}, "." => {attr: "class"}}.freeze
     DEFAULT_TAG = "div"
 
     attr_reader :tag_by_shortcut, :attributes_by_shortcut, :additional_attributes_by_shortcut, :attribute_pattern, :tag_pattern
@@ -44,9 +44,8 @@ module SlimX
     private
 
     def register(shortcut, definition)
-      unless (definition[:attr] || definition[:tag]) && (definition.keys - %i[attr tag additional_attrs]).empty?
-        raise ArgumentError, "Shortcut requires :tag and/or :attr"
-      end
+      valid = (definition[:attr] || definition[:tag]) && (definition.keys - %i[attr tag additional_attrs]).empty?
+      raise ArgumentError, "Shortcut requires :tag and/or :attr" unless valid
 
       raise ArgumentError, "Lambda shortcuts are not supported" if definition[:attr].is_a?(Proc)
 

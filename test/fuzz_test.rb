@@ -18,8 +18,8 @@ class FuzzTest < Minitest::Test
     def no_flag = false
     def items = [1, 2]
     def classes = ["a", nil, ["b", ""], :c]
-    def attributes_hash = { title: "<t>", "data-x" => 1, disabled: true, hidden: false }
-    def data_hash = { user_id: 1, nested: { deep: "<v>" }, flag: true, off: false, none: nil }
+    def attributes_hash = {:title => "<t>", "data-x" => 1, :disabled => true, :hidden => false}
+    def data_hash = {user_id: 1, nested: {deep: "<v>"}, flag: true, off: false, none: nil}
     def tag_name = "section"
     def wrap = "[#{yield}]"
   end
@@ -61,7 +61,7 @@ class FuzzTest < Minitest::Test
     end
 
     def child(indent, depth)
-      depth < 3 ? block(indent + 2, depth + 1) : ["#{" " * (indent + 2)}| leaf"]
+      (depth < 3) ? block(indent + 2, depth + 1) : ["#{" " * (indent + 2)}| leaf"]
     end
 
     def tag_block(indent, depth)
@@ -79,11 +79,11 @@ class FuzzTest < Minitest::Test
 
     def tag_head
       head = case @random.rand(5)
-             when 0 then ""
-             # Slim reads anything glued to a splat as Ruby code: two stray quotes would pair up across generated code.
-             when 1 then return "*{tag: tag_name}"
-             else pick(TAGS)
-             end
+      when 0 then ""
+      # Slim reads anything glued to a splat as Ruby code: two stray quotes would pair up across generated code.
+      when 1 then return "*{tag: tag_name}"
+      else pick(TAGS)
+      end
       head = "div" if head.empty? && !chance(0.5)
       head += ".c#{@random.rand(3)}" if chance(0.4) || head.empty?
       head += "#i#{@random.rand(3)}" if chance(0.15)
@@ -95,7 +95,11 @@ class FuzzTest < Minitest::Test
       return "" if chance(0.4)
 
       list = Array.new(1 + @random.rand(3)) { attribute }
-      chance(0.5) ? " #{list.join(" ")}" : "(#{list.join(" ")}#{chance(0.3) ? " checked" : ""})"
+      if chance(0.5)
+        " #{list.join(" ")}"
+      else
+        "(#{list.join(" ")}#{" checked" if chance(0.3)})"
+      end
     end
 
     def attribute
@@ -149,14 +153,14 @@ class FuzzTest < Minitest::Test
 
   def render(engine, source)
     template = if engine == :slim
-                 Slim::Template.new(format: :html, sort_attrs: false, pretty: false) { source }
-               else
-                 SlimX::Template.new { source }
-               end
+      Slim::Template.new(format: :html, sort_attrs: false, pretty: false) { source }
+    else
+      SlimX::Template.new { source }
+    end
     template.render(Scope.new)
   rescue ::SyntaxError
     "error: invalid Ruby"
-  rescue StandardError => exception
+  rescue => exception
     "error: #{exception.message.lines.first}"
   end
 end

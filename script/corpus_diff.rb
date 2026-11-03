@@ -70,17 +70,17 @@ end
 formatting_changed = paths.select { before[it] && after[it] && before[it]["fmt"] != after[it]["fmt"] }
 html_changed = render ? paths.select { before[it] && after[it] && before[it]["html"] != after[it]["html"] } : []
 
-offense_changes_by_rule = Hash.new { |hash, rule| hash[rule] = { appeared: [], disappeared: [] } }
+offense_changes_by_rule = Hash.new { |hash, rule| hash[rule] = {appeared: [], disappeared: []} }
 paths.each do |path|
   next unless before[path] && after[path]
 
   before_offenses, after_offenses = before[path]["lint"], after[path]["lint"]
   next if before_offenses == after_offenses
 
-  { appeared: after_offenses - Array(before_offenses), disappeared: before_offenses - Array(after_offenses) }.each do |change, offenses|
+  {appeared: after_offenses - Array(before_offenses), disappeared: before_offenses - Array(after_offenses)}.each do |change, offenses|
     next unless offenses.is_a?(Array)
 
-    offenses.each { offense_changes_by_rule[it[/\A[^:]+/]][change] << "#{relative.(path)}:#{it[/:(\d+):/, 1]} #{it[/: (.*)\z/, 1]}" }
+    offenses.each { offense_changes_by_rule[it[/\A[^:]+/]][change] << "#{relative.call(path)}:#{it[/:(\d+):/, 1]} #{it[/: (.*)\z/, 1]}" }
   end
 end
 
@@ -94,5 +94,5 @@ offense_changes_by_rule.sort.each do |rule, changes|
   changes.each { |change, examples| report("#{rule} offenses #{change}", examples, failing: false) }
 end
 puts "No difference" if [stopped_compiling, started_compiling, formatting_changed, html_changed, compiled_changed].all?(&:empty?) &&
-                        offense_changes_by_rule.empty?
+  offense_changes_by_rule.empty?
 exit([stopped_compiling, formatting_changed, html_changed].all?(&:empty?) ? 0 : 1)

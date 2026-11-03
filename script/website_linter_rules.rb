@@ -27,7 +27,7 @@ EXAMPLE_BY_RULE = {
   "CommentControlStatement" => Example.new("- # TODO\np Text\n", "/ TODO\np Text\n"),
   "EmptyControlStatement" => Example.new("-\np Text\n", "p Text\n"),
   "ConsecutiveControlStatements" => Example.new("- a = 1\n- b = 2\n- c = 3\np = a + b + c\n",
-                                                "ruby:\n  a = 1\n  b = 2\n  c = 3\np = a + b + c\n"),
+    "ruby:\n  a = 1\n  b = 2\n  c = 3\np = a + b + c\n"),
   "TagCase" => Example.new("P Text\n", "p Text\n"),
   "Zwsp" => Example.new("p Hello​world\n", "p Hello world\n"),
   "UnnecessaryInterpolation" => Example.new("p \#{post.title}\n", "p = post.title\n"),
@@ -68,7 +68,7 @@ abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
 
 off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(it)::DEFAULTS[:enabled] }
 linter = SlimX::Linter.new(
-  off_by_default.to_h { [it, { "enabled" => true }] }.merge("DeprecatedClasses" => { "classes" => { "text-muted" => "text-body-secondary" } })
+  off_by_default.to_h { [it, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
 )
 message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|
   flagged = linter.call(example.path, example.flagged).find { it.rule == rule }
