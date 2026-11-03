@@ -5,8 +5,8 @@ source "https://rubygems.org"
 gemspec
 
 group :development, :test do
-  gem "actionpack"
-  gem "actionview"
+  gem "actionpack", *@rails # gemfiles/rails_8_0.gemfile sets it
+  gem "actionview", *@rails
   gem "benchmark-ips"
   gem "erubi"
   gem "haml"
