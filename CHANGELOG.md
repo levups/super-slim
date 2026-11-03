@@ -2,6 +2,20 @@
 
 ## 1.0.0 — 2026-11-03
 
+- The gem now lives at https://github.com/next-gen-gems/slimx, linked from its RubyGems page as source code and
+  changelog.
+- `slimx lint`: UnnecessaryStringOutput no longer suggests moving text starting with `(`, `[`, `{`, `=`, `*`
+  or `/` inline after its tag, where it would read as attributes or output: `span = "(estimate)"` is told to
+  write `| (estimate)` on its own line, under the tag.
+
+## 0.1.1 — 2026-11-01
+
+- `slimx lint`: the Zwsp rule no longer flags the zero-width joiner between two emoji pictographs, as in 🐈‍⬛
+  or 👩🏻‍💻. A zero-width character anywhere else is still reported, including a joiner or non-joiner glued to
+  an emoji.
+
+## 0.1.0 — 2026-11-01
+
 First release: a Slim 5 engine written from scratch, without Temple.
 
 - Renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for byte; XML formats (`.xml`,
