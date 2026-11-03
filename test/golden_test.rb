@@ -47,7 +47,7 @@ class GoldenTest < Minitest::Test
     def corpus? = name.start_with?("corpus/")
     def tailwind_classes? = name.start_with?("tailwind/")
     def slim_comparable? = !tailwind_classes? && !name.start_with?("slimx_only/")
-    def format = (XML_EXTENSIONS.any? { path.end_with?(it) }) ? :xml : :html
+    def format = (XML_EXTENSIONS.any? { path.end_with?(_1) }) ? :xml : :html
     def snapshot_path = path.delete_suffix(".slim") + ".snap"
   end
 
@@ -163,13 +163,13 @@ class GoldenTest < Minitest::Test
       attempt { SlimX.compile(formatted, file: golden_case.name, format: golden_case.format, strict:) }
     end
     assert_equal lenient, strict, "#{golden_case.name}: strict mode refuses the formatted source"
-    layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{it}]") } }
+    layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{_1}]") } }
     assert_empty layout_offenses, "#{golden_case.name}: the formatted source breaks layout rules"
   end
 
   def lint(golden_case, source)
     linter = SlimX::Linter.new(ENABLE_EVERY_RULE)
-    linter.call(golden_case.name, source).map { "#{it.lineno}: [#{it.rule}] #{it.message}" }.join("\n")
+    linter.call(golden_case.name, source).map { "#{_1.lineno}: [#{_1.rule}] #{_1.message}" }.join("\n")
   end
 
   ENABLE_EVERY_RULE = SlimX::Linter::Rules.constants.filter_map do |name|

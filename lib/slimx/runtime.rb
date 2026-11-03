@@ -18,7 +18,7 @@ module SlimX
     def class_value(value, escape, html_safe)
       if value.is_a?(Array)
         value = value.flatten.filter_map do
-          string = it.to_s
+          string = _1.to_s
           string unless string.empty?
         end.join(" ")
       end

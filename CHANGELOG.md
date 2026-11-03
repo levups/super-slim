@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Runs on Ruby 3.3: the floor follows the oldest Ruby still maintained.
+
 ## 1.0.0 — 2026-11-03
 
 First release: a Slim 5 engine written from scratch, without Temple.

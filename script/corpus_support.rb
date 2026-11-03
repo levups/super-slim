@@ -38,7 +38,7 @@ end
 
 class StubScope < Stub
   def initialize(source)
-    source.scan(/@(\w+)/).flatten.uniq.each { instance_variable_set("@#{it}", Stub.new) unless it == "output_buffer" }
+    source.scan(/@(\w+)/).flatten.uniq.each { instance_variable_set("@#{_1}", Stub.new) unless _1 == "output_buffer" }
   end
 end
 
@@ -60,7 +60,7 @@ module Corpus
     def Object.const_missing(_name) = StubConstant
   end
 
-  def format_of(path) = (XML_EXTENSIONS.any? { path.end_with?(it) }) ? :xml : :html
+  def format_of(path) = (XML_EXTENSIONS.any? { path.end_with?(_1) }) ? :xml : :html
 
   def outcome
     yield

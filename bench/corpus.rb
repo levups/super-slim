@@ -8,9 +8,9 @@ require "slim"
 require "slimx"
 
 directory = ARGV.fetch(0)
-templates = Dir[File.join(directory, "**/*.slim")].sort.to_h { [it, File.read(it)] }
+templates = Dir[File.join(directory, "**/*.slim")].sort.to_h { [_1, File.read(_1)] }
 XML_EXTENSIONS = %w[.rss.slim .atom.slim .xml.slim].freeze
-format_by_path = templates.keys.to_h { |path| [path, (XML_EXTENSIONS.any? { path.end_with?(it) }) ? :xml : :html] }
+format_by_path = templates.keys.to_h { |path| [path, (XML_EXTENSIONS.any? { path.end_with?(_1) }) ? :xml : :html] }
 
 Temple::Generators::RailsOutputBuffer.set_options(capture_generator: Temple::Generators::StringBuffer)
 Slim::Engine.remove :StaticAnalyzer

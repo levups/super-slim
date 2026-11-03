@@ -87,6 +87,6 @@ class LinterTest < Minitest::Test
 
   def assert_offenses(expected, source, path: "app/views/show.html.slim")
     offenses = SlimX::Linter.new.call(path, source)
-    assert_equal expected.sort, offenses.map { "#{it.rule}:#{it.lineno}" }.sort
+    assert_equal expected.sort, offenses.map { "#{_1.rule}:#{_1.lineno}" }.sort
   end
 end

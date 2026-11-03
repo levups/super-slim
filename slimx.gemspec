@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
                      "a page, a strict mode, and a linter with HTML and accessibility rules."
   spec.homepage = "https://github.com/next-gen-gems/slimx"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.4"
+  spec.required_ruby_version = ">= 3.3"
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"

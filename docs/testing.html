@@ -113,7 +113,7 @@
   <section id="ci" aria-labelledby="ci-title">
     <h2 id="ci-title">Every commit</h2>
     <div class="prose">
-      <p>GitHub Actions runs the suite and Slim’s suites on Ruby 3.4 and 4.0, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
+      <p>GitHub Actions runs the suite and Slim’s suites on every maintained Ruby (3.3, 3.4 and 4.0), ruby-head and macOS, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
 <pre><code>bundle exec rake test
 FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 bundle exec rake corpus:fetch corpus:check</code></pre>

@@ -14,7 +14,7 @@ class CLITest < Minitest::Test
       status, output = run_cli("lint", ".")
 
       assert_equal 1, status
-      expected = (1..TEMPLATE_COUNT).map { "./#{template_name(it)}:1: [TrailingWhitespace] Trailing whitespace renders: write it with `'` or `>` instead" }
+      expected = (1..TEMPLATE_COUNT).map { "./#{template_name(_1)}:1: [TrailingWhitespace] Trailing whitespace renders: write it with `'` or `>` instead" }
       assert_equal expected, output.lines(chomp: true)
     end
   end
@@ -47,7 +47,7 @@ class CLITest < Minitest::Test
 
   def in_templates(source)
     Dir.mktmpdir do |directory|
-      (1..TEMPLATE_COUNT).each { File.write(File.join(directory, template_name(it)), source) }
+      (1..TEMPLATE_COUNT).each { File.write(File.join(directory, template_name(_1)), source) }
       Dir.chdir(directory) { yield directory }
     end
   end

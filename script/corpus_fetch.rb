@@ -18,7 +18,7 @@ ATTEMPT_COUNT = 4
 
 Download = Data.define(:repository, :sha, :path) do
   def destination = File.join(CACHE_DIRECTORY, repository.tr("/", "_"), path)
-  def request_path = "/#{repository}/#{sha}/#{path.split("/").map { URI.encode_uri_component(it) }.join("/")}"
+  def request_path = "/#{repository}/#{sha}/#{path.split("/").map { URI.encode_uri_component(_1) }.join("/")}"
 end
 
 # A pinned commit's list never changes: once listed, a project needs no API call, so a full cache works offline.
@@ -30,9 +30,9 @@ def slim_paths(repository, sha)
     tree_json, status = Open3.capture2("gh", "api", "repos/#{repository}/git/trees/#{sha}?recursive=1")
     next sleep(2**attempt) unless status.success?
 
-    paths = JSON.parse(tree_json).fetch("tree").filter_map { it["path"] if it["type"] == "blob" && it["path"].end_with?(".slim") }
+    paths = JSON.parse(tree_json).fetch("tree").filter_map { _1["path"] if _1["type"] == "blob" && _1["path"].end_with?(".slim") }
     FileUtils.mkdir_p(File.dirname(listing_path))
-    File.write(listing_path, paths.map { "#{it}\n" }.join)
+    File.write(listing_path, paths.map { "#{_1}\n" }.join)
     return paths
   end
   abort "Cannot list #{repository}@#{sha}: gh api failed #{ATTEMPT_COUNT} times"
@@ -62,8 +62,8 @@ manifest = YAML.load_file(File.join(CORPUS_DIRECTORY, "manifest.yml"), permitted
 downloads = manifest.map do |project|
   Thread.new do
     repository, sha = project.fetch("repo"), project.fetch("sha")
-    all = slim_paths(repository, sha).map { Download.new(repository, sha, it) }
-    missing = all.reject { File.exist?(it.destination) }
+    all = slim_paths(repository, sha).map { Download.new(repository, sha, _1) }
+    missing = all.reject { File.exist?(_1.destination) }
     puts "#{repository}: #{all.size} templates, #{missing.size} to fetch"
     missing
   end
@@ -72,7 +72,7 @@ end.flat_map(&:value)
 exit if downloads.empty?
 
 queue = Queue.new
-downloads.each { queue << it }
+downloads.each { queue << _1 }
 queue.close
 headers = authorization_header
 Array.new([CONNECTION_COUNT, downloads.size].min) do
