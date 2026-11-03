@@ -42,12 +42,12 @@ def report(title, paths, failing:)
   return if paths.empty?
 
   puts "#{title}: #{paths.size}#{" (fails)" if failing}"
-  paths.first(EXAMPLE_COUNT).each { puts "  #{it}" }
+  paths.first(EXAMPLE_COUNT).each { puts "  #{_1}" }
 end
 
 render = !ARGV.delete("--render").nil?
 base = ARGV.include?("--base") ? ARGV.delete_at(ARGV.index("--base") + 1).tap { ARGV.delete("--base") } : default_base
-directories = ARGV.map { File.expand_path(it) }
+directories = ARGV.map { File.expand_path(_1) }
 abort "Usage: ruby script/corpus_diff.rb [--base REV] [--render] DIRECTORY..." if directories.empty?
 
 base_sha = git("rev-parse", "--verify", "#{base}^{commit}")
@@ -61,14 +61,14 @@ end
 
 paths = (before.keys | after.keys).sort
 relative = ->(path) { directories.reduce(path) { |shortened, directory| shortened.delete_prefix("#{File.dirname(directory)}/") } }
-stopped_compiling = paths.select { before[it] && after[it] && compiles?(before[it]) && !compiles?(after[it]) }
-started_compiling = paths.select { before[it] && after[it] && !compiles?(before[it]) && compiles?(after[it]) }
+stopped_compiling = paths.select { before[_1] && after[_1] && compiles?(before[_1]) && !compiles?(after[_1]) }
+started_compiling = paths.select { before[_1] && after[_1] && !compiles?(before[_1]) && compiles?(after[_1]) }
 compiled_changed = paths.select do |path|
   before[path] && after[path] && compiles?(before[path]) && compiles?(after[path]) &&
     before[path].values_at("tilt", "rails") != after[path].values_at("tilt", "rails")
 end
-formatting_changed = paths.select { before[it] && after[it] && before[it]["fmt"] != after[it]["fmt"] }
-html_changed = render ? paths.select { before[it] && after[it] && before[it]["html"] != after[it]["html"] } : []
+formatting_changed = paths.select { before[_1] && after[_1] && before[_1]["fmt"] != after[_1]["fmt"] }
+html_changed = render ? paths.select { before[_1] && after[_1] && before[_1]["html"] != after[_1]["html"] } : []
 
 offense_changes_by_rule = Hash.new { |hash, rule| hash[rule] = {appeared: [], disappeared: []} }
 paths.each do |path|
@@ -80,7 +80,7 @@ paths.each do |path|
   {appeared: after_offenses - Array(before_offenses), disappeared: before_offenses - Array(after_offenses)}.each do |change, offenses|
     next unless offenses.is_a?(Array)
 
-    offenses.each { offense_changes_by_rule[it[/\A[^:]+/]][change] << "#{relative.call(path)}:#{it[/:(\d+):/, 1]} #{it[/: (.*)\z/, 1]}" }
+    offenses.each { offense_changes_by_rule[_1[/\A[^:]+/]][change] << "#{relative.call(path)}:#{_1[/:(\d+):/, 1]} #{_1[/: (.*)\z/, 1]}" }
   end
 end
 

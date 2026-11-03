@@ -5,7 +5,7 @@ module SlimX
     module Rules
       def self.all
         constants.filter_map do
-          rule = const_get(it)
+          rule = const_get(_1)
           rule if rule < Rule
         end
       end
@@ -36,7 +36,7 @@ module SlimX
         end
 
         def attribute_names(tag)
-          tag.attributes.filter_map { it.name unless it.is_a?(AST::Splat) }
+          tag.attributes.filter_map { _1.name unless _1.is_a?(AST::Splat) }
         end
 
         def each_line(document)
@@ -50,7 +50,7 @@ module SlimX
         end
 
         def splat?(tag)
-          tag.attributes.any? { it.is_a?(AST::Splat) }
+          tag.attributes.any? { _1.is_a?(AST::Splat) }
         end
 
         # The value when it is written literally, nil when it is computed.
@@ -62,7 +62,7 @@ module SlimX
         end
 
         def literal_attributes(tag, name)
-          tag.attributes.select { it.respond_to?(:name) && it.name == name && literal_value(it) }
+          tag.attributes.select { _1.respond_to?(:name) && _1.name == name && literal_value(_1) }
         end
       end
 
@@ -194,13 +194,13 @@ module SlimX
 
         def offenses(document, _source)
           sibling_lists = [document.nodes, *document.visits.filter_map { |node,| Document.children_of(node) }]
-          sibling_lists.select! { |siblings| siblings.count { flat_control?(it) } > options[:max] }
+          sibling_lists.select! { |siblings| siblings.count { flat_control?(_1) } > options[:max] }
           sibling_lists.flat_map do |siblings|
             siblings.chunk_while { |control, following| flat_control?(control) && flat_control?(following) }
               .filter_map do
-                next unless it.size > options[:max] && flat_control?(it.first)
+                next unless _1.size > options[:max] && flat_control?(_1.first)
 
-                offense(document, document.line_of(it.first), "Merge these #{it.size} lines of Ruby into a `ruby:` block")
+                offense(document, document.line_of(_1.first), "Merge these #{_1.size} lines of Ruby into a `ruby:` block")
               end
           end
         end
@@ -218,7 +218,7 @@ module SlimX
 
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Tag) && node.name.match?(/[A-Z]/)
-            next if ancestors.any? { it.is_a?(AST::Tag) && it.name == "svg" }
+            next if ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "svg" }
 
             offense(document, document.line_of(node), "Write `#{node.name.downcase}` in lowercase")
           end
@@ -234,7 +234,7 @@ module SlimX
           document.enum_for(:each_node).filter_map do |node,|
             code = case node
             when AST::Control, AST::Output then node.code
-            when AST::Tag then node.attributes.filter_map { it.code if it.respond_to?(:code) }.join(" ")
+            when AST::Tag then node.attributes.filter_map { _1.code if _1.respond_to?(:code) }.join(" ")
             end
             next unless code && (variable = code[INSTANCE_VARIABLE])
 
@@ -247,7 +247,7 @@ module SlimX
         DEFAULTS = {enabled: false}.freeze
 
         def offenses(document, _source)
-          return [] if !document.partial? || document.lines.any? { it.match?(%r{\A\s*/#\s*locals:}) }
+          return [] if !document.partial? || document.lines.any? { _1.match?(%r{\A\s*/#\s*locals:}) }
 
           [offense(document, 1, "Declare the partial's locals: `/# locals: (name:)`")]
         end
@@ -259,7 +259,7 @@ module SlimX
         def offenses(document, _source)
           branch_by_id = {}
           enum_for(:each_tag, document).filter_map do |tag, ancestors|
-            branch = ancestors.reverse.find { it.is_a?(AST::Control) }
+            branch = ancestors.reverse.find { _1.is_a?(AST::Control) }
             literal_attributes(tag, "id").filter_map do |attribute|
               id = literal_value(attribute)
               if branch_by_id.key?(id) && branch_by_id[id].equal?(branch)
@@ -302,7 +302,7 @@ module SlimX
       class NestedLinks < Rule
         def offenses(document, _source)
           enum_for(:each_tag, document, "a").filter_map do |tag, ancestors|
-            next unless ancestors.any? { it.is_a?(AST::Tag) && it.name == "a" }
+            next unless ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "a" }
 
             offense(document, document.line_of(tag), "Links cannot contain links")
           end
@@ -366,7 +366,7 @@ module SlimX
           dropeffect errormessage expanded flowto grabbed haspopup hidden invalid keyshortcuts label
           labelledby level live modal multiline multiselectable orientation owns placeholder posinset
           pressed readonly relevant required roledescription rowcount rowindex rowindextext rowspan selected
-          setsize sort valuemax valuemin valuenow valuetext].map { "aria-#{it}" }.freeze
+          setsize sort valuemax valuemin valuenow valuetext].map { "aria-#{_1}" }.freeze
 
         def offenses(document, _source)
           enum_for(:each_tag, document).flat_map do |tag,|
@@ -387,7 +387,7 @@ module SlimX
           return [] if replacement_by_class.empty?
 
           enum_for(:each_tag, document).flat_map do |tag,|
-            literal_attributes(tag, "class").flat_map { literal_value(it).split }.filter_map do |css_class|
+            literal_attributes(tag, "class").flat_map { literal_value(_1).split }.filter_map do |css_class|
               next unless replacement_by_class.key?(css_class)
 
               offense(document, document.line_of(tag), "`#{css_class}` is deprecated: use `#{replacement_by_class[css_class]}`")

@@ -28,7 +28,7 @@ class LiterateTest < Minitest::Test
         options_by_depth = options_by_depth.first(depth) + [options_by_depth.first(depth).last.dup]
         title = title.first(depth - 1) + [heading[2]]
       elsif (fence = line.match(/\A~{3,}\s*(\w+)\s*\z/))
-        block = lines.take_while { !it.match?(/\A~{3,}\s*\z/) }
+        block = lines.take_while { !_1.match?(/\A~{3,}\s*\z/) }
         lines.shift(block.size + 1)
         case fence[1]
         # The options blocks are Ruby hash literals written by Slim itself, in a gem we installed.
@@ -47,9 +47,9 @@ class LiterateTest < Minitest::Test
   private
 
   def check(example)
-    unsupported = UNSUPPORTED_OPTIONS.select { example.options[it] }
+    unsupported = UNSUPPORTED_OPTIONS.select { example.options[_1] }
     skip "Unsupported options #{unsupported.inspect}" if unsupported.any?
-    skip "Dropped from SlimX" if DROPPED_FEATURES.any? { example.title.include?(it) }
+    skip "Dropped from SlimX" if DROPPED_FEATURES.any? { example.title.include?(_1) }
 
     assert_equal render_with_slim(example), render_with_slimx(example), "SlimX differs from Slim on:\n#{example.slim}"
   end

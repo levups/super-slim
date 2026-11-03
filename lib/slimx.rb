@@ -59,7 +59,7 @@ module SlimX
 
       lines = source.split("\n", -1)
       expected_lines = formatted.split("\n", -1)
-      index = lines.each_index.find { lines[it] != expected_lines[it] } || lines.size
+      index = lines.each_index.find { lines[_1] != expected_lines[_1] } || lines.size
       raise SyntaxError.new("Not formatted, `slimx fmt` writes: #{expected_lines[index].inspect}", file, lines[index], index + 1, lines[index].to_s[/\A\s*/].size)
     end
   end
