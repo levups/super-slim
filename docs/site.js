@@ -32,7 +32,7 @@ function columnChart({ title, better, rows, format = formatNumber }) {
       element("span", { class: "column-name" }, row.name)));
   }
   const table = element("table", {},
-    element("thead", {}, element("tr", {}, element("th", {}, "Engine"), element("th", { class: "number" }, title))),
+    element("thead", {}, element("tr", {}, element("th", { scope: "col" }, "Engine"), element("th", { scope: "col", class: "number" }, title))),
     element("tbody", {}, ...rows.map((row) => element("tr", {},
       element("td", {}, row.label || row.name),
       element("td", { class: "number" }, format(row.value))))));
