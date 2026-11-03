@@ -3,7 +3,7 @@
 # What golden templates can call. Values cover what breaks engines: markup to escape, nil, false, true, numbers,
 # symbols, nested arrays, hashes for splats and data attributes, blocks, and strings already marked safe.
 module GoldenScope
-  Post = Struct.new(:id, :title, :url, :comments, :featured, :draft, :tags, keyword_init: true)
+  Post = Struct.new(:id, :title, :url, :comments, :featured, :draft, :tags)
 
   def title = "Posts & comments"
   def markup = %(<b class="x">&'"</b>)
@@ -18,9 +18,9 @@ module GoldenScope
   def unicode = "Café · naïve – 日本 🌍"
   def url = "/search?q=a&b=<c>"
   def classes = ["a", nil, ["b", ""], :c, false]
-  def attributes = { title: "<t>", "data-x" => 1, disabled: true, hidden: false, id: nil }
-  def data = { user_id: 1, nested: { deep: "<v>" }, flag: true, off: false, none: nil, list: [1, 2] }
-  def aria = { label: "Close", hidden: true }
+  def attributes = {:title => "<t>", "data-x" => 1, :disabled => true, :hidden => false, :id => nil}
+  def data = {user_id: 1, nested: {deep: "<v>"}, flag: true, off: false, none: nil, list: [1, 2]}
+  def aria = {label: "Close", hidden: true}
   def tag_name = "section"
   def items = %w[one two three]
   def wrap = "[#{yield}]"
