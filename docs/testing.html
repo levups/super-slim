@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="page">
+<a class="skip-link" href="#content">Skip to content</a>
+<div class="page">
   <nav class="site-nav" aria-label="Site">
     <a class="brand" href="./">SlimX</a>
     <a href="guide.html">Guide</a>
@@ -23,6 +24,7 @@
     <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
   </nav>
 
+  <main id="content">
   <header>
     <h1 class="page-title">Testing</h1>
     <p class="lede">A rewrite is only worth it if nobody can tell from the HTML. Slim itself is the reference: wherever possible, a test renders through both engines and requires the same bytes.</p>
@@ -120,10 +122,20 @@ bundle exec rake corpus:fetch corpus:check</code></pre>
     </div>
   </section>
 
-  <footer>
-    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
-    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </main>
+
+  <footer class="family">
+    <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
+    <nav aria-label="Next Gen Gems">
+      <ul>
+        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
+        <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
+        <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
+      </ul>
+    </nav>
+    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
   </footer>
-</main>
+</div>
 </body>
 </html>

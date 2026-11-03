@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="page">
+<a class="skip-link" href="#content">Skip to content</a>
+<div class="page">
   <nav class="site-nav" aria-label="Site">
     <a class="brand" href="./">SlimX</a>
     <a href="guide.html" aria-current="page">Guide</a>
@@ -23,6 +24,7 @@
     <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
   </nav>
 
+  <main id="content">
   <header>
     <h1 class="page-title">Guide</h1>
     <p class="lede">SlimX reads the Slim 5 grammar and renders the HTML Slim renders. Installing it is swapping a gem; this page covers the rest.</p>
@@ -82,7 +84,7 @@ code = SlimX.compile(source, file: "page.slim")
       <p>Two settings apply everywhere, typically in <code>config/initializers/slimx.rb</code>:</p>
     </div>
     <table class="options">
-      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
       <tbody>
         <tr><td><code>SlimX.strict = true</code></td><td>off</td><td>Refuse to compile a template <code>slimx fmt</code> would change. <a href="tools.html#strict">Strict mode</a></td></tr>
         <tr><td><code>SlimX.tailwind_classes = true</code></td><td>off</td><td>Let class shortcuts read Tailwind class names. <a href="#tailwind">Tailwind</a></td></tr>
@@ -92,7 +94,7 @@ code = SlimX.compile(source, file: "page.slim")
       <p>Each one can be overridden per compile, alongside the options of <code>SlimX.compile</code> and <code>SlimX::Template</code>:</p>
     </div>
     <table class="options">
-      <thead><tr><th>Option</th><th>Default</th><th>Effect</th></tr></thead>
+      <thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
       <tbody>
         <tr><td><code>file:</code></td><td><code>nil</code></td><td>The path shown in syntax errors and backtraces.</td></tr>
         <tr><td><code>format:</code></td><td><code>:html</code></td><td><code>:xml</code> closes void tags (<code>&lt;br /&gt;</code>) and allows <code>doctype xml</code>.</td></tr>
@@ -161,10 +163,20 @@ ul.*:p-2</code></pre>
     </div>
   </section>
 
-  <footer>
-    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
-    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </main>
+
+  <footer class="family">
+    <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
+    <nav aria-label="Next Gen Gems">
+      <ul>
+        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
+        <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
+        <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
+      </ul>
+    </nav>
+    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
   </footer>
-</main>
+</div>
 </body>
 </html>

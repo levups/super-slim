@@ -4,10 +4,16 @@ A Slim template engine rewritten from scratch: no Temple, no filter pipeline, a 
 render-time runtime of a few methods. Templates written for [Slim](https://github.com/slim-template/slim) 5
 render byte for byte the same, faster, with fewer allocations.
 
+https://next-gen-gems.github.io/slimx/
+
+## Installation
+
 ```ruby
 # Gemfile
 gem "slimx" # instead of slim-rails
 ```
+
+## Usage
 
 Rails picks it up through its railtie. Outside Rails, `require "slimx/tilt"` registers it with Tilt
 (Sinatra, Hanami, Roda…), and `SlimX.compile(source)` returns the Ruby code.
@@ -125,13 +131,6 @@ against Slim, and `rake corpus:diff BASE=rev` reports what changes between a rev
 compiled Ruby, formatting, lint offenses. Downloaded templates are never rendered, as rendering runs their
 Ruby; directories you trust, such as your own app, render too when passed in `SLIMX_CORPUS`.
 
-```sh
-bundle exec rake test
-FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib test/fuzz_test.rb
-bundle exec ruby -Ilib bench/corpus.rb path/to/app   # compile time and allocations against Slim
-bundle exec ruby --yjit -Ilib bench/render.rb        # render speed and allocations against Slim
-```
-
 ## Benchmarks
 
 `bench/compare.rb` renders the same blog page with SlimX, Slim, Haml, Erubi and Herb, checks that they all
@@ -148,7 +147,18 @@ With `corpus/cache` fetched, it also times the open-source corpus, and `slimx li
 slim-lint when it is installed. `bundle exec rake docs` rewrites the linter rules on the website
 (`docs/tools.html`), after checking every example against the linter.
 
-## Releasing
+## Development
+
+```sh
+bundle install
+bundle exec rake test                                # SlimX's tests, then Slim's own suites
+bundle exec rubocop
+FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib test/fuzz_test.rb
+bundle exec ruby -Ilib bench/corpus.rb path/to/app   # compile time and allocations against Slim
+bundle exec ruby --yjit -Ilib bench/render.rb        # render speed and allocations against Slim
+```
+
+### Releasing
 
 1. Bump `SlimX::VERSION` and add the version to `CHANGELOG.md`.
 2. On a quiet machine, `SLIMX_CORPUS=path/to/app/views bundle exec rake bench` refreshes the website's numbers.
@@ -157,4 +167,7 @@ slim-lint when it is installed. `bundle exec rake docs` rewrites the linter rule
    tags `vX.Y.Z`, pushes the tag and publishes the gem.
 5. `gh release create vX.Y.Z --notes "…"`, the notes being the version's section of `CHANGELOG.md`.
 
-Made by [Next Gen Gems, by Level UP Solutions](https://github.com/next-gen-gems). MIT license.
+## License
+
+MIT, by Level UP Solutions, part of [Next Gen Gems](https://github.com/next-gen-gems). The parser follows the
+grammar and parsing algorithm of [Slim](https://github.com/slim-template/slim), by the Slim Team (MIT).
