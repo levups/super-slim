@@ -1,0 +1,44 @@
+~~~~~~~~ slimx: html
+<script>var title = "Posts &amp; comments";
+console.log(title);</script><style>.a { color: red; }
+.b::before { content: "primary"; }</style><p>Hello one</p><script></script>
+~~~~~~~~ slimx: tilt
+_buf = +""
+_buf << "<script>var title = \"".freeze; _buf << ::ERB::Escape.html_escape((title))
+
+
+
+_buf << "\";\nconsole.log(title);</script><style>.a { color: red; }\n.b::before { content: \"".freeze; _buf << ::ERB::Escape.html_escape((symbol))
+
+_buf << "\"; }</style>".freeze; greeting = "Hello"
+name = items.first
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("#{greeting} #{name}"))
+
+_buf << "</p><script></script>".freeze; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new
+@output_buffer.safe_concat("<script>var title = \"".freeze); @output_buffer << (title)
+
+
+
+@output_buffer.safe_concat("\";\nconsole.log(title);</script><style>.a { color: red; }\n.b::before { content: \"".freeze); @output_buffer << (symbol)
+
+@output_buffer.safe_concat("\"; }</style>".freeze); greeting = "Hello"
+name = items.first
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << ("#{greeting} #{name}")
+
+@output_buffer.safe_concat("</p><script></script>".freeze); @output_buffer
+~~~~~~~~ slimx: fmt
+javascript:
+  var title = "#{title}";
+  console.log(title);
+css:
+  .a { color: red; }
+  .b::before { content: "#{symbol}"; }
+ruby:
+  greeting = "Hello"
+  name = items.first
+p = "#{greeting} #{name}"
+javascript:
+~~~~~~~~ slimx: lint
+

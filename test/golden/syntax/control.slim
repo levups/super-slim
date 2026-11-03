@@ -1,0 +1,34 @@
+- if yes
+  p yes
+- elsif no
+  p no
+- else
+  p else
+- unless no
+  p unless
+- case symbol
+- when :primary
+  p primary
+- when :secondary
+  p secondary
+- else
+  p other
+- items.each_with_index do |item, index|
+  li id="item-#{index}" = item
+- items.each do |item|
+  - next if item == "two"
+  = item
+- total = items.sum(&:size)
+p = total
+- long = [1,
+  2, 3].sum
+p = long
+- begin
+  p = Integer("x")
+- rescue ArgumentError
+  p rescued
+- while false
+  p never
+- posts.each do |post|
+  article
+    h2 = post.title

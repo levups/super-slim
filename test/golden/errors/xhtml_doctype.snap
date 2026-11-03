@@ -1,0 +1,10 @@
+~~~~~~~~ slimx: html
+error: Error: Invalid doctype 1.1
+~~~~~~~~ slimx: tilt
+error: Error: Invalid doctype 1.1
+~~~~~~~~ slimx: rails
+error: Error: Invalid doctype 1.1
+~~~~~~~~ slimx: fmt
+doctype 1.1
+~~~~~~~~ slimx: lint
+

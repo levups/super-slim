@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push makes the runs of older commits of the same branch pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Ruby ${{ matrix.ruby }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    continue-on-error: ${{ matrix.ruby == 'ruby-head' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        ruby: ["3.4", "4.0", ruby-head]
+        include:
+          - os: macos-latest
+            ruby: "4.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Golden tests, formatter, linter, CLI, fuzz
+        run: bundle exec rake test:slimx
+      - name: Slim's own suites against SlimX
+        run: bundle exec rake test:slim_suite
+      - name: Fuzz with a fresh seed
+        run: FUZZ_SEED=${{ github.run_id }} FUZZ_CASES=10000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
+
+  corpus:
+    name: Corpus of public apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # corpus:diff checks out the base revision
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      # Restored and saved apart, so templates fetched by a run whose checks fail are kept for the next one.
+      - uses: actions/cache/restore@v4
+        id: corpus-cache
+        with:
+          path: corpus/cache
+          key: corpus-${{ hashFiles('corpus/manifest.yml') }}
+          restore-keys: corpus-
+      - name: Fetch the templates pinned in corpus/manifest.yml
+        run: bundle exec rake corpus:fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/cache/save@v4
+        if: always() && steps.corpus-cache.outputs.cache-hit != 'true'
+        with:
+          path: corpus/cache
+          key: corpus-${{ hashFiles('corpus/manifest.yml') }}
+      # Compiles, formats and lints every template without rendering it: rendering would run their Ruby.
+      - name: Check SlimX against them
+        run: bundle exec rake corpus:check
+      - name: Compare with the base branch
+        if: github.event_name == 'pull_request'
+        run: bundle exec rake corpus:diff BASE="origin/$BASE_BRANCH"
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}

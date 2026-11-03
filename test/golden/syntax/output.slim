@@ -1,0 +1,21 @@
+p = title
+p == markup
+p = markup
+p = nothing
+p = number
+p = decimal
+p = symbol
+p = empty
+= safe_markup
+== safe_markup
+p = items.map(&:upcase).join(", ")
+p = format("%s-%s",
+  title, number)
+p = [title,
+  number].join(" ")
+= wrap do
+  | wrapped
+= wrap do
+  = title
+p = "multi \
+  line"

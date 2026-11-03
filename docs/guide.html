@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlimX Guide</title>
+<meta name="description" content="Install SlimX in Rails or with Tilt, configure it, use Tailwind class names, and migrate from Slim.">
+<meta name="theme-color" content="#2340e8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Inter+Tight:wght@400;600&family=Fira+Code&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="./">SlimX</a>
+    <a href="guide.html" aria-current="page">Guide</a>
+    <a href="tools.html">Formatter &amp; linter</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="testing.html">Testing</a>
+    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+  </nav>
+
+  <header>
+    <h1 class="page-title">Guide</h1>
+    <p class="lede">SlimX reads the Slim 5 grammar and renders the HTML Slim renders. Installing it is swapping a gem; this page covers the rest.</p>
+    <ul class="toc">
+      <li><a href="#rails">Rails</a></li>
+      <li><a href="#tilt">Tilt and plain Ruby</a></li>
+      <li><a href="#options">Options</a></li>
+      <li><a href="#tailwind">Tailwind class names</a></li>
+      <li><a href="#embedded">Embedded engines</a></li>
+      <li><a href="#migrating">Migrating from Slim</a></li>
+      <li><a href="#left-out">What SlimX leaves out</a></li>
+    </ul>
+  </header>
+
+  <section id="rails" aria-labelledby="rails-title">
+    <h2 id="rails-title">Rails</h2>
+    <div class="prose">
+<pre><code># Gemfile
+gem "slimx" # instead of slim-rails</code></pre>
+      <p>A railtie registers the <code>.slim</code> handler with Action View. Nothing else to configure:</p>
+      <ul>
+        <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
+        <li>templates whose format is XML (<code>.xml</code>, <code>.rss</code>, <code>.atom</code>) render as XML, with <code>&lt;link /&gt;</code> and <code>doctype xml</code>;</li>
+        <li><code>annotate_rendered_view_with_filenames</code> adds its <code>BEGIN</code>/<code>END</code> comments, and streaming works;</li>
+        <li>every <code>-</code> and <code>=</code> line compiles onto its template line, so an exception’s backtrace points at the right line — including after a <code>ruby:</code> block or a multi-line attribute list, where Slim drifts;</li>
+        <li><code>/# locals: (post:)</code> declares a partial’s strict locals.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="tilt" aria-labelledby="tilt-title">
+    <h2 id="tilt-title">Tilt and plain Ruby</h2>
+    <div class="split">
+      <div>
+        <p class="code-label">Sinatra, Hanami, Roda — anything on Tilt</p>
+<pre><code>require "slimx/tilt"
+
+Tilt.new("page.slim").render(scope, title: "Hi")
+SlimX::Template.new("page.slim", tailwind_classes: true)</code></pre>
+      </div>
+      <div>
+        <p class="code-label">Plain Ruby</p>
+<pre><code>require "slimx"
+
+code = SlimX.compile(source, file: "page.slim")
+# Ruby that builds the HTML in _buf and returns it</code></pre>
+      </div>
+    </div>
+    <div class="prose">
+      <p>Tilt passes its options through to <code>SlimX.compile</code>. Registering SlimX takes the <code>slim</code> extension, so require <code>slimx/tilt</code> instead of <code>slim</code>, not both.</p>
+    </div>
+  </section>
+
+  <section id="options" aria-labelledby="options-title">
+    <h2 id="options-title">Options</h2>
+    <div class="prose">
+      <p>Two settings apply everywhere, typically in <code>config/initializers/slimx.rb</code>:</p>
+    </div>
+    <table class="options">
+      <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>SlimX.strict = true</code></td><td>off</td><td>Refuse to compile a template <code>slimx fmt</code> would change. <a href="tools.html#strict">Strict mode</a></td></tr>
+        <tr><td><code>SlimX.tailwind_classes = true</code></td><td>off</td><td>Let class shortcuts read Tailwind class names. <a href="#tailwind">Tailwind</a></td></tr>
+      </tbody>
+    </table>
+    <div class="prose">
+      <p>Each one can be overridden per compile, alongside the options of <code>SlimX.compile</code> and <code>SlimX::Template</code>:</p>
+    </div>
+    <table class="options">
+      <thead><tr><th>Option</th><th>Default</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr><td><code>file:</code></td><td><code>nil</code></td><td>The path shown in syntax errors and backtraces.</td></tr>
+        <tr><td><code>format:</code></td><td><code>:html</code></td><td><code>:xml</code> closes void tags (<code>&lt;br /&gt;</code>) and allows <code>doctype xml</code>.</td></tr>
+        <tr><td><code>html_safe:</code></td><td>when <code>String#html_safe?</code> exists</td><td>Leave <code>html_safe</code> strings unescaped, the way Rails expects.</td></tr>
+        <tr><td><code>shortcuts:</code></td><td><code>#</code> → id, <code>.</code> → class</td><td>Slim’s shortcut definitions, such as <code>{"@" =&gt; {attr: "role"}, "&amp;" =&gt; {tag: "input", attr: "type"}}</code>.</td></tr>
+        <tr><td><code>strict:</code></td><td><code>SlimX.strict</code></td><td>Strict mode for this template.</td></tr>
+        <tr><td><code>tailwind_classes:</code></td><td><code>SlimX.tailwind_classes</code></td><td>Tailwind class names for this template.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="tailwind" aria-labelledby="tailwind-title">
+    <h2 id="tailwind-title">Tailwind class names</h2>
+    <div class="prose">
+      <p>Slim cuts <code>.rounded-b-[3px]</code> at the bracket, renders <code>.size-2.5</code> as <code>class="size-2 5"</code>, and refuses <code>.lg:[&amp;:nth-child(3)]:hover:underline</code>. Turn on <code>tailwind_classes</code> and the <code>.</code> shortcut takes any Tailwind class name:</p>
+    </div>
+    <div class="split">
+      <div>
+        <p class="code-label">Template</p>
+<pre><code>.p-1.rounded-b-[3px].lg:[&amp;:nth-child(3)]:hover:underline
+.font-['Open_Sans'].bg-(--brand).mx-0.5.w-1/2.!font-bold
+ul.*:p-2</code></pre>
+      </div>
+      <div>
+        <p class="code-label">config/initializers/slimx.rb, and .slimx.yml for the CLI</p>
+<pre><code>SlimX.tailwind_classes = true</code></pre>
+<pre><code>tailwind_classes: true</code></pre>
+      </div>
+    </div>
+    <div class="prose">
+      <p>Attribute lists keep their meaning: Tailwind never puts a bracket right after a letter or a digit, so <code>a.btn[href="/"]</code> is still a link with a class and an <code>href</code>. A colon followed by a space still nests a tag (<code>li.item: a</code>), and a final <code>/</code> still closes one.</p>
+      <p>Checked on 7,505 templates from 31 apps: 16 compile differently with the option, every one of them a Tailwind class Slim breaks. It stays off by default all the same, so that switching from Slim changes no template. It only changes how templates are read: the compiled Ruby, so the render time, is the same.</p>
+    </div>
+  </section>
+
+  <section id="embedded" aria-labelledby="embedded-title">
+    <h2 id="embedded-title">Embedded engines</h2>
+    <div class="prose">
+      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SlimX itself depends on no gem.</p>
+    </div>
+  </section>
+
+  <section id="migrating" aria-labelledby="migrating-title">
+    <h2 id="migrating-title">Migrating from Slim</h2>
+    <ol class="steps">
+      <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SlimX renders.</li>
+      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "slimx"</code>.</li>
+      <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call, and move custom shortcuts to the <code>shortcuts:</code> option.</li>
+      <li>Run <code>slimx fmt</code> once and review the diff, then add <code>slimx lint</code> and <code>slimx fmt --check</code> to CI.</li>
+      <li>Optionally, turn on <code>SlimX.strict</code> in development and test.</li>
+    </ol>
+  </section>
+
+  <section id="left-out" aria-labelledby="left-out-title">
+    <h2 id="left-out-title">What SlimX leaves out</h2>
+    <div class="prose">
+      <p>Each fails at compile time with a clear error instead of being silently ignored:</p>
+    </div>
+    <ul class="left-out">
+      <li>the XHTML format, <code>sort_attrs</code>, <code>attr_quote</code>, <code>pretty</code>, <code>js_wrapper</code> and every Temple option;</li>
+      <li>the <code>coffee:</code>, <code>sass:</code>, <code>scss:</code>, <code>less:</code>, <code>erb:</code>, <code>builder:</code>, <code>textile:</code>, <code>rdoc:</code>, <code>asciidoc:</code> and wiki engines, and <code>/[if IE]</code> conditional comments;</li>
+      <li>the <code>logic_less</code>, <code>translator</code>, <code>include</code> and <code>smart</code> plugins, and lambda shortcuts.</li>
+    </ul>
+    <div class="prose">
+      <p>They can come back if people ask, as long as they cost nothing at render time.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
+    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </footer>
+</main>
+</body>
+</html>

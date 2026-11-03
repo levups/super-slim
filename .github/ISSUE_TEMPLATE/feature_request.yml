@@ -1,0 +1,15 @@
+name: Feature request
+description: A Slim feature SlimX leaves out, a new lint rule, a new option
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you need
+      description: The templates it concerns, and what stops you today. For a feature SlimX leaves out, how your app uses it.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      render: slim

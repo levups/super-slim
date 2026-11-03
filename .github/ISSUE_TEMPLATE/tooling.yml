@@ -1,0 +1,33 @@
+name: Formatter or linter
+description: slimx fmt rewrites a template wrongly, or slimx lint reports a false positive or misses a mistake
+labels: [bug]
+body:
+  - type: dropdown
+    id: command
+    attributes:
+      label: Command
+      options: [slimx fmt, slimx lint, other]
+    validations:
+      required: true
+  - type: textarea
+    id: template
+    attributes:
+      label: Template
+      description: The smallest template that reproduces it, and your `.slimx.yml` if you have one.
+      render: slim
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+      description: The output of the command, and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: SlimX 1.0.0 (or commit), Ruby 4.0.1
+    validations:
+      required: true

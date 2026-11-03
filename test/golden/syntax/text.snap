@@ -1,0 +1,66 @@
+~~~~~~~~ slimx: html
+<p>First line
+continued on a second line
+  and an indented thirdEscaped #{not interpolated}</p><p>Inline Posts &amp; comments and <b class="x">&'"</b> raw</p><p>Unicode: Café · naïve – 日本 🌍</p>Top level text with & and < and ><div class="inline-html"><p>inside inline html</p></div><p>Text with apostrophe marker Final</p><p>Block starting on the next line
+with two lines</p>
+~~~~~~~~ slimx: tilt
+_buf = +""
+
+
+
+
+_buf << "<p>First line\ncontinued on a second line\n  and an indented thirdEscaped \#{not interpolated}</p><p>Inline ".freeze; _buf << ::ERB::Escape.html_escape((title)); _buf << " and ".freeze; _buf << (markup).to_s
+_buf << " raw</p><p>Unicode: ".freeze; _buf << ::ERB::Escape.html_escape((unicode))
+
+
+
+
+
+
+
+
+
+
+
+_buf << "</p>Top level text with & and < and ><div class=\"inline-html\"><p>inside inline html</p></div><p>Text with apostrophe marker Final</p><p>Block starting on the next line\nwith two lines</p>".freeze; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new
+
+
+
+
+@output_buffer.safe_concat("<p>First line\ncontinued on a second line\n  and an indented thirdEscaped \#{not interpolated}</p><p>Inline ".freeze); @output_buffer << (title); @output_buffer.safe_concat(" and ".freeze); @output_buffer.safe_concat((markup).to_s)
+@output_buffer.safe_concat(" raw</p><p>Unicode: ".freeze); @output_buffer << (unicode)
+
+
+
+
+
+
+
+
+
+
+
+@output_buffer.safe_concat("</p>Top level text with & and < and ><div class=\"inline-html\"><p>inside inline html</p></div><p>Text with apostrophe marker Final</p><p>Block starting on the next line\nwith two lines</p>".freeze); @output_buffer
+~~~~~~~~ slimx: fmt
+p
+  | First line
+    continued on a second line
+      and an indented third
+  | Escaped \#{not interpolated}
+p Inline #{title} and #{{markup}} raw
+p Unicode: #{unicode}
+| Top level text with & and < and >
+<div class="inline-html">
+  p inside inline html
+</div>
+p
+  'Text with apostrophe marker
+  | Final
+p
+  |
+    Block starting on the next line
+    with two lines
+~~~~~~~~ slimx: lint
+

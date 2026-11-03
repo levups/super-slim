@@ -1,0 +1,107 @@
+{
+  "measured_on": "2026-11-01",
+  "ruby": "ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +YJIT +PRISM [arm64-darwin27]",
+  "yjit": true,
+  "page": "24 post cards, 12245 bytes of HTML",
+  "engines": [
+    {
+      "name": "SlimX",
+      "version": "0.1.0",
+      "compiles_per_second": 12412,
+      "compile_allocations": 600,
+      "renders_per_second": 63212,
+      "render_allocations": 111
+    },
+    {
+      "name": "Slim",
+      "version": "5.2.2",
+      "compiles_per_second": 1369,
+      "compile_allocations": 8696,
+      "renders_per_second": 24753,
+      "render_allocations": 480
+    },
+    {
+      "name": "Haml",
+      "version": "7.5.1",
+      "compiles_per_second": 982,
+      "compile_allocations": 7234,
+      "renders_per_second": 38436,
+      "render_allocations": 471
+    },
+    {
+      "name": "Erubi",
+      "version": "1.13.1",
+      "compiles_per_second": 45898,
+      "compile_allocations": 161,
+      "renders_per_second": 65905,
+      "render_allocations": 115
+    },
+    {
+      "name": "Herb",
+      "version": "0.11.1",
+      "compiles_per_second": 5819,
+      "compile_allocations": 2227,
+      "renders_per_second": 10120,
+      "render_allocations": 916
+    }
+  ],
+  "html_sha256": {
+    "Slim": "3333c7a9ddbcc23d10b9dc2a0b7ecc309e8c3f740b177a237fe8effeaf2a85a9",
+    "SlimX": "3333c7a9ddbcc23d10b9dc2a0b7ecc309e8c3f740b177a237fe8effeaf2a85a9"
+  },
+  "corpora": [
+    {
+      "label": "A production Rails app",
+      "templates": 1402,
+      "engines": [
+        {
+          "name": "SlimX",
+          "milliseconds": 100,
+          "allocations": 509181
+        },
+        {
+          "name": "Slim",
+          "milliseconds": 511,
+          "allocations": 6674099
+        }
+      ]
+    },
+    {
+      "label": "30 open-source projects",
+      "templates": 6056,
+      "engines": [
+        {
+          "name": "SlimX",
+          "milliseconds": 509,
+          "allocations": 2630288
+        },
+        {
+          "name": "Slim",
+          "milliseconds": 2335,
+          "allocations": 35742207
+        }
+      ]
+    }
+  ],
+  "tools": {
+    "templates": 6097,
+    "processors": 10,
+    "commands": [
+      {
+        "name": "slimx lint",
+        "milliseconds": 551,
+        "cpu_milliseconds": 2742
+      },
+      {
+        "name": "slimx fmt --check",
+        "milliseconds": 566,
+        "cpu_milliseconds": 3081
+      },
+      {
+        "name": "slim-lint 0.37.0",
+        "milliseconds": 7279,
+        "cpu_milliseconds": 7278
+      }
+    ]
+  }
+}

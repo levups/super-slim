@@ -1,0 +1,17 @@
+main.blog
+  h1 = title
+  - posts.each do |post|
+    article.card class=("featured" if post[:featured]) data-id=post[:id]
+      a.stretched-link href=post[:url] title=post[:title]
+        img alt=post[:title] loading="lazy" src=post[:image]
+      .card-body
+        h2.card-title = post[:title]
+        p.meta
+          span.count = post[:comments]
+          '
+          span.label comments
+        - if post[:tags].any?
+          ul.tags
+            - post[:tags].each do |tag|
+              li class="tag tag-#{tag}" = tag
+        button.btn data-action="click->post#save" disabled=post[:draft] type="button" Save

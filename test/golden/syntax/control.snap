@@ -1,0 +1,111 @@
+~~~~~~~~ slimx: html
+<p>yes</p><p>unless</p><p>primary</p><li id="item-0">one</li><li id="item-1">two</li><li id="item-2">three</li>onethree<p>11</p><p>6</p><p><p>rescued</p><article><h2>Hello &lt;World&gt;</h2></article><article><h2>Tips &amp; tricks</h2></article>
+~~~~~~~~ slimx: tilt
+_buf = +""; if yes
+
+_buf << "<p>yes</p>".freeze; elsif no
+
+_buf << "<p>no</p>".freeze; else
+
+_buf << "<p>else</p>".freeze; end; unless no
+
+_buf << "<p>unless</p>".freeze; end; case symbol
+when :primary
+
+_buf << "<p>primary</p>".freeze; when :secondary
+
+_buf << "<p>secondary</p>".freeze; else
+
+_buf << "<p>other</p>".freeze; end; items.each_with_index do |item, index|
+_buf << "<li id=\"item-".freeze; _buf << ::ERB::Escape.html_escape((index)); _buf << "\">".freeze; _buf << ::ERB::Escape.html_escape((item))
+_buf << "</li>".freeze; end; items.each do |item|
+next if item == "two"
+_buf << ::ERB::Escape.html_escape((item))
+end; total = items.sum(&:size)
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((total))
+_buf << "</p>".freeze; long = [1,
+2, 3].sum
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((long))
+_buf << "</p>".freeze; begin
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((Integer("x")))
+_buf << "</p>".freeze; rescue ArgumentError
+
+_buf << "<p>rescued</p>".freeze; end; while false do
+
+_buf << "<p>never</p>".freeze; end; posts.each do |post|
+
+_buf << "<article><h2>".freeze; _buf << ::ERB::Escape.html_escape((post.title))
+_buf << "</h2></article>".freeze; end; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; if yes
+
+@output_buffer.safe_concat("<p>yes</p>".freeze); elsif no
+
+@output_buffer.safe_concat("<p>no</p>".freeze); else
+
+@output_buffer.safe_concat("<p>else</p>".freeze); end; unless no
+
+@output_buffer.safe_concat("<p>unless</p>".freeze); end; case symbol
+when :primary
+
+@output_buffer.safe_concat("<p>primary</p>".freeze); when :secondary
+
+@output_buffer.safe_concat("<p>secondary</p>".freeze); else
+
+@output_buffer.safe_concat("<p>other</p>".freeze); end; items.each_with_index do |item, index|
+@output_buffer.safe_concat("<li id=\"item-".freeze); @output_buffer << (index); @output_buffer.safe_concat("\">".freeze); @output_buffer << (item)
+@output_buffer.safe_concat("</li>".freeze); end; items.each do |item|
+next if item == "two"
+@output_buffer << (item)
+end; total = items.sum(&:size)
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (total)
+@output_buffer.safe_concat("</p>".freeze); long = [1,
+2, 3].sum
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (long)
+@output_buffer.safe_concat("</p>".freeze); begin
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (Integer("x"))
+@output_buffer.safe_concat("</p>".freeze); rescue ArgumentError
+
+@output_buffer.safe_concat("<p>rescued</p>".freeze); end; while false do
+
+@output_buffer.safe_concat("<p>never</p>".freeze); end; posts.each do |post|
+
+@output_buffer.safe_concat("<article><h2>".freeze); @output_buffer << (post.title)
+@output_buffer.safe_concat("</h2></article>".freeze); end; @output_buffer
+~~~~~~~~ slimx: fmt
+- if yes
+  p yes
+- elsif no
+  p no
+- else
+  p else
+- unless no
+  p unless
+- case symbol
+- when :primary
+  p primary
+- when :secondary
+  p secondary
+- else
+  p other
+- items.each_with_index do |item, index|
+  li id="item-#{index}" = item
+- items.each do |item|
+  - next if item == "two"
+  = item
+- total = items.sum(&:size)
+p = total
+- long = [1,
+  2, 3].sum
+p = long
+- begin
+  p = Integer("x")
+- rescue ArgumentError
+  p rescued
+- while false
+  p never
+- posts.each do |post|
+  article
+    h2 = post.title
+~~~~~~~~ slimx: lint
+

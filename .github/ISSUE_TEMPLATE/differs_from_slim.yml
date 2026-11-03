@@ -1,0 +1,26 @@
+name: Differs from Slim
+description: A template that Slim 5 renders, compiles or accepts differently
+labels: [bug]
+body:
+  - type: textarea
+    id: template
+    attributes:
+      label: Template
+      description: The smallest template that reproduces it, with the locals it needs.
+      render: slim
+    validations:
+      required: true
+  - type: textarea
+    id: outputs
+    attributes:
+      label: Slim's output and SlimX's
+      description: 'Both HTML outputs, or the error and its backtrace. Slim must run with `format: :html, sort_attrs: false`.'
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: SlimX 1.0.0 (or commit), Slim 5.2.1, Ruby 4.0.1, Rails 8.1
+    validations:
+      required: true

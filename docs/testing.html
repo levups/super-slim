@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlimX Testing</title>
+<meta name="description" content="How SlimX proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,097 templates from 30 open-source projects.">
+<meta name="theme-color" content="#2340e8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Inter+Tight:wght@400;600&family=Fira+Code&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="./">SlimX</a>
+    <a href="guide.html">Guide</a>
+    <a href="tools.html">Formatter &amp; linter</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="testing.html" aria-current="page">Testing</a>
+    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+  </nav>
+
+  <header>
+    <h1 class="page-title">Testing</h1>
+    <p class="lede">A rewrite is only worth it if nobody can tell from the HTML. Slim itself is the reference: wherever possible, a test renders through both engines and requires the same bytes.</p>
+    <ul class="toc">
+      <li><a href="#slim-suites">Slim’s own suites</a></li>
+      <li><a href="#fuzzer">Fuzzer</a></li>
+      <li><a href="#golden">Golden snapshots</a></li>
+      <li><a href="#corpus">Real templates</a></li>
+      <li><a href="#ci">Every commit</a></li>
+    </ul>
+  </header>
+
+  <section id="slim-suites" aria-labelledby="slim-suites-title">
+    <h2 id="slim-suites-title">Slim’s own suites</h2>
+    <div class="prose">
+      <p>Slim’s test suite and its literate specification, <code>TESTS.md</code>, run against SlimX unchanged: 295 tests pass. The others test what SlimX <a href="guide.html#left-out">leaves out</a> on purpose, or Markdown output that depends on which library Tilt picks — and one pins a Slim bug, a <code>=</code> reported one line too low after a <code>ruby:</code> block.</p>
+    </div>
+  </section>
+
+  <section id="fuzzer" aria-labelledby="fuzzer-title">
+    <h2 id="fuzzer-title">Fuzzer</h2>
+    <div class="prose">
+      <p>A seeded generator writes random templates from the grammar — nested tags, shortcuts, every attribute form, splats, control flow, blocks, comments, embedded engines, whitespace markers — and renders each through Slim and SlimX. The HTML must match, or both must fail with the same error. A second pass formats each template and requires the same HTML and an idempotent result.</p>
+      <p>The suite runs a fixed seed; CI adds 10,000 templates from a new seed on every run, and prints it when they disagree.</p>
+    </div>
+  </section>
+
+  <section id="golden" aria-labelledby="golden-title">
+    <h2 id="golden-title">Golden snapshots</h2>
+    <div class="prose">
+      <p>Nineteen templates cover the grammar, its errors and Tailwind class names. Next to each, a snapshot holds the rendered HTML, the Ruby compiled for Tilt and for Rails, the formatted source and the lint offenses: any change shows up in review. Whatever its snapshot says, each template must also:</p>
+      <ul>
+        <li>render the HTML Slim renders, with and without <code>html_safe</code>, or fail with Slim’s message;</li>
+        <li>render the same through Rails and through Tilt;</li>
+        <li>compile to Ruby that parses, with every <code>-</code> and <code>=</code> on its template line;</li>
+        <li>format idempotently, to the same HTML, passing strict mode.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="corpus" aria-labelledby="corpus-title">
+    <h2 id="corpus-title">Real templates</h2>
+    <div class="prose">
+      <p>6,097 templates from 30 open-source projects, pinned to a commit in <code>corpus/manifest.yml</code>. <code>rake corpus:fetch</code> downloads only their <code>.slim</code> files; they are never copied into the repository. For each one:</p>
+      <ul>
+        <li>Slim and SlimX both compile it, or both refuse it;</li>
+        <li>SlimX’s Ruby parses, with every line where it belongs;</li>
+        <li><code>slimx fmt</code> is idempotent, and refuses any change to the compiled Ruby;</li>
+        <li>the linter runs, and its offenses go to a report.</li>
+      </ul>
+      <p>Downloaded templates are never rendered: rendering runs their Ruby. A production Rails app of about 1,400 templates, whose code we trust, is rendered through both engines against a stub that answers every helper, before and after formatting, with identical HTML.</p>
+      <p><code>rake corpus:diff BASE=main</code> compares two revisions over the whole corpus — compiled Ruby, formatting, lint offenses — so a refactoring that changes nothing proves it.</p>
+    </div>
+    <ul class="projects">
+        <li><a href="https://github.com/fjordllc/bootcamp">fjordllc/bootcamp</a><span>712</span></li>
+        <li><a href="https://github.com/shikimori/shikimori">shikimori/shikimori</a><span>555</span></li>
+        <li><a href="https://github.com/DFE-Digital/teaching-vacancies">DFE-Digital/teaching-vacancies</a><span>541</span></li>
+        <li><a href="https://github.com/betagouv/rdv-service-public">betagouv/rdv-service-public</a><span>491</span></li>
+        <li><a href="https://github.com/benwbrum/fromthepage">benwbrum/fromthepage</a><span>350</span></li>
+        <li><a href="https://github.com/solectrus/solectrus">solectrus/solectrus</a><span>281</span></li>
+        <li><a href="https://github.com/fairmondo/fairmondo">fairmondo/fairmondo</a><span>242</span></li>
+        <li><a href="https://github.com/tryzealot/zealot">tryzealot/zealot</a><span>239</span></li>
+        <li><a href="https://github.com/catarse/catarse">catarse/catarse</a><span>236</span></li>
+        <li><a href="https://github.com/nbgallery/nbgallery">nbgallery/nbgallery</a><span>175</span></li>
+        <li><a href="https://github.com/brave-intl/publishers">brave-intl/publishers</a><span>173</span></li>
+        <li><a href="https://github.com/openHPI/codeocean">openHPI/codeocean</a><span>170</span></li>
+        <li><a href="https://github.com/freeats/freeats">freeats/freeats</a><span>170</span></li>
+        <li><a href="https://github.com/wearefine/fae">wearefine/fae</a><span>165</span></li>
+        <li><a href="https://github.com/weg-li/weg-li">weg-li/weg-li</a><span>155</span></li>
+        <li><a href="https://github.com/pivorakmeetup/pivorak-web-app">pivorakmeetup/pivorak-web-app</a><span>146</span></li>
+        <li><a href="https://github.com/windy/cywin">windy/cywin</a><span>145</span></li>
+        <li><a href="https://github.com/hpyhacking/peatio">hpyhacking/peatio</a><span>137</span></li>
+        <li><a href="https://github.com/noosfero/noosfero">noosfero/noosfero</a><span>119</span></li>
+        <li><a href="https://github.com/ujh/fountainpencompanion">ujh/fountainpencompanion</a><span>112</span></li>
+        <li><a href="https://github.com/locomotivecms/engine">locomotivecms/engine</a><span>110</span></li>
+        <li><a href="https://github.com/asciidoctor/asciidoctor-backends">asciidoctor/asciidoctor-backends</a><span>109</span></li>
+        <li><a href="https://github.com/amahi/platform">amahi/platform</a><span>109</span></li>
+        <li><a href="https://github.com/square/shuttle">square/shuttle</a><span>102</span></li>
+        <li><a href="https://github.com/rubytoolbox/rubytoolbox">rubytoolbox/rubytoolbox</a><span>87</span></li>
+        <li><a href="https://github.com/chloerei/writings">chloerei/writings</a><span>77</span></li>
+        <li><a href="https://github.com/annict/annict">annict/annict</a><span>59</span></li>
+        <li><a href="https://github.com/Coursemology/coursemology2">Coursemology/coursemology2</a><span>55</span></li>
+        <li><a href="https://github.com/jirutka/asciidoctor-html5s">jirutka/asciidoctor-html5s</a><span>44</span></li>
+        <li><a href="https://github.com/codetriage/CodeTriage">codetriage/CodeTriage</a><span>31</span></li>
+    </ul>
+  </section>
+
+  <section id="ci" aria-labelledby="ci-title">
+    <h2 id="ci-title">Every commit</h2>
+    <div class="prose">
+      <p>GitHub Actions runs the suite and Slim’s suites on Ruby 3.4 and 4.0, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
+<pre><code>bundle exec rake test
+FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
+bundle exec rake corpus:fetch corpus:check</code></pre>
+    </div>
+  </section>
+
+  <footer>
+    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
+    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </footer>
+</main>
+</body>
+</html>

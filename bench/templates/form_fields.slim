@@ -1,0 +1,5 @@
+- fields.each do |field|
+  .mb-3
+    label.form-label for=field[:id] = field[:label]
+    input.form-control *field[:html] id=field[:id] name=field[:name] value=field[:value]
+    .form-text data=field[:data] = field[:hint]

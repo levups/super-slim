@@ -1,0 +1,99 @@
+~~~~~~~~ slimx: html
+<a href="/static" title="Static &amp; &lt;escaped&gt;">Static</a><a href="/search?q=a&amp;b=&lt;c&gt;" title="Posts &amp; comments">Dynamic</a><a href="<b class="x">&'"</b>">Unescaped value</a><a href="/paren" title="Posts &amp; comments">Parentheses</a><a href="/brackets" title="Posts &amp; comments">Brackets</a><a href="/braces" title="Posts &amp; comments">Braces</a><a href="/multiline" title="Posts &amp; comments" data-turbo="false">Multi-line braces</a><a href="/search?q=a&amp;b=&lt;c&gt;" title="Posts &amp; comments">Multi-line parentheses</a><input type="checkbox" checked><input type="checkbox" checked><input value="42"><input value="3.5"><input value="primary"><input value=""><input value="&lt;b class=&quot;x&quot;&gt;&amp;&#39;&quot;&lt;/b&gt;"><input value="<b class="x">&'"</b>"><input value="Interpolated Posts &amp; comments and <b class="x">&'"</b>"><input value="Escaped #{title}"><div data-number="42" data-string="1"></div><option selected>Static true</option><option>Static false</option><option>Static nil</option><p title="on">Ternary</p><p title="one">Method chain</p><p title="many">Expression</p>
+~~~~~~~~ slimx: tilt
+_buf = +""
+_buf << "<a href=\"/static\" title=\"Static &amp; &lt;escaped&gt;\">Static</a><a".freeze; case (_slimx1 = url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx1)); _buf << "\"".freeze; end; case (_slimx2 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx2)); _buf << "\"".freeze; end
+_buf << ">Dynamic</a><a".freeze; case (_slimx3 = markup); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << (_slimx3).to_s; _buf << "\"".freeze; end
+_buf << ">Unescaped value</a><a href=\"/paren\"".freeze; case (_slimx4 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx4)); _buf << "\"".freeze; end
+_buf << ">Parentheses</a><a href=\"/brackets\"".freeze; case (_slimx5 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx5)); _buf << "\"".freeze; end
+_buf << ">Brackets</a><a href=\"/braces\"".freeze; case (_slimx6 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx6)); _buf << "\"".freeze; end
+
+
+
+
+_buf << ">Braces</a><a href=\"/multiline\"".freeze; case (_slimx7 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx7)); _buf << "\"".freeze; end
+
+_buf << " data-turbo=\"false\">Multi-line braces</a><a".freeze; case (_slimx8 = url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx8)); _buf << "\"".freeze; end; case (_slimx9 = title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx9)); _buf << "\"".freeze; end
+_buf << ">Multi-line parentheses</a><input type=\"checkbox\"".freeze; case (_slimx10 = yes); when true; _buf << " checked".freeze; when false, nil; else; _buf << " checked=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx10)); _buf << "\"".freeze; end; case (_slimx11 = no); when true; _buf << " disabled".freeze; when false, nil; else; _buf << " disabled=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx11)); _buf << "\"".freeze; end; case (_slimx12 = nothing); when true; _buf << " readonly".freeze; when false, nil; else; _buf << " readonly=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx12)); _buf << "\"".freeze; end
+
+_buf << "><input type=\"checkbox\" checked><input".freeze; case (_slimx13 = number); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx13)); _buf << "\"".freeze; end
+_buf << "><input".freeze; case (_slimx14 = decimal); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx14)); _buf << "\"".freeze; end
+_buf << "><input".freeze; case (_slimx15 = symbol); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx15)); _buf << "\"".freeze; end
+_buf << "><input".freeze; case (_slimx16 = empty); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx16)); _buf << "\"".freeze; end
+_buf << "><input".freeze; case (_slimx17 = markup); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx17)); _buf << "\"".freeze; end
+_buf << "><input".freeze; case (_slimx18 = markup); when true; _buf << " value".freeze; when false, nil; else; _buf << " value=\"".freeze; _buf << (_slimx18).to_s; _buf << "\"".freeze; end
+_buf << "><input value=\"Interpolated ".freeze; _buf << ::ERB::Escape.html_escape((title)); _buf << " and ".freeze; _buf << (markup).to_s
+
+_buf << "\"><input value=\"Escaped \#{title}\"><div".freeze; case (_slimx19 = number); when true; _buf << " data-number".freeze; when false, nil; else; _buf << " data-number=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx19)); _buf << "\"".freeze; end; _buf << " data-string=\"1\"".freeze; case (_slimx20 = nothing); when true; _buf << " data-nil".freeze; when false, nil; else; _buf << " data-nil=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx20)); _buf << "\"".freeze; end
+
+
+
+_buf << "></div><option selected>Static true</option><option>Static false</option><option>Static nil</option><p".freeze; case (_slimx21 = (yes ? "on" : "off")); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx21)); _buf << "\"".freeze; end
+_buf << ">Ternary</p><p".freeze; case (_slimx22 = items.first); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx22)); _buf << "\"".freeze; end
+_buf << ">Method chain</p><p".freeze; case (_slimx23 = (items.size > 2 && "many")); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx23)); _buf << "\"".freeze; end
+_buf << ">Expression</p>".freeze; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new
+@output_buffer.safe_concat("<a href=\"/static\" title=\"Static &amp; &lt;escaped&gt;\">Static</a><a".freeze); case (_slimx1 = url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_slimx1); @output_buffer.safe_concat("\"".freeze); end; case (_slimx2 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx2); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Dynamic</a><a".freeze); case (_slimx3 = markup); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer.safe_concat((_slimx3).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Unescaped value</a><a href=\"/paren\"".freeze); case (_slimx4 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx4); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Parentheses</a><a href=\"/brackets\"".freeze); case (_slimx5 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx5); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Brackets</a><a href=\"/braces\"".freeze); case (_slimx6 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx6); @output_buffer.safe_concat("\"".freeze); end
+
+
+
+
+@output_buffer.safe_concat(">Braces</a><a href=\"/multiline\"".freeze); case (_slimx7 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx7); @output_buffer.safe_concat("\"".freeze); end
+
+@output_buffer.safe_concat(" data-turbo=\"false\">Multi-line braces</a><a".freeze); case (_slimx8 = url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_slimx8); @output_buffer.safe_concat("\"".freeze); end; case (_slimx9 = title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx9); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Multi-line parentheses</a><input type=\"checkbox\"".freeze); case (_slimx10 = yes); when true; @output_buffer.safe_concat(" checked".freeze); when false, nil; else; @output_buffer.safe_concat(" checked=\"".freeze); @output_buffer << (_slimx10); @output_buffer.safe_concat("\"".freeze); end; case (_slimx11 = no); when true; @output_buffer.safe_concat(" disabled".freeze); when false, nil; else; @output_buffer.safe_concat(" disabled=\"".freeze); @output_buffer << (_slimx11); @output_buffer.safe_concat("\"".freeze); end; case (_slimx12 = nothing); when true; @output_buffer.safe_concat(" readonly".freeze); when false, nil; else; @output_buffer.safe_concat(" readonly=\"".freeze); @output_buffer << (_slimx12); @output_buffer.safe_concat("\"".freeze); end
+
+@output_buffer.safe_concat("><input type=\"checkbox\" checked><input".freeze); case (_slimx13 = number); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer << (_slimx13); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input".freeze); case (_slimx14 = decimal); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer << (_slimx14); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input".freeze); case (_slimx15 = symbol); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer << (_slimx15); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input".freeze); case (_slimx16 = empty); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer << (_slimx16); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input".freeze); case (_slimx17 = markup); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer << (_slimx17); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input".freeze); case (_slimx18 = markup); when true; @output_buffer.safe_concat(" value".freeze); when false, nil; else; @output_buffer.safe_concat(" value=\"".freeze); @output_buffer.safe_concat((_slimx18).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><input value=\"Interpolated ".freeze); @output_buffer << (title); @output_buffer.safe_concat(" and ".freeze); @output_buffer.safe_concat((markup).to_s)
+
+@output_buffer.safe_concat("\"><input value=\"Escaped \#{title}\"><div".freeze); case (_slimx19 = number); when true; @output_buffer.safe_concat(" data-number".freeze); when false, nil; else; @output_buffer.safe_concat(" data-number=\"".freeze); @output_buffer << (_slimx19); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(" data-string=\"1\"".freeze); case (_slimx20 = nothing); when true; @output_buffer.safe_concat(" data-nil".freeze); when false, nil; else; @output_buffer.safe_concat(" data-nil=\"".freeze); @output_buffer << (_slimx20); @output_buffer.safe_concat("\"".freeze); end
+
+
+
+@output_buffer.safe_concat("></div><option selected>Static true</option><option>Static false</option><option>Static nil</option><p".freeze); case (_slimx21 = (yes ? "on" : "off")); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx21); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Ternary</p><p".freeze); case (_slimx22 = items.first); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx22); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Method chain</p><p".freeze); case (_slimx23 = (items.size > 2 && "many")); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx23); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Expression</p>".freeze); @output_buffer
+~~~~~~~~ slimx: fmt
+a href="/static" title="Static & <escaped>" Static
+a href=url title=title Dynamic
+a href==markup Unescaped value
+a(href="/paren" title=title) Parentheses
+a[href="/brackets" title=title] Brackets
+a{href="/braces" title=title} Braces
+a{
+  href="/multiline"
+  title=title
+  data-turbo="false"
+} Multi-line braces
+a(href=url
+  title=title) Multi-line parentheses
+input type="checkbox" checked=yes disabled=no readonly=nothing
+input(type="checkbox" checked)
+input value=number
+input value=decimal
+input value=symbol
+input value=empty
+input value=markup
+input value==markup
+input value="Interpolated #{title} and #{{markup}}"
+input value="Escaped \#{title}"
+div data-number=number data-string="1" data-nil=nothing
+option selected=true Static true
+option selected=false Static false
+option selected=nil Static nil
+p title=(yes ? "on" : "off") Ternary
+p title=items.first Method chain
+p title=(items.size > 2 && "many") Expression
+~~~~~~~~ slimx: lint
+

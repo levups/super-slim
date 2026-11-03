@@ -1,0 +1,30 @@
+a href="/static" title="Static & <escaped>" Static
+a href=url title=title Dynamic
+a href==markup Unescaped value
+a(href="/paren" title=title) Parentheses
+a[href="/brackets" title=title] Brackets
+a{href="/braces" title=title} Braces
+a{
+  href="/multiline"
+  title=title
+  data-turbo="false"
+} Multi-line braces
+a(href=url
+  title=title) Multi-line parentheses
+input type="checkbox" checked=yes disabled=no readonly=nothing
+input(type="checkbox" checked)
+input value=number
+input value=decimal
+input value=symbol
+input value=empty
+input value=markup
+input value==markup
+input value="Interpolated #{title} and #{{markup}}"
+input value="Escaped \#{title}"
+div data-number=number data-string="1" data-nil=nothing
+option selected=true Static true
+option selected=false Static false
+option selected=nil Static nil
+p title=(yes ? "on" : "off") Ternary
+p title=items.first Method chain
+p title=(items.size > 2 && "many") Expression

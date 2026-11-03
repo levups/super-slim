@@ -1,0 +1,25 @@
+<main class="blog">
+  <h1><%= title %></h1>
+  <% posts.each do |post| %>
+    <article class="card<%= " featured" if post[:featured] %>" data-id="<%= post[:id] %>">
+      <a class="stretched-link" href="<%= post[:url] %>" title="<%= post[:title] %>">
+        <img alt="<%= post[:title] %>" loading="lazy" src="<%= post[:image] %>">
+      </a>
+      <div class="card-body">
+        <h2 class="card-title"><%= post[:title] %></h2>
+        <p class="meta">
+          <span class="count"><%= post[:comments] %></span>
+          <span class="label">comments</span>
+        </p>
+        <% if post[:tags].any? %>
+          <ul class="tags">
+            <% post[:tags].each do |tag| %>
+              <li class="tag tag-<%= tag %>"><%= tag %></li>
+            <% end %>
+          </ul>
+        <% end %>
+        <button class="btn" data-action="click-&gt;post#save" <%= "disabled " if post[:draft] %>type="button">Save</button>
+      </div>
+    </article>
+  <% end %>
+</main>

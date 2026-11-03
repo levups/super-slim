@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SlimX</title>
+<meta name="description" content="Slim templates, compiled faster, with fewer allocations. Same HTML, byte for byte. A formatter and a linter in the box.">
+<meta property="og:title" content="SlimX — Slim templates, compiled faster">
+<meta property="og:description" content="A from-scratch Slim engine for Rails: same HTML byte for byte, a single-pass compiler, a formatter and a linter.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#2340e8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Inter+Tight:wght@400;600&family=Fira+Code&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="home">
+<main class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="./" aria-current="page">SlimX</a>
+    <a href="guide.html">Guide</a>
+    <a href="tools.html">Formatter &amp; linter</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="testing.html">Testing</a>
+    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+  </nav>
+
+  <header class="hero">
+    <h1 class="wordmark">SlimX</h1>
+    <div>
+      <p class="byline"><span id="byline-speed">Slim templates, compiled faster.</span><span class="byline-sub">Same HTML, byte for byte.</span></p>
+      <p class="summary">A from-scratch Slim engine for Rails: no Temple, a single-pass compiler, and a formatter and a linter that read templates with the same parser.</p>
+      <code class="install">gem "slimx"</code>
+      <p class="links"><a href="guide.html">Get started</a><a href="guide.html#migrating">Migrating from Slim</a><a href="benchmarks.html">Benchmarks</a></p>
+    </div>
+  </header>
+
+  <section aria-labelledby="numbers-title">
+    <h2 id="numbers-title">In numbers</h2>
+    <div class="tiles" id="tiles"></div>
+    <p class="note more" id="tiles-note">Loading the latest numbers…</p>
+    <p class="more"><a href="benchmarks.html">Every measurement, and how to reproduce it</a></p>
+  </section>
+
+  <section aria-labelledby="proof-title">
+    <h2 id="proof-title">Same HTML</h2>
+    <div class="prose">
+      <p>SlimX renders what Slim 5 renders with <code>format: :html, sort_attrs: false</code>, down to the byte. Here is the benchmark page, rendered by both engines:</p>
+    </div>
+    <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SlimX">
+      <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
+      <div class="proof-row"><span>SlimX</span><code data-sha="SlimX">…</code></div>
+      <p class="proof-verdict">Identical on 295 of Slim’s own tests, on the 1,400 templates of a production app, and on 10,000 new random templates at every CI run.</p>
+    </div>
+    <p class="more"><a href="testing.html">How SlimX is tested</a></p>
+  </section>
+
+  <section aria-labelledby="box-title">
+    <h2 id="box-title">In the box</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>An engine for Rails and Tilt</h3>
+        <p>A railtie registers <code>.slim</code> with Action View; <code>require "slimx/tilt"</code> serves Sinatra, Hanami and Roda. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
+        <p><a href="guide.html">Guide</a></p>
+      </div>
+      <div class="card">
+        <h3>A formatter that cannot change a page</h3>
+        <p><code>slimx fmt</code> writes one layout, and compiles both versions before writing: if the Ruby differs, it refuses.</p>
+        <p><a href="tools.html#formatter">Formatter</a></p>
+      </div>
+      <div class="card">
+        <h3>Strict mode</h3>
+        <p>An unformatted template fails to compile, pointing at the first line and what it should be. <code>gofmt</code> discipline, at compile time.</p>
+        <p><a href="tools.html#strict">Strict mode</a></p>
+      </div>
+      <div class="card">
+        <h3>A linter with HTML and accessibility rules</h3>
+        <p>Rules from slim-lint, haml-lint, erb_lint, Herb and jsx-a11y, each with a flagged and a clean example.</p>
+        <p><a href="tools.html#linter">Linter rules</a></p>
+      </div>
+      <div class="card">
+        <h3>Tailwind class names</h3>
+        <p>One option, and <code>.rounded-b-[3px]</code>, <code>.size-2.5</code> or <code>.lg:hover:underline</code> work as class shortcuts. Attribute lists keep their meaning.</p>
+        <p><a href="guide.html#tailwind">Tailwind</a></p>
+      </div>
+      <div class="card">
+        <h3>Nothing new to learn</h3>
+        <p>The whole Slim 5 grammar, the same HTML, the same errors. What SlimX leaves out fails at compile time instead of rendering wrong.</p>
+        <p><a href="guide.html#left-out">What SlimX leaves out</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="start-title">
+    <h2 id="start-title">Quick start</h2>
+    <div class="split">
+      <div>
+        <p class="code-label">Gemfile</p>
+<pre><code>gem "slimx" # instead of slim-rails</code></pre>
+      </div>
+      <div>
+        <p class="code-label">Terminal</p>
+<pre><code>bundle exec slimx fmt          # once
+bundle exec slimx lint         # in CI
+bundle exec slimx fmt --check  # in CI</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
+    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </footer>
+</main>
+<script src="site.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+- posts.each do |post|
+  .card.post-card class=("featured" if post[:featured]) data-id=post[:id]
+    a.stretched-link href=post[:url] title=post[:title]
+      img src=post[:image] alt=post[:title] loading="lazy"
+    .card-body
+      h3.card-title = post[:title]
+      p.meta
+        span.count = post[:comments]
+        '
+        span.label comments
+      - if post[:tags].any?
+        ul.tags
+          - post[:tags].each do |tag|
+            li.tag class="tag-#{tag}" = tag
+      button.btn.btn-primary type="button" data-action="click->post#save" disabled=post[:draft] Save

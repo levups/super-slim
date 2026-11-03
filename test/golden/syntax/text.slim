@@ -1,0 +1,18 @@
+p
+  | First line
+    continued on a second line
+      and an indented third
+  | Escaped \#{not interpolated}
+p Inline #{title} and #{{markup}} raw
+p Unicode: #{unicode}
+| Top level text with & and < and >
+<div class="inline-html">
+  p inside inline html
+</div>
+p
+  'Text with apostrophe marker
+  | Final
+p
+  |
+    Block starting on the next line
+    with two lines

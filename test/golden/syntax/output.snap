@@ -1,0 +1,72 @@
+~~~~~~~~ slimx: html
+<p>Posts &amp; comments</p><p><b class="x">&'"</b></p><p>&lt;b class=&quot;x&quot;&gt;&amp;&#39;&quot;&lt;/b&gt;</p><p></p><p>42</p><p>3.5</p><p>primary</p><p></p><i>safe</i><i>safe</i><p>ONE, TWO, THREE</p><p>Posts &amp; comments-42</p><p>Posts &amp; comments 42</p>[wrapped][Posts &amp;amp; comments]<p>multi line</p>
+~~~~~~~~ slimx: tilt
+_buf = +""; _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((title))
+_buf << "</p><p>".freeze; _buf << (markup).to_s
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((markup))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((nothing))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((number))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((decimal))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((symbol))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((empty))
+_buf << "</p>".freeze; _buf << ::ERB::Escape.html_escape((safe_markup))
+_buf << (safe_markup).to_s
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((items.map(&:upcase).join(", ")))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format("%s-%s",
+title, number)))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(([title,
+number].join(" ")))
+_buf << "</p>".freeze; _slimx1 = wrap do; _slimx2 = +""
+
+_slimx2 << "wrapped".freeze; _slimx2; end; _buf << ::ERB::Escape.html_escape((_slimx1)); _slimx3 = wrap do; _slimx4 = +""
+_slimx4 << ::ERB::Escape.html_escape((title))
+_slimx4; end; _buf << ::ERB::Escape.html_escape((_slimx3)); _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("multi \
+line"))
+_buf << "</p>".freeze; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer.safe_concat("<p>".freeze); @output_buffer << (title)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer.safe_concat((markup).to_s)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (markup)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (nothing)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (number)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (decimal)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (symbol)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (empty)
+@output_buffer.safe_concat("</p>".freeze); @output_buffer << (safe_markup)
+@output_buffer.safe_concat((safe_markup).to_s)
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (items.map(&:upcase).join(", "))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (format("%s-%s",
+title, number))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ([title,
+number].join(" "))
+@output_buffer.safe_concat("</p>".freeze); _slimx1 = wrap do
+
+@output_buffer.safe_concat("wrapped".freeze); end; @output_buffer << (_slimx1); _slimx2 = wrap do
+@output_buffer << (title)
+end; @output_buffer << (_slimx2); @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("multi \
+line")
+@output_buffer.safe_concat("</p>".freeze); @output_buffer
+~~~~~~~~ slimx: fmt
+p = title
+p == markup
+p = markup
+p = nothing
+p = number
+p = decimal
+p = symbol
+p = empty
+= safe_markup
+== safe_markup
+p = items.map(&:upcase).join(", ")
+p = format("%s-%s",
+  title, number)
+p = [title,
+  number].join(" ")
+= wrap do
+  | wrapped
+= wrap do
+  = title
+p = "multi \
+  line"
+~~~~~~~~ slimx: lint
+

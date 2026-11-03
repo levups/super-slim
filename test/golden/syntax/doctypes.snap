@@ -1,0 +1,15 @@
+~~~~~~~~ slimx: html
+<!DOCTYPE html><!DOCTYPE html>
+~~~~~~~~ slimx: tilt
+_buf = +""
+
+_buf << "<!DOCTYPE html><!DOCTYPE html>".freeze; _buf
+~~~~~~~~ slimx: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new
+
+@output_buffer.safe_concat("<!DOCTYPE html><!DOCTYPE html>".freeze); @output_buffer
+~~~~~~~~ slimx: fmt
+doctype html
+doctype 5
+~~~~~~~~ slimx: lint
+

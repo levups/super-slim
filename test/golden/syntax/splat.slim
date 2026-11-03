@@ -1,0 +1,12 @@
+p *attributes Splat
+p*attributes Splat without space
+a.base *{href: url, class: "extra"} Literal splat
+a.base class="static" *{class: ["dyn", nil]} Merge with splat
+input *{type: "text", value: markup}
+div *{"data-x" => 1, "aria-label" => "Label"}
+*{tag: tag_name} Dynamic tag
+*{tag: tag_name, class: "k", id: "dyn"} Dynamic tag with attributes
+p data=data Data hash
+p aria=aria Aria hash
+p data=nothing Data nil
+p data="plain" Data string

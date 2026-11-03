@@ -1,0 +1,240 @@
+- repo: fjordllc/bootcamp
+  sha: 3eac672ba9a2518b7d63dc3ca9d4c6810428d85c
+  license: MIT
+  stars: 297
+  pushed_at: 2026-10-31
+  slim_files: 712
+  slim_bytes: 1314507
+  note: FJORD BOOT CAMP, Japanese programming school LMS (Rails)
+- repo: shikimori/shikimori
+  sha: a900114c48be8fdbc212139017b18e81a1c9a76f
+  license: OSL-3.0
+  stars: 297
+  pushed_at: 2025-02-02
+  slim_files: 555
+  slim_bytes: 786447
+  note: Russian anime/manga database and community (Rails, archived)
+- repo: DFE-Digital/teaching-vacancies
+  sha: d20a7c561108e51d4a8262d1a4ff62eab050923b
+  license: MIT
+  stars: 27
+  pushed_at: 2026-10-30
+  slim_files: 541
+  slim_bytes: 675496
+  note: UK Department for Education teaching jobs service (Rails, GOV.UK)
+- repo: betagouv/rdv-service-public
+  sha: b97f5a892e4331e242bfacd1cf33751af37c5c95
+  license: AGPL-3.0
+  stars: 29
+  pushed_at: 2026-10-30
+  slim_files: 491
+  slim_bytes: 782289
+  note: French public-service appointment booking, RDV Solidarites (Rails)
+- repo: benwbrum/fromthepage
+  sha: a64446a45c4505ab3542b1768df185d5a10f8b76
+  license: AGPL-3.0
+  stars: 186
+  pushed_at: 2026-10-31
+  slim_files: 350
+  slim_bytes: 624900
+  note: Crowdsourced manuscript transcription platform (Rails)
+- repo: solectrus/solectrus
+  sha: 6b61cf9a6f457c44343ee1cca617ce78980bfce0
+  license: AGPL-3.0
+  stars: 166
+  pushed_at: 2026-10-31
+  slim_files: 281
+  slim_bytes: 371608
+  note: Photovoltaic energy dashboard (Rails, Hotwire)
+- repo: fairmondo/fairmondo
+  sha: bc5384d9a886f3f613f4845c96bc74eb1cb516cd
+  license: NOASSERTION
+  stars: 110
+  pushed_at: 2022-06-24
+  slim_files: 242
+  slim_bytes: 237067
+  note: German fair-trade marketplace (Rails)
+- repo: tryzealot/zealot
+  sha: e4637a5e3f296c93c83a93f090dc4085edd4a764
+  license: MIT
+  stars: 1367
+  pushed_at: 2026-10-31
+  slim_files: 239
+  slim_bytes: 192486
+  note: Self-hosted mobile app distribution platform (Rails)
+- repo: catarse/catarse
+  sha: 0d73a6104b2e5f280f842c8f6f112fd682d2db51
+  license: MIT
+  stars: 1638
+  pushed_at: 2023-03-28
+  slim_files: 236
+  slim_bytes: 249821
+  note: Brazilian crowdfunding platform (Rails, archived)
+- repo: nbgallery/nbgallery
+  sha: a53875c24751e2a17578d367d0329ef5405c4d19
+  license: MIT
+  stars: 150
+  pushed_at: 2026-10-22
+  slim_files: 175
+  slim_bytes: 423523
+  note: Jupyter notebook sharing and discovery platform (Rails)
+- repo: brave-intl/publishers
+  sha: 1049f0d6541cb5f3491e627385d90d4d130ec09f
+  license: MPL-2.0
+  stars: 68
+  pushed_at: 2026-10-31
+  slim_files: 173
+  slim_bytes: 185352
+  note: Brave Creators publisher portal (Rails)
+- repo: openHPI/codeocean
+  sha: ff24c533bc0bd94704483bf8e5df0177ea4145a2
+  license: BSD-3-Clause
+  stars: 73
+  pushed_at: 2026-09-28
+  slim_files: 170
+  slim_bytes: 177813
+  note: Online code execution and assessment platform for MOOCs (Rails)
+- repo: freeats/freeats
+  sha: aee7cf76d5206f4cd24fdaa4d18c024de07bfb3d
+  license: MIT
+  stars: 45
+  pushed_at: 2026-10-13
+  slim_files: 170
+  slim_bytes: 229856
+  note: Open-source applicant tracking system (Rails, ViewComponent)
+- repo: wearefine/fae
+  sha: b3416fbc44543bc80b83c61a4ff5c5e12771879a
+  license: MIT
+  stars: 852
+  pushed_at: 2026-10-30
+  slim_files: 165
+  slim_bytes: 96537
+  note: CMS engine for Rails (gem shipping Slim views and generators)
+- repo: weg-li/weg-li
+  sha: 084a41e29bae8bf6ef4563c7c0bb9f299a061f04
+  license: NOASSERTION
+  stars: 280
+  pushed_at: 2026-10-29
+  slim_files: 155
+  slim_bytes: 237616
+  note: German citizen parking-violation reporting app (Rails)
+- repo: pivorakmeetup/pivorak-web-app
+  sha: 2109b15cbc32fa893e244e938aa2157a0ca550ba
+  license: NOASSERTION
+  stars: 62
+  pushed_at: 2023-01-19
+  slim_files: 146
+  slim_bytes: 79647
+  note: Lviv Ruby meetup community site (Rails)
+- repo: windy/cywin
+  sha: 289cea123af7fc37287e607ea6af4efb223b0ff1
+  license: NOASSERTION
+  stars: 325
+  pushed_at: 2025-04-07
+  slim_files: 145
+  slim_bytes: 180947
+  note: Chinese developer community app (Rails)
+- repo: hpyhacking/peatio
+  sha: dab8641137c008928c835409342519bfef4eae7f
+  license: NOASSERTION
+  stars: 3605
+  pushed_at: 2026-07-09
+  slim_files: 137
+  slim_bytes: 119543
+  note: Cryptocurrency exchange, legacy 2018 branch (Rails)
+- repo: noosfero/noosfero
+  sha: e67337e16de5003bca3325fa1937bece3d3cf632
+  license: AGPL-3.0
+  stars: 77
+  pushed_at: 2026-06-21
+  slim_files: 119
+  slim_bytes: 86349
+  note: Social networking and CMS platform (Rails)
+- repo: ujh/fountainpencompanion
+  sha: 78a1459af6a81dfe3b876e6aa48b50583e649fcd
+  license: NOASSERTION
+  stars: 53
+  pushed_at: 2026-10-31
+  slim_files: 112
+  slim_bytes: 116988
+  note: Fountain pen and ink collection tracker (Rails)
+- repo: locomotivecms/engine
+  sha: 87c66361f7f030465c88310f15911dc473fe2b58
+  license: NOASSERTION
+  stars: 2321
+  pushed_at: 2025-08-07
+  slim_files: 110
+  slim_bytes: 73239
+  note: LocomotiveCMS back office engine (Rails gem)
+- repo: asciidoctor/asciidoctor-backends
+  sha: d63e31128044884657056face6a555a88ce8eb09
+  license: NOASSERTION
+  stars: 68
+  pushed_at: 2025-04-16
+  slim_files: 109
+  slim_bytes: 40661
+  note: Asciidoctor HTML5/DocBook converter templates (non-Rails Slim)
+- repo: amahi/platform
+  sha: 38a1d1f0f7acd972189af722c420776df14998dc
+  license: NOASSERTION
+  stars: 136
+  pushed_at: 2023-01-19
+  slim_files: 109
+  slim_bytes: 122518
+  note: Amahi home server web platform (Rails)
+- repo: square/shuttle
+  sha: 564106e2043b41085ea5d996db40345d03c633cc
+  license: Apache-2.0
+  stars: 657
+  pushed_at: 2025-04-01
+  slim_files: 102
+  slim_bytes: 185134
+  note: Square localization and translation management (Rails)
+- repo: rubytoolbox/rubytoolbox
+  sha: 54d637b891022a06ba67670d28be9e6b3bf50c05
+  license: MIT
+  stars: 549
+  pushed_at: 2026-10-29
+  slim_files: 87
+  slim_bytes: 73728
+  note: The Ruby Toolbox, gem catalogue (Rails)
+- repo: chloerei/writings
+  sha: cc51d5f51636f16aa0468a0bf26d98e972ae88f7
+  license: MIT
+  stars: 939
+  pushed_at: 2025-03-31
+  slim_files: 77
+  slim_bytes: 73872
+  note: Writings.io collaborative writing app (Rails)
+- repo: annict/annict
+  sha: 5fcf53663ab300a0b9e4a420bb0ac2802de7ef60
+  license: AGPL-3.0
+  stars: 784
+  pushed_at: 2026-10-31
+  slim_files: 59
+  slim_bytes: 46380
+  note: Japanese anime tracking service (Rails)
+- repo: Coursemology/coursemology2
+  sha: ff078d3b27dc88201963c36f983fff94bf23b2c3
+  license: MIT
+  stars: 157
+  pushed_at: 2026-10-31
+  slim_files: 55
+  slim_bytes: 27877
+  note: Gamified LMS from NUS (Rails + React)
+- repo: jirutka/asciidoctor-html5s
+  sha: 84d5ab3605691e0d29c9b324b074788677361279
+  license: MIT
+  stars: 97
+  pushed_at: 2025-03-07
+  slim_files: 44
+  slim_bytes: 14727
+  note: Semantic HTML5 converter for Asciidoctor (non-Rails Slim)
+- repo: codetriage/CodeTriage
+  sha: d1868f8634e97a111a7fca49d58cc776d206007e
+  license: MIT
+  stars: 1471
+  pushed_at: 2026-10-01
+  slim_files: 31
+  slim_bytes: 40748
+  note: Open-source issue triage subscription service (Rails)
