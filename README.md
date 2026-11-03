@@ -152,6 +152,7 @@ slim-lint when it is installed. `bundle exec rake docs` rewrites the linter rule
 ```sh
 bundle install
 bundle exec rake test                                # SlimX's tests, then Slim's own suites
+BUNDLE_GEMFILE=gemfiles/rails_8_0.gemfile bundle exec rake test  # the same on Rails 8.0
 bundle exec rubocop
 FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib test/fuzz_test.rb
 bundle exec ruby -Ilib bench/corpus.rb path/to/app   # compile time and allocations against Slim
