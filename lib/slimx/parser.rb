@@ -67,7 +67,9 @@ module SlimX
         @outline = [nil]
         @line_by_node = {}.compare_by_identity
       end
-      @lines = normalize(source).split(/\r?\n/)
+      source = normalize(source)
+      # A string separator splits 6x faster than the regexp, which only templates with \r need.
+      @lines = source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
       @scanner = StringScanner.new("")
       @stacks = [root]
       @indents = []
