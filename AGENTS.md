@@ -27,7 +27,7 @@ FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 bundle exec rake corpus:fetch corpus:check   # public templates of corpus/manifest.yml
 bundle exec rake corpus:diff BASE=main       # what a change does to the corpus: compiled Ruby, format, lint
 bundle exec ruby --yjit -Ilib bench/render.rb
-BENCH_LOCK=~/github/oss/benchmarks/.bench.lock bundle exec rake bench  # rewrites docs/benchmarks.json
+BENCH_LOCK=path/to/.bench.lock bundle exec rake bench  # rewrites docs/benchmarks.json; the lock serializes benchmarks
 bundle exec rake docs                        # rewrites the linter rules of docs/tools.html
 ```
 

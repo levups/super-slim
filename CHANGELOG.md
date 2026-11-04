@@ -2,8 +2,9 @@
 
 ## [Unreleased]
 
-First release: a Slim 5 engine written from scratch, without Temple. It renders what Slim 5 renders with
-`format: :html, sort_attrs: false`, byte for byte; XML formats (`.xml`, `.rss`, `.atom`) render as XML.
+First stable release: a Slim 5 engine written from scratch, without Temple. 0.1.0 and 0.1.1 were previews. It
+renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for byte; XML formats (`.xml`, `.rss`,
+`.atom`) render as XML.
 
 **New**
 - Rails through a railtie, Tilt through `require "slimx/tilt"`, and `SlimX.compile` for plain Ruby.
@@ -20,5 +21,5 @@ First release: a Slim 5 engine written from scratch, without Temple. It renders 
   plugins, and lambda shortcuts: each raises at compile time.
 
 **Requires**
-- Ruby 3.3 or later, every Ruby still maintained, and strscan 3.1.1 or later, newer than the one Ruby 3.3
-  ships.
+- Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
+  newer than the one Ruby 3.3 ships.
