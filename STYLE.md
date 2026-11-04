@@ -11,7 +11,8 @@ Input validation at the gem's boundary, data loss and security are never cut.
 
 ## Naming
 
-- Spell identifiers in full. `it` is fine in a one-expression block; a multi-line block names its parameter.
+- Spell identifiers in full. Blocks name their parameter; `_1` only in a one-expression block where a name adds
+  nothing (no bare `it` while Ruby 3.3 is supported).
 - In `rescue`, the variable is `exception`, never `e`.
 - A hash keyed by X is `<what>_by_<key>` (`width_by_glyph`, `count_by_state`).
 - Predicates end in `?` and read affirmatively (`bot?`, `current?`), boolean keywords too (`strict: true`).

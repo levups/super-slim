@@ -12,9 +12,8 @@ Solutions, and the model the organization's other gems copy.
   in the release after its end of life.
 - Rails is optional (railtie, `RailsHandler`). `Gemfile` takes the newest Rails, `gemfiles/rails_8_0.gemfile`
   the oldest maintained one.
-- CI (`.github/workflows/ci.yml`) runs RuboCop, the tests on each maintained Ruby, `ruby-head` and macOS, and
-  the corpus check. A macOS job that never gets a runner is GitHub's capacity on private repositories, not a
-  failure.
+- CI (`.github/workflows/ci.yml`) runs RuboCop, the tests on each maintained Ruby, and `ruby-head`, and the
+  corpus check; not on drafts. No macOS job: we run the tests on Macs.
 
 ## Commands
 
