@@ -89,7 +89,7 @@ the formatter compiles both versions and refuses if the Ruby differs. Formatting
 Strict mode (`SlimX.strict = true`, or `strict: true` per compile) refuses any template that `slimx fmt` would
 change, pointing at the first line and what it should be: `gofmt` discipline at compile time.
 
-`slimx lint [PATH…]` reads `.slimx.yml` and checks, in about half the time slim-lint takes:
+`slimx lint [PATH…]` reads `.slimx.yml` and checks, with about a third of the CPU time slim-lint takes:
 
 | Rule | From | Default |
 |---|---|---|
@@ -163,17 +163,19 @@ bundle exec ruby --yjit -Ilib bench/render.rb        # render speed and allocati
 
 Pull requests leave `CHANGELOG.md` alone: a release starts by writing its notes under `## [Unreleased]`, from the
 pull requests merged since the last tag, without committing them. Refresh the website's numbers on a quiet machine
-(`SLIMX_CORPUS=path/to/app/views bundle exec rake bench`) and commit them, then, from an up-to-date `main` whose
-CI is green:
+(`SLIMX_CORPUS=path/to/app/views bundle exec rake bench`) and merge them through a pull request, then, from an
+up-to-date `main` whose CI is green:
 
 ```sh
 bin/release minor --dry-run   # the notes and the changes, nothing written
 bin/release minor             # or patch, major, or an exact version such as 1.2.0
 ```
 
-`bin/release` dates the Unreleased section, bumps the version, commits both, and pushes the commit with a signed
-tag `vX.Y.Z`. The tag starts the Release workflow, which publishes the gem to RubyGems through trusted publishing
-and creates the GitHub release with the version's notes and the `.gem`.
+`main` takes no direct push, so `bin/release` dates the Unreleased section and bumps the version on a branch
+`release/vX.Y.Z`, opens its pull request, which merges itself once CI is green, and waits for it. It then pushes a
+signed tag `vX.Y.Z` on the merge commit (`bin/release --tag X.Y.Z` does it if you stopped waiting). The tag starts
+the Release workflow, which publishes the gem to RubyGems through trusted publishing and creates the GitHub release
+with the version's notes and the `.gem`.
 
 ## License
 
