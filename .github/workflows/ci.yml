@@ -91,3 +91,15 @@ jobs:
         run: bundle exec rake corpus:diff BASE="origin/$BASE_BRANCH"
         env:
           BASE_BRANCH: ${{ github.base_ref }}
+
+  docs:
+    name: Highlighted docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - run: bundle exec rake docs:highlight:check

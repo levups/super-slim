@@ -45,4 +45,17 @@ bundle exec rake docs                        # rewrites the linter rules of docs
 - A hot-path change is measured with and without YJIT; a Performance cop the numbers contradict is disabled on
   its line, with the reason.
 - Test and bench data stay anonymized (`alice`, `Post`, `example.com`).
-- User-facing changes go in `CHANGELOG.md`; the release steps end `README.md`.
+
+## Code style
+
+Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't settle.
+
+## Changelog and releases
+
+- Every user-visible change adds its line under `## [Unreleased]` in `CHANGELOG.md`, in the same PR. A release
+  opens with a one-sentence lede, then **Breaking**, **New**, **Faster** (measured, with and without YJIT) and
+  **Fixed**, only those with entries. No version heading, date or link by hand: `bin/release` writes them.
+- `bin/release patch|minor|major` cuts a release from a green, up-to-date `main` (README, Releasing), and
+  `.github/workflows/release.yml` publishes it. Both are the same in every next-gen-gems gem: change them in all
+  four at once.
+- RubyGems trusts the Release workflow (trusted publishing): never `gem push` from a machine.
