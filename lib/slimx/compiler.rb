@@ -137,13 +137,13 @@ module SlimX
       return compile_dynamic_tag(tag) if tag.name == "*"
 
       closed = tag.content.nil? || (AST.renders_nothing?(tag.content) && (@xml || VOID_ELEMENTS.key?(tag.name)))
-      emit_static("<#{tag.name}")
+      @static << "<" << tag.name
       compile_attributes(tag.attributes)
       emit_static((closed && @xml) ? " />" : ">")
       return if closed && tag.content.nil?
 
       compile_children(tag.content)
-      emit_static("</#{tag.name}>") unless closed
+      @static << "</" << tag.name << ">" unless closed
     end
 
     def compile_dynamic_tag(tag)
