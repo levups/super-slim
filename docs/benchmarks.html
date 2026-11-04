@@ -70,8 +70,8 @@
   <section id="reproduce" aria-labelledby="reproduce-title">
     <h2 id="reproduce-title">Reproduce</h2>
     <div class="prose">
-<pre><code>bundle exec rake corpus:fetch                       # the open-source corpus, .slim files only
-SLIMX_CORPUS=path/to/app/views bundle exec rake bench  # adds your own app</code></pre>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>rake corpus:fetch                       <span class="c"># the open-source corpus, .slim files only</span>
+<span class="nv">SLIMX_CORPUS</span><span class="o">=</span>path/to/app/views bundle <span class="nb">exec </span>rake bench  <span class="c"># adds your own app</span></code></pre>
       <p><code>bench/compare.rb</code> renders the same blog page from <code>bench/compare/</code> in Slim, Haml and ERB, fails if any engine renders different HTML, measures with <code>benchmark-ips</code> under YJIT, and writes <code>docs/benchmarks.json</code>, which every page of this site reads.</p>
     </div>
   </section>

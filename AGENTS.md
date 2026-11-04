@@ -46,6 +46,10 @@ bundle exec rake docs                        # rewrites the linter rules of docs
   its line, with the reason.
 - Test and bench data stay anonymized (`alice`, `Post`, `example.com`).
 
+## Code style
+
+Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't settle.
+
 ## Changelog and releases
 
 - Every user-visible change adds its line under `## [Unreleased]` in `CHANGELOG.md`, in the same PR. A release
