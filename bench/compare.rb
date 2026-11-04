@@ -47,19 +47,19 @@ page = Page.new(
   end
 )
 
-source_by_engine = ENGINES.to_h { [_1, File.read(File.join(SOURCE_DIRECTORY, _1.source_file))] }
+source_by_engine = ENGINES.to_h { |engine| [engine, File.read(File.join(SOURCE_DIRECTORY, engine.source_file))] }
 render_method_by_engine = ENGINES.to_h do |engine|
   method_name = :"render_#{engine.name.downcase.tr(" ", "_")}"
   Page.class_eval("def #{method_name}\n#{engine.compiler.call(source_by_engine[engine])}\nend", __FILE__, __LINE__)
   [engine, method_name]
 end
 
-html_by_engine = ENGINES.to_h { [_1, page.public_send(render_method_by_engine[_1]).gsub(/>\s+</, "><").strip] }
+html_by_engine = ENGINES.to_h { |engine| [engine, page.public_send(render_method_by_engine[engine]).gsub(/>\s+</, "><").strip] }
 reference_html = html_by_engine[ENGINES.first]
 html_by_engine.each do |engine, html|
   next if html == reference_html
 
-  offset = [(0...html.size).find { html[_1] != reference_html[_1] } - 60, 0].max
+  offset = [(0...html.size).find { |index| html[index] != reference_html[index] } - 60, 0].max
   raise "#{engine.name} renders different HTML than SlimX:\n  #{reference_html[offset, 120]}\n  #{html[offset, 120]}"
 end
 
@@ -75,7 +75,7 @@ def iterations_per_second(engines, &block)
     benchmark.config(time: BENCHMARK_SECONDS, warmup: 2)
     engines.each { |engine| benchmark.report(engine.name) { yield(engine) } }
   end
-  report.entries.to_h { [_1.label, _1.stats.central_tendency.round] }
+  report.entries.to_h { |entry| [entry.label, entry.stats.central_tendency.round] }
 end
 
 compiles_per_second = iterations_per_second(ENGINES) { |engine| engine.compiler.call(source_by_engine[engine]) }

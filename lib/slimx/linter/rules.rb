@@ -4,8 +4,8 @@ module SlimX
   class Linter
     module Rules
       def self.all
-        constants.filter_map do
-          rule = const_get(_1)
+        constants.filter_map do |constant_name|
+          rule = const_get(constant_name)
           rule if rule < Rule
         end
       end
@@ -36,7 +36,7 @@ module SlimX
         end
 
         def attribute_names(tag)
-          tag.attributes.filter_map { _1.name unless _1.is_a?(AST::Splat) }
+          tag.attributes.filter_map { |attribute| attribute.name unless attribute.is_a?(AST::Splat) }
         end
 
         def each_line(document)
@@ -62,7 +62,7 @@ module SlimX
         end
 
         def literal_attributes(tag, name)
-          tag.attributes.select { _1.respond_to?(:name) && _1.name == name && literal_value(_1) }
+          tag.attributes.select { |attribute| attribute.respond_to?(:name) && attribute.name == name && literal_value(attribute) }
         end
       end
 
@@ -173,7 +173,7 @@ module SlimX
         ALLOWED = /\A\s*#\s*(rubocop:|Template Dependency:)/
 
         def offenses(document, _source)
-          document.enum_for(:each_node).filter_map do |node,|
+          document.each_node.filter_map do |node,|
             next unless node.is_a?(AST::Control) && node.code.match?(/\A\s*#/) && !node.code.match?(ALLOWED)
 
             offense(document, document.line_of(node), "Write comments with `/`, not `- #`: they cost nothing at render time")
@@ -183,7 +183,7 @@ module SlimX
 
       class EmptyControlStatement < Rule
         def offenses(document, _source)
-          document.enum_for(:each_node).filter_map do |node,|
+          document.each_node.filter_map do |node,|
             offense(document, document.line_of(node), "Remove this empty `-`") if node.is_a?(AST::Control) && node.code.strip.empty?
           end
         end
@@ -197,10 +197,10 @@ module SlimX
           sibling_lists.select! { |siblings| siblings.count { flat_control?(_1) } > options[:max] }
           sibling_lists.flat_map do |siblings|
             siblings.chunk_while { |control, following| flat_control?(control) && flat_control?(following) }
-              .filter_map do
-                next unless _1.size > options[:max] && flat_control?(_1.first)
+              .filter_map do |controls|
+                next unless controls.size > options[:max] && flat_control?(controls.first)
 
-                offense(document, document.line_of(_1.first), "Merge these #{_1.size} lines of Ruby into a `ruby:` block")
+                offense(document, document.line_of(controls.first), "Merge these #{controls.size} lines of Ruby into a `ruby:` block")
               end
           end
         end
@@ -216,9 +216,9 @@ module SlimX
         def offenses(document, _source)
           return [] if document.xml?
 
-          document.enum_for(:each_node).filter_map do |node, ancestors|
+          document.each_node.filter_map do |node, ancestors|
             next unless node.is_a?(AST::Tag) && node.name.match?(/[A-Z]/)
-            next if ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "svg" }
+            next if ancestors.any? { |ancestor| ancestor.is_a?(AST::Tag) && ancestor.name == "svg" }
 
             offense(document, document.line_of(node), "Write `#{node.name.downcase}` in lowercase")
           end
@@ -231,10 +231,10 @@ module SlimX
         def offenses(document, _source)
           return [] unless document.partial?
 
-          document.enum_for(:each_node).filter_map do |node,|
+          document.each_node.filter_map do |node,|
             code = case node
             when AST::Control, AST::Output then node.code
-            when AST::Tag then node.attributes.filter_map { _1.code if _1.respond_to?(:code) }.join(" ")
+            when AST::Tag then node.attributes.filter_map { |attribute| attribute.code if attribute.respond_to?(:code) }.join(" ")
             end
             next unless code && (variable = code[INSTANCE_VARIABLE])
 
@@ -302,7 +302,7 @@ module SlimX
       class NestedLinks < Rule
         def offenses(document, _source)
           enum_for(:each_tag, document, "a").filter_map do |tag, ancestors|
-            next unless ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "a" }
+            next unless ancestors.any? { |ancestor| ancestor.is_a?(AST::Tag) && ancestor.name == "a" }
 
             offense(document, document.line_of(tag), "Links cannot contain links")
           end
@@ -412,7 +412,7 @@ module SlimX
         LONE_INTERPOLATION = /\A#\{([^{}]+)\}\z/
 
         def offenses(document, _source)
-          document.enum_for(:each_node).filter_map do |node, ancestors|
+          document.each_node.filter_map do |node, ancestors|
             next unless node.is_a?(AST::TextBlock)
             next unless (lineno = document.line_of(node) || document.line_of(ancestors.last))
 
@@ -430,7 +430,7 @@ module SlimX
         READ_AS_SYNTAX_AFTER_TAG = /\A[(\[{=*\/]/
 
         def offenses(document, _source)
-          document.enum_for(:each_node).filter_map do |node, ancestors|
+          document.each_node.filter_map do |node, ancestors|
             next unless node.is_a?(AST::Output) && AST.empty?(node.children) && node.code =~ PLAIN_STRING
 
             text = $2

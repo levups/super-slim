@@ -30,7 +30,7 @@ def slim_paths(repository, sha)
     tree_json, status = Open3.capture2("gh", "api", "repos/#{repository}/git/trees/#{sha}?recursive=1")
     next sleep(2**attempt) unless status.success?
 
-    paths = JSON.parse(tree_json).fetch("tree").filter_map { _1["path"] if _1["type"] == "blob" && _1["path"].end_with?(".slim") }
+    paths = JSON.parse(tree_json).fetch("tree").filter_map { |entry| entry["path"] if entry["type"] == "blob" && entry["path"].end_with?(".slim") }
     FileUtils.mkdir_p(File.dirname(listing_path))
     File.write(listing_path, paths.map { "#{_1}\n" }.join)
     return paths
