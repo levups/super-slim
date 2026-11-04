@@ -9,6 +9,8 @@ require_relative "slimx/runtime"
 require_relative "slimx/formatter"
 
 module SlimX
+  autoload :RuboCop, "slimx/rubocop"
+
   class Error < StandardError; end
   class InvalidAttributeNameError < Error; end
   class UnsafeFormattingError < Error; end
