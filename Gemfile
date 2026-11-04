@@ -21,3 +21,7 @@ group :development, :test do
   gem "stackprof"
   gem "tilt"
 end
+
+group :development do
+  gem "rouge", "5.1.0" # pinned: docs:highlight:check compares its output with the committed pages
+end
