@@ -7,7 +7,7 @@ require "slimx/linter"
 class LinterTest < Minitest::Test
   def test_layout_rules
     assert_offenses ["Indentation:2", "TrailingWhitespace:2", "ControlStatementSpacing:3", "RedundantDiv:4", "EmptyLines:6"],
-                    "ul\n   li \n-x = 1\ndiv.card\n\n\np\n"
+      "ul\n   li \n-x = 1\ndiv.card\n\n\np\n"
   end
 
   def test_final_newline
@@ -36,15 +36,15 @@ class LinterTest < Minitest::Test
       p#main
     SLIM
     assert_offenses ["ImageAlt:1", "IframeTitle:3", "AnchorHref:4", "NestedLinks:6", "PositiveTabindex:7",
-                     "BooleanAttributeValue:8", "AriaRole:9", "AriaAttribute:9", "DuplicateId:11"], source
+      "BooleanAttributeValue:8", "AriaRole:9", "AriaAttribute:9", "DuplicateId:11"], source
   end
 
   def test_string_output_inline_after_a_tag
     linter = SlimX::Linter.new
     messages = linter.call("show.html.slim", %(span.note = "(estimate)"\nspan = "Hello"\np\n  = "(alone)"\n)).map(&:message)
     assert_equal ["Write the text `| (estimate)` on its own line, under the tag: inline, it would read as attributes",
-                  "Write the text `| Hello` instead of outputting a string",
-                  "Write the text `| (alone)` instead of outputting a string"], messages
+      "Write the text `| Hello` instead of outputting a string",
+      "Write the text `| (alone)` instead of outputting a string"], messages
   end
 
   def test_zero_width_characters
@@ -72,11 +72,17 @@ class LinterTest < Minitest::Test
   end
 
   def test_configuration
-    linter = SlimX::Linter.new("LineLength" => { "max" => 10 }, "ButtonType" => { "enabled" => true },
-                               "DeprecatedClasses" => { "classes" => { "text-muted" => "text-body-secondary" } })
+    linter = SlimX::Linter.new("LineLength" => {"max" => 10}, "ButtonType" => {"enabled" => true},
+      "DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
     offenses = linter.call("x.slim", "button.text-muted Ok, long line\n")
 
     assert_equal %w[LineLength ButtonType DeprecatedClasses].sort, offenses.map(&:rule).sort
+  end
+
+  def test_offenses_of_one_line_come_in_rule_order
+    offenses = SlimX::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
+    assert_equal %w[LineLength ImageAlt], offenses.map(&:rule)
+    assert_equal %w[Indentation Tab TrailingWhitespace], SlimX::Linter::Rules.all.first(3).map(&:rule_name)
   end
 
   def test_syntax_errors_are_offenses
@@ -86,7 +92,7 @@ class LinterTest < Minitest::Test
   private
 
   def assert_offenses(expected, source, path: "app/views/show.html.slim")
-    offenses = SlimX::Linter.new.call(path, source.end_with?("\n") || source.empty? ? source : source)
-    assert_equal expected.sort, offenses.map { "#{it.rule}:#{it.lineno}" }.sort
+    offenses = SlimX::Linter.new.call(path, source)
+    assert_equal expected.sort, offenses.map { |offense| "#{offense.rule}:#{offense.lineno}" }.sort
   end
 end

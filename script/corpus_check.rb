@@ -25,7 +25,7 @@ require_relative "corpus_support"
 render = !ARGV.delete("--render").nil?
 Corpus.stub_missing_constants! if render
 report_path = ARGV.delete_at(ARGV.index("--report") + 1).tap { ARGV.delete("--report") } if ARGV.include?("--report")
-paths = ARGV.flat_map { Dir[File.join(File.expand_path(it), "**/*.slim")] }.sort
+paths = ARGV.flat_map { Dir[File.join(File.expand_path(_1), "**/*.slim")] }.sort
 abort "No .slim file under #{ARGV.join(", ")}" if paths.empty?
 
 linter = SlimX::Linter.new
@@ -35,7 +35,7 @@ CHECKS = %i[compile prism lines render format idempotence format_render lint].fr
 results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   source = File.read(path)
   failures = []
-  result = { path:, failures:, slim_unavailable: false, dropped_feature: false, rendered: false, render_error: nil }
+  result = {path:, failures:, slim_unavailable: false, dropped_feature: false, rendered: false, render_error: nil}
 
   slim_code = Corpus.compile_error_or { Slim::Engine.new(format: Corpus.format_of(path), sort_attrs: false).call(source) }
   slimx_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format: Corpus.format_of(path), strict: false) }
@@ -91,24 +91,24 @@ results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   result.merge(
     compiles: slimx_compiles,
     reformatted: !formatted.start_with?("error:") && formatted != source,
-    offenses: offenses.map { "#{it.lineno}: [#{it.rule}] #{it.message}" },
+    offenses: offenses.map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" },
     offense_rules: offenses.map(&:rule)
   )
 end
 
-messages_by_check = results.flat_map { it[:failures] }.group_by(&:first).transform_values { it.map(&:last) }
-offense_count_by_rule = results.flat_map { it[:offense_rules] }.tally
-render_error_count_by_class = results.filter_map { it[:render_error] }.tally
+messages_by_check = results.flat_map { _1[:failures] }.group_by(&:first).transform_values { _1.map(&:last) }
+offense_count_by_rule = results.flat_map { _1[:offense_rules] }.tally
+render_error_count_by_class = results.filter_map { _1[:render_error] }.tally
 
 puts "#{paths.size} templates"
-puts "Rendered against the stub: #{render ? results.count { it[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { -it[1] }.first(5).map { "#{it[0]} #{it[1]}" }.join(", ")})"
-puts "Slim cannot compile here (missing optional gem): #{results.count { it[:slim_unavailable] }}; refused by SlimX on purpose: #{results.count { it[:dropped_feature] }}"
-puts "Reformatted by slimx fmt: #{results.count { it[:reformatted] }}"
-puts "Lint offenses: #{offense_count_by_rule.sort_by { -it[1] }.map { "#{it[0]} #{it[1]}" }.join(", ")}"
+puts "Rendered against the stub: #{render ? results.count { _1[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { |_, count| -count }.first(5).map { |error_class, count| "#{error_class} #{count}" }.join(", ")})"
+puts "Slim cannot compile here (missing optional gem): #{results.count { _1[:slim_unavailable] }}; refused by SlimX on purpose: #{results.count { _1[:dropped_feature] }}"
+puts "Reformatted by slimx fmt: #{results.count { _1[:reformatted] }}"
+puts "Lint offenses: #{offense_count_by_rule.sort_by { |_, count| -count }.map { |rule, count| "#{rule} #{count}" }.join(", ")}"
 CHECKS.each do |check|
   messages = messages_by_check.fetch(check, [])
   puts "#{check}: #{messages.size} failures"
-  messages.first(Integer(ENV.fetch("SHOW", 10))).each { puts "  #{it}" }
+  messages.first(Integer(ENV.fetch("SHOW", 10))).each { puts "  #{_1}" }
 end
-File.write(report_path, JSON.pretty_generate(results.to_h { [it[:path], it.slice(:compiles, :reformatted, :offenses)] })) if report_path
+File.write(report_path, JSON.pretty_generate(results.to_h { |result| [result[:path], result.slice(:compiles, :reformatted, :offenses)] })) if report_path
 exit(messages_by_check.empty? ? 0 : 1)

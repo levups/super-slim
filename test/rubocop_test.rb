@@ -35,10 +35,10 @@ class RuboCopTest < Minitest::Test
 
   def test_offenses_point_at_the_template
     assert_equal ["1:10 Style/NilComparison", "2:15 Layout/SpaceInsideParens", "2:17 Layout/SpaceInsideParens",
-                  "2:38 Layout/SpaceBeforeBlockBraces", "2:38 Layout/SpaceInsideBlockBraces", "2:44 Layout/SpaceInsideBlockBraces",
-                  "2:54 Style/StringLiterals", "5:20 Style/MethodCallWithoutArgsParentheses", "7:13 Style/StringLiterals",
-                  "8:15 Style/StringLiterals", "10:9 Layout/SpaceAfterComma", "11:25 Style/StringLiterals"],
-                 rubocop("--format", "emacs").scan(/:(\d+:\d+): C: \[Correctable\] (\S+):/).map { it.join(" ") }
+      "2:38 Layout/SpaceBeforeBlockBraces", "2:38 Layout/SpaceInsideBlockBraces", "2:44 Layout/SpaceInsideBlockBraces",
+      "2:54 Style/StringLiterals", "5:20 Style/MethodCallWithoutArgsParentheses", "7:13 Style/StringLiterals",
+      "8:15 Style/StringLiterals", "10:9 Layout/SpaceAfterComma", "11:25 Style/StringLiterals"],
+      rubocop("--format", "emacs").scan(/:(\d+:\d+): C: \[Correctable\] (\S+):/).map { _1.join(" ") }
   end
 
   def test_autocorrection_writes_into_the_template

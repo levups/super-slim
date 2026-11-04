@@ -23,7 +23,7 @@ module SlimX
     Splat = Struct.new(:code)
 
     def self.empty?(nodes)
-      nodes.all? { |node| node == NEWLINE }
+      nodes.all?(NEWLINE)
     end
 
     # Once compiled, a text block with no text leaves nothing behind: Slim then closes a void tag holding one.

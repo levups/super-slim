@@ -3,3 +3,4 @@ slimx-*.gem
 /corpus/cache/
 /corpus/*.json
 /pkg/
+/gemfiles/*.lock

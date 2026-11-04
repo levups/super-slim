@@ -27,7 +27,7 @@ EXAMPLE_BY_RULE = {
   "CommentControlStatement" => Example.new("- # TODO\np Text\n", "/ TODO\np Text\n"),
   "EmptyControlStatement" => Example.new("-\np Text\n", "p Text\n"),
   "ConsecutiveControlStatements" => Example.new("- a = 1\n- b = 2\n- c = 3\np = a + b + c\n",
-                                                "ruby:\n  a = 1\n  b = 2\n  c = 3\np = a + b + c\n"),
+    "ruby:\n  a = 1\n  b = 2\n  c = 3\np = a + b + c\n"),
   "TagCase" => Example.new("P Text\n", "p Text\n"),
   "Zwsp" => Example.new("p Hello​world\n", "p Hello world\n"),
   "UnnecessaryInterpolation" => Example.new("p \#{post.title}\n", "p = post.title\n"),
@@ -66,12 +66,12 @@ abort "Rules without an example: #{undocumented.join(", ")}" if undocumented.any
 ungrouped = EXAMPLE_BY_RULE.keys - RULES_BY_GROUP.values.flatten
 abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
 
-off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(it)::DEFAULTS[:enabled] }
+off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
 linter = SlimX::Linter.new(
-  off_by_default.to_h { [it, { "enabled" => true }] }.merge("DeprecatedClasses" => { "classes" => { "text-muted" => "text-body-secondary" } })
+  off_by_default.to_h { [_1, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
 )
 message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|
-  flagged = linter.call(example.path, example.flagged).find { it.rule == rule }
+  flagged = linter.call(example.path, example.flagged).find { _1.rule == rule }
   abort "#{rule}: the flagged example passes" unless flagged
   clean_offenses = linter.call(example.path, example.clean)
   abort "#{rule}: the clean example is flagged: #{clean_offenses.map(&:message).join(", ")}" if clean_offenses.any?
@@ -82,7 +82,7 @@ end
 def escape(text) = CGI.escapeHTML(text)
 
 def visible_source(rule, source)
-  source = source.gsub(/ +$/) { "·" * it.size } if rule == "TrailingWhitespace"
+  source = source.gsub(/ +$/) { "·" * _1.size } if rule == "TrailingWhitespace"
   source.gsub("\t", "→   ").gsub("​", "\\u200B")
 end
 
@@ -95,8 +95,8 @@ rules_html = RULES_BY_GROUP.map do |title, rules|
       <details class="rule">
         <summary><span class="rule-name">#{rule}</span>#{default}<span class="rule-message">#{message}</span></summary>
         <div class="rule-examples">
-          <div><p class="example-label">Flagged</p><pre><code>#{escape(visible_source(rule, example.flagged))}</code></pre></div>
-          <div><p class="example-label">Clean</p><pre><code>#{escape(example.clean)}</code></pre></div>
+          <div><p class="example-label">Flagged</p><pre><code class="language-slim">#{escape(visible_source(rule, example.flagged))}</code></pre></div>
+          <div><p class="example-label">Clean</p><pre><code class="language-slim">#{escape(example.clean)}</code></pre></div>
         </div>
       </details>
     HTML

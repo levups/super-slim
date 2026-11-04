@@ -10,7 +10,7 @@ module SlimX
 
     TAB_SIZE = 4
     TAB = /\G((?: {#{TAB_SIZE}})*) {0,#{TAB_SIZE - 1}}\t/
-    DELIMITERS = { "(" => ")", "[" => "]", "{" => "}" }.freeze
+    DELIMITERS = {"(" => ")", "[" => "]", "{" => "}"}.freeze
     SUPPORTED_ENGINES = %w[javascript css ruby markdown].freeze
     # Engines Slim ships that SlimX deliberately refuses, so they fail loudly instead of parsing as a tag.
     UNSUPPORTED_ENGINES = %w[asciidoc textile rdoc coffee sass scss less erb builder creole wiki org].freeze
@@ -39,15 +39,15 @@ module SlimX
     CLOSED_TAG = /\s*\/\s*/
     SHORTCUT_VALUE_TO_ESCAPE = /[&<>"']/
     # Runs of characters the scanners would otherwise copy one by one: no delimiter, no line continuation.
-    CODE_CHUNK_BY_CLOSING = [nil, *DELIMITERS.values].to_h { [it, /(?:[^\s(\[{,\\#{Regexp.escape(it.to_s)}]|[,\\](?!\z))+/] }.freeze
+    CODE_CHUNK_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /(?:[^\s(\[{,\\#{Regexp.escape(closing.to_s)}]|[,\\](?!\z))+/] }.freeze
     NESTED_CODE_CHUNK_BY_OPENING = DELIMITERS.to_h { |opening, closing| [opening, /(?:[^,\\#{Regexp.escape(opening + closing)}]|[,\\](?!\z))+/] }.freeze
-    QUOTED_CHUNK_BY_QUOTE = %w[" '].to_h { [it, /(?:[^{}\\#{it}]|\\(?!\z))+/] }.freeze
+    QUOTED_CHUNK_BY_QUOTE = %w[" '].to_h { |quote| [quote, /(?:[^{}\\#{quote}]|\\(?!\z))+/] }.freeze
     SLASH, PIPE, APOSTROPHE, LESS_THAN, GREATER_THAN, DASH, EQUALS = "/|'<>-=".bytes
     OPENING_BRACE, CLOSING_BRACE = "{}".bytes
     WHITESPACE_MARKER_BYTES = "<>'".bytes.freeze
-    BOOLEAN_ATTRIBUTE_BY_CLOSING = DELIMITERS.values.to_h { [it, /#{ATTRIBUTE_NAME}(?=(\s|#{Regexp.escape(it)}|\z))/] }.freeze
-    ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { [it, /\s*#{Regexp.escape(it)}/] }.freeze
-    CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { [it, /[\s#{Regexp.escape(it.to_s)}]/] }.freeze
+    BOOLEAN_ATTRIBUTE_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /#{ATTRIBUTE_NAME}(?=(\s|#{Regexp.escape(closing)}|\z))/] }.freeze
+    ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /\s*#{Regexp.escape(closing)}/] }.freeze
+    CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /[\s#{Regexp.escape(closing.to_s)}]/] }.freeze
 
     # What the formatter and the linter need to know about each source line, indexed by line number.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column)
@@ -71,7 +71,8 @@ module SlimX
       end
       normalized = normalize(source)
       @line_starts = line_starts(normalized, source.size - normalized.size) if @record_outline
-      @lines = normalized.split(/\r?\n/)
+      # A string separator splits 6x faster than the regexp, which only templates with \r need.
+      @lines = normalized.include?("\r") ? normalized.split(/\r?\n/) : normalized.split("\n")
       @scanner = StringScanner.new("")
       @stacks = [root]
       @indents = []
@@ -96,7 +97,7 @@ module SlimX
 
     def line_starts(source, byte_order_mark_size)
       line_starts = [nil, byte_order_mark_size]
-      source.each_line { line_starts << line_starts.last + it.size }
+      source.each_line { |line| line_starts << line_starts.last + line.size }
       line_starts
     end
 
@@ -282,7 +283,7 @@ module SlimX
       @scanner_column += @scanner.charpos - @scanner[3].size - 1 - attributes_source.size
       @scanner.string = attributes_source
       attributes = parse_attributes
-      located Embedded.new(engine, parse_text_block(text, text_indent, engine == "ruby" ? :embedded_ruby : :text), attributes), lineno
+      located Embedded.new(engine, parse_text_block(text, text_indent, (engine == "ruby") ? :embedded_ruby : :text), attributes), lineno
     end
 
     def skip_comment_block
@@ -328,7 +329,7 @@ module SlimX
           end
 
           if @outline
-            rendered_blank_linenos.each { @outline[it].kind = :text_blank }
+            rendered_blank_linenos.each { @outline[_1].kind = :text_blank }
             rendered_blank_linenos.clear
           end
           next_line
@@ -348,7 +349,7 @@ module SlimX
         end
       end
       if @outline
-        rendered_blank_linenos.each { @outline[it].kind = :blank }
+        rendered_blank_linenos.each { @outline[_1].kind = :blank }
         record_ruby(kind, first, last) if first
       end
       nodes
@@ -356,7 +357,8 @@ module SlimX
 
     def parse_broken_line
       first = source_offset + @scanner.rest[/\A\s*/].size if @outline
-      broken_line = @scanner.rest.strip
+      broken_line = @scanner.rest
+      broken_line.strip!
       while broken_line.match?(LINE_CONTINUATION)
         expect_next_line
         broken_line << "\n" << @scanner.string
@@ -381,7 +383,7 @@ module SlimX
 
         # Tailwind arbitrary values may hold quotes and ampersands, which Slim names never do.
         value = ERB::Escape.html_escape(value) if value.match?(SHORTCUT_VALUE_TO_ESCAPE)
-        names.each { attributes << StaticAttribute.new(it, value) }
+        names.each { |name| attributes << StaticAttribute.new(name, value) }
         @shortcuts.additional_attributes_by_shortcut[shortcut]&.each { |name, value| attributes << StaticAttribute.new(name.to_s, value) }
         @scanner.pos += shortcut_length
       end
@@ -488,12 +490,12 @@ module SlimX
         if @scanner.match?(LINE_CONTINUATION)
           code << @scanner.getch << "\n"
           expect_next_line
-        elsif (chunk = @scanner.scan(depth == 0 ? CODE_CHUNK_BY_CLOSING[outer_closing] : NESTED_CODE_CHUNK_BY_OPENING[opening]))
+        elsif (chunk = @scanner.scan((depth == 0) ? CODE_CHUNK_BY_CLOSING[outer_closing] : NESTED_CODE_CHUNK_BY_OPENING[opening]))
           code << chunk
         else
           character = @scanner.getch
           if depth > 0
-            depth += character == opening ? 1 : -1
+            depth += (character == opening) ? 1 : -1
           else
             depth = 1
             opening = character
@@ -534,7 +536,7 @@ module SlimX
     end
 
     def syntax_error!(message)
-      error = SyntaxError.new(message, @file, @line, @lineno, @line && @scanner ? column : 0)
+      error = SyntaxError.new(message, @file, @line, @lineno, (@line && @scanner) ? column : 0)
       error.set_backtrace(["#{@file}:#{@lineno}", *caller])
       raise error
     end

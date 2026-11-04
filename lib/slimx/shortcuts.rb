@@ -2,7 +2,7 @@
 
 module SlimX
   class Shortcuts
-    DEFAULT = { "#" => { attr: "id" }, "." => { attr: "class" } }.freeze
+    DEFAULT = {"#" => {attr: "id"}, "." => {attr: "class"}}.freeze
     DEFAULT_TAG = "div"
 
     attr_reader :tag_by_shortcut, :attributes_by_shortcut, :additional_attributes_by_shortcut, :attribute_pattern, :tag_pattern
@@ -34,19 +34,18 @@ module SlimX
       @additional_attributes_by_shortcut = {}
       definitions.each { |shortcut, definition| register(shortcut, definition) }
 
-      attribute_keys = Regexp.union(@attributes_by_shortcut.keys.sort_by { -it.size })
+      attribute_keys = Regexp.union(@attributes_by_shortcut.keys.sort_by { -_1.size })
       name_part = tailwind_classes ? TAILWIND_NAME_PART : SLIM_NAME_PART
       @attribute_pattern = /\A(#{attribute_keys}+)((?:#{name_part})*)/
-      tag_keys = Regexp.union(@tag_by_shortcut.keys.sort_by { -it.size })
+      tag_keys = Regexp.union(@tag_by_shortcut.keys.sort_by { -_1.size })
       @tag_pattern = /\A(?:#{tag_keys}|\*(?=[^\s]+)|(\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
     end
 
     private
 
     def register(shortcut, definition)
-      unless (definition[:attr] || definition[:tag]) && (definition.keys - %i[attr tag additional_attrs]).empty?
-        raise ArgumentError, "Shortcut requires :tag and/or :attr"
-      end
+      valid = (definition[:attr] || definition[:tag]) && (definition.keys - %i[attr tag additional_attrs]).empty?
+      raise ArgumentError, "Shortcut requires :tag and/or :attr" unless valid
 
       raise ArgumentError, "Lambda shortcuts are not supported" if definition[:attr].is_a?(Proc)
 

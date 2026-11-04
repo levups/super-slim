@@ -27,9 +27,9 @@ module SlimX
         writer.close
         reader
       end
-      results_by_process = readers.map { Marshal.load(it.binmode.read) }
+      results_by_process = readers.map { |reader| Marshal.load(reader.binmode.read) }
       Process.waitall
-      results_by_process.each { raise it if it.is_a?(Exception) }
+      results_by_process.each { |results| raise results if results.is_a?(Exception) }
       results_by_process.flatten(1)
     end
   end

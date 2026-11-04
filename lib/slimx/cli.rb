@@ -30,8 +30,8 @@ module SlimX
 
     def lint(paths, configuration)
       linter = Linter.new(configuration.fetch("linters", {}))
-      offenses = Parallel.map(templates(paths)) { linter.call(it, File.read(it)) }.flatten
-      offenses.each { puts "#{it.path}:#{it.lineno}: [#{it.rule}] #{it.message}" }
+      offenses = Parallel.map(templates(paths)) { |path| linter.call(path, File.read(path)) }.flatten
+      offenses.each { |offense| puts "#{offense.path}:#{offense.lineno}: [#{offense.rule}] #{offense.message}" }
       offenses.empty? ? 0 : 1
     end
 
@@ -47,8 +47,8 @@ module SlimX
       rescue Error => exception
         [:refused, "#{path}: #{exception.message.lines.first.strip}"]
       end
-      outcomes.compact.each { |outcome, text| outcome == :reformatted ? puts(text) : warn(text) }
-      outcomes.any? { |outcome,| outcome == :refused || (outcome == :reformatted && check) } ? 1 : 0
+      outcomes.compact.each { |outcome, text| (outcome == :reformatted) ? puts(text) : warn(text) }
+      (outcomes.any? { |outcome,| outcome == :refused || (outcome == :reformatted && check) }) ? 1 : 0
     end
 
     def templates(paths)
@@ -56,7 +56,7 @@ module SlimX
       paths.flat_map do |path|
         next [path] unless File.directory?(path)
 
-        Dir.glob("**/*.slim", base: path).reject { it.match?(SKIPPED_DIRECTORIES) }.map { File.join(path, it) }
+        Dir.glob("**/*.slim", base: path).filter_map { |template| File.join(path, template) unless template.match?(SKIPPED_DIRECTORIES) }
       end.sort
     end
   end

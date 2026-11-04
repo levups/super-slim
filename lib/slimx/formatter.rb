@@ -87,7 +87,7 @@ module SlimX
     end
 
     def expand_tabs(line)
-      line.sub(/\A[ \t]*/) { it.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
+      line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
     def compiled(source)

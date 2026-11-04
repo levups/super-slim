@@ -13,7 +13,8 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="page">
+<a class="skip-link" href="#content">Skip to content</a>
+<div class="page">
   <nav class="site-nav" aria-label="Site">
     <a class="brand" href="./">SlimX</a>
     <a href="guide.html">Guide</a>
@@ -23,6 +24,7 @@
     <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
   </nav>
 
+  <main id="content">
   <header>
     <h1 class="page-title">Testing</h1>
     <p class="lede">A rewrite is only worth it if nobody can tell from the HTML. Slim itself is the reference: wherever possible, a test renders through both engines and requires the same bytes.</p>
@@ -113,17 +115,27 @@
   <section id="ci" aria-labelledby="ci-title">
     <h2 id="ci-title">Every commit</h2>
     <div class="prose">
-      <p>GitHub Actions runs the suite and Slim’s suites on Ruby 3.4 and 4.0, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
-<pre><code>bundle exec rake test
-FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
-bundle exec rake corpus:fetch corpus:check</code></pre>
+      <p>GitHub Actions runs the suite and Slim’s suites on every maintained Ruby (3.3, 3.4 and 4.0), and ruby-head, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>rake <span class="nb">test
+</span><span class="nv">FUZZ_SEED</span><span class="o">=</span>42 <span class="nv">FUZZ_CASES</span><span class="o">=</span>20000 bundle <span class="nb">exec </span>ruby <span class="nt">-Ilib</span> <span class="nt">-Itest</span> <span class="nb">test</span>/fuzz_test.rb
+bundle <span class="nb">exec </span>rake corpus:fetch corpus:check</code></pre>
     </div>
   </section>
 
-  <footer>
-    <span>Made by <a href="https://github.com/next-gen-gems">Next Gen Gems, by Level UP Solutions</a></span>
-    <span>MIT license, with Slim’s grammar credited to the Slim Team</span>
+  </main>
+
+  <footer class="family">
+    <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
+    <nav aria-label="Next Gen Gems">
+      <ul>
+        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
+        <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
+        <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
+      </ul>
+    </nav>
+    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
   </footer>
-</main>
+</div>
 </body>
 </html>

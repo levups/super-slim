@@ -9,7 +9,7 @@ require "slimx/tilt"
 
 class LiterateTest < Minitest::Test
   SPECIFICATION_PATH = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/literate/TESTS.md")
-  REFERENCE_OPTIONS = { format: :html, sort_attrs: false, pretty: false }.freeze
+  REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
   UNSUPPORTED_OPTIONS = %i[disable_escape].freeze
   DROPPED_FEATURES = ["IE conditional comment"].freeze
 
@@ -28,11 +28,11 @@ class LiterateTest < Minitest::Test
         options_by_depth = options_by_depth.first(depth) + [options_by_depth.first(depth).last.dup]
         title = title.first(depth - 1) + [heading[2]]
       elsif (fence = line.match(/\A~{3,}\s*(\w+)\s*\z/))
-        block = lines.take_while { !it.match?(/\A~{3,}\s*\z/) }
+        block = lines.take_while { !_1.match?(/\A~{3,}\s*\z/) }
         lines.shift(block.size + 1)
         case fence[1]
         # The options blocks are Ruby hash literals written by Slim itself, in a gem we installed.
-        when "options" then options_by_depth.last.update(eval("{#{block.join("\n")}}"))
+        when "options" then options_by_depth.last.update(eval("{#{block.join("\n")}}", binding, __FILE__, __LINE__)) # rubocop:disable Security/Eval
         when "slim" then examples << Example.new(title.join(" / "), block.join("\n"), options_by_depth.last.dup)
         end
       end
@@ -47,9 +47,9 @@ class LiterateTest < Minitest::Test
   private
 
   def check(example)
-    unsupported = UNSUPPORTED_OPTIONS.select { example.options[it] }
+    unsupported = UNSUPPORTED_OPTIONS.select { example.options[_1] }
     skip "Unsupported options #{unsupported.inspect}" if unsupported.any?
-    skip "Dropped from SlimX" if DROPPED_FEATURES.any? { example.title.include?(it) }
+    skip "Dropped from SlimX" if DROPPED_FEATURES.any? { example.title.include?(_1) }
 
     assert_equal render_with_slim(example), render_with_slimx(example), "SlimX differs from Slim on:\n#{example.slim}"
   end
@@ -66,7 +66,7 @@ class LiterateTest < Minitest::Test
 
   def outcome
     yield
-  rescue StandardError => exception
+  rescue => exception
     "error: #{exception.message.lines.first}"
   end
 end

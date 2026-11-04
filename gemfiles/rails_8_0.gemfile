@@ -1,0 +1,5 @@
+# frozen_string_literal: true
+
+# Rails 8.0, the oldest Rails still maintained; Gemfile takes the newest.
+@rails = "~> 8.0.0"
+eval_gemfile "../Gemfile"

@@ -11,7 +11,7 @@ module SlimX
     class Plugin < LintRoller::Plugin
       def about
         LintRoller::About.new(name: "slimx", version: VERSION, homepage: "https://github.com/next-gen-gems/slimx",
-                              description: "Lints the Ruby of Slim templates, read by SlimX's parser")
+          description: "Lints the Ruby of Slim templates, read by SlimX's parser")
       end
 
       def supported?(context)
@@ -52,7 +52,7 @@ module SlimX
         fragments.filter_map do |fragment|
           next if fragment.code.strip.empty?
 
-          { offset: fragment.offset, processed_source: processed_source_of(fragment.code) }
+          {offset: fragment.offset, processed_source: processed_source_of(fragment.code)}
         end
       end
 
@@ -118,7 +118,7 @@ module SlimX
 
       def processed_source_of(code)
         processed_source = ::RuboCop::ProcessedSource.new(code, @processed_source.ruby_version, @processed_source.path,
-                                                          parser_engine: @processed_source.parser_engine)
+          parser_engine: @processed_source.parser_engine)
         processed_source.config = @processed_source.config
         processed_source.registry = @processed_source.registry
         processed_source

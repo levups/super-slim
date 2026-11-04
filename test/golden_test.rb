@@ -47,7 +47,7 @@ class GoldenTest < Minitest::Test
     def corpus? = name.start_with?("corpus/")
     def tailwind_classes? = name.start_with?("tailwind/")
     def slim_comparable? = !tailwind_classes? && !name.start_with?("slimx_only/")
-    def format = XML_EXTENSIONS.any? { path.end_with?(it) } ? :xml : :html
+    def format = (XML_EXTENSIONS.any? { path.end_with?(_1) }) ? :xml : :html
     def snapshot_path = path.delete_suffix(".slim") + ".snap"
   end
 
@@ -81,7 +81,7 @@ class GoldenTest < Minitest::Test
     }
     unless golden_case.corpus?
       html = render_tilt(golden_case, golden_case.source, html_safe: true)
-      sections = { "html" => html, **sections }
+      sections = {"html" => html, **sections}
       assert_same_as_slim(golden_case) if golden_case.slim_comparable?
       assert_equal html, render_rails(golden_case), "#{golden_case.name}: Rails renders differently from Tilt"
     end
@@ -117,7 +117,7 @@ class GoldenTest < Minitest::Test
 
   def render_rails(golden_case)
     handler = SlimX::RailsHandler.new
-    format = golden_case.format == :xml ? :xml : :html
+    format = (golden_case.format == :xml) ? :xml : :html
     template = ActionView::Template.new(golden_case.source, golden_case.name, handler, locals: [], format:)
     attempt { template.render(RailsView.new(ActionView::LookupContext.new([]), {}, nil), {}).to_s }
   end
@@ -152,7 +152,7 @@ class GoldenTest < Minitest::Test
       next if first_code_line.empty?
 
       assert_includes generated_lines[lineno - 1].to_s, first_code_line,
-                      "#{golden_case.name}:#{lineno}: `#{first_code_line}` is not on line #{lineno} of the Ruby"
+        "#{golden_case.name}:#{lineno}: `#{first_code_line}` is not on line #{lineno} of the Ruby"
     end
   end
 
@@ -163,18 +163,18 @@ class GoldenTest < Minitest::Test
       attempt { SlimX.compile(formatted, file: golden_case.name, format: golden_case.format, strict:) }
     end
     assert_equal lenient, strict, "#{golden_case.name}: strict mode refuses the formatted source"
-    layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{it}]") } }
+    layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{_1}]") } }
     assert_empty layout_offenses, "#{golden_case.name}: the formatted source breaks layout rules"
   end
 
   def lint(golden_case, source)
     linter = SlimX::Linter.new(ENABLE_EVERY_RULE)
-    linter.call(golden_case.name, source).map { "#{it.lineno}: [#{it.rule}] #{it.message}" }.join("\n")
+    linter.call(golden_case.name, source).map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" }.join("\n")
   end
 
   ENABLE_EVERY_RULE = SlimX::Linter::Rules.constants.filter_map do |name|
     rule = SlimX::Linter::Rules.const_get(name)
-    [name.name, { "enabled" => true }] if rule.is_a?(Class) && name != :Rule
+    [name.name, {"enabled" => true}] if rule.is_a?(Class) && name != :Rule
   end.to_h.freeze
 
   def assert_snapshot(golden_case, sections)
