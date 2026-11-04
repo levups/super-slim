@@ -161,18 +161,19 @@ bundle exec ruby --yjit -Ilib bench/render.rb        # render speed and allocati
 
 ### Releasing
 
-Changes go under `## [Unreleased]` in `CHANGELOG.md` as they land. To release them, refresh the website's
-numbers on a quiet machine (`SLIMX_CORPUS=path/to/app/views bundle exec rake bench`) and commit them, then,
-from an up-to-date `main` whose CI is green:
+Pull requests leave `CHANGELOG.md` alone: a release starts by writing its notes under `## [Unreleased]`, from the
+pull requests merged since the last tag, without committing them. Refresh the website's numbers on a quiet machine
+(`SLIMX_CORPUS=path/to/app/views bundle exec rake bench`) and commit them, then, from an up-to-date `main` whose
+CI is green:
 
 ```sh
 bin/release minor --dry-run   # the notes and the changes, nothing written
 bin/release minor             # or patch, major, or an exact version such as 1.2.0
 ```
 
-`bin/release` dates the Unreleased section, bumps the version, commits, and pushes the commit with a signed tag
-`vX.Y.Z`. The tag starts the Release workflow, which publishes the gem to RubyGems through trusted publishing and
-creates the GitHub release with the version's notes and the `.gem`.
+`bin/release` dates the Unreleased section, bumps the version, commits both, and pushes the commit with a signed
+tag `vX.Y.Z`. The tag starts the Release workflow, which publishes the gem to RubyGems through trusted publishing
+and creates the GitHub release with the version's notes and the `.gem`.
 
 ## License
 
