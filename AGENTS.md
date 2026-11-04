@@ -49,4 +49,4 @@ bundle exec rake docs                        # rewrites the linter rules of docs
 
 ## Code style
 
-`STYLE.md` (naming, method size, comments, dead code), a copy of next-gen-gems/.github's: change it there first, then copy it here as is.
+Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't settle.
