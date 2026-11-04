@@ -18,10 +18,14 @@ DROPPED_FEATURE_TESTS = %w[
 # Slim reports `= unknown_ruby_method` on line 7 while it sits on line 6, one line after a ruby: block; the test
 # pins that drift. SlimX keeps every line of a ruby: block on its template line.
 SLIM_LINE_DRIFT_TESTS = %w[test_embedded_ruby1].freeze
+# Checks Slim's own class, which Temple gives its MIME type on the first template it prepares: the test passed or
+# failed depending on the seed.
+SLIM_ORDER_DEPENDENT_TESTS = %w[test_default_mime_type].freeze
 Minitest::Test.prepend(Module.new do
   def before_setup
     super
     skip "Dropped from SlimX" if DROPPED_FEATURE_TESTS.include?(name)
     skip "Pins a line drift of Slim that SlimX fixes" if SLIM_LINE_DRIFT_TESTS.include?(name)
+    skip "Tests Slim's class, and only after another test" if SLIM_ORDER_DEPENDENT_TESTS.include?(name)
   end
 end)
