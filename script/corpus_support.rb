@@ -38,7 +38,7 @@ end
 
 class StubScope < Stub
   def initialize(source)
-    source.scan(/@(\w+)/).flatten.uniq.each { instance_variable_set("@#{_1}", Stub.new) unless _1 == "output_buffer" }
+    source.scan(/@(\w+)/).flatten.uniq.each { |name| instance_variable_set("@#{name}", Stub.new) unless name == "output_buffer" }
   end
 end
 

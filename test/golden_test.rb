@@ -169,7 +169,7 @@ class GoldenTest < Minitest::Test
 
   def lint(golden_case, source)
     linter = SlimX::Linter.new(ENABLE_EVERY_RULE)
-    linter.call(golden_case.name, source).map { "#{_1.lineno}: [#{_1.rule}] #{_1.message}" }.join("\n")
+    linter.call(golden_case.name, source).map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" }.join("\n")
   end
 
   ENABLE_EVERY_RULE = SlimX::Linter::Rules.constants.filter_map do |name|

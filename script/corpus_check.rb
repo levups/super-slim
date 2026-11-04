@@ -91,7 +91,7 @@ results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   result.merge(
     compiles: slimx_compiles,
     reformatted: !formatted.start_with?("error:") && formatted != source,
-    offenses: offenses.map { "#{_1.lineno}: [#{_1.rule}] #{_1.message}" },
+    offenses: offenses.map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" },
     offense_rules: offenses.map(&:rule)
   )
 end
@@ -101,14 +101,14 @@ offense_count_by_rule = results.flat_map { _1[:offense_rules] }.tally
 render_error_count_by_class = results.filter_map { _1[:render_error] }.tally
 
 puts "#{paths.size} templates"
-puts "Rendered against the stub: #{render ? results.count { _1[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { -_1[1] }.first(5).map { "#{_1[0]} #{_1[1]}" }.join(", ")})"
+puts "Rendered against the stub: #{render ? results.count { _1[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { |_, count| -count }.first(5).map { |error_class, count| "#{error_class} #{count}" }.join(", ")})"
 puts "Slim cannot compile here (missing optional gem): #{results.count { _1[:slim_unavailable] }}; refused by SlimX on purpose: #{results.count { _1[:dropped_feature] }}"
 puts "Reformatted by slimx fmt: #{results.count { _1[:reformatted] }}"
-puts "Lint offenses: #{offense_count_by_rule.sort_by { -_1[1] }.map { "#{_1[0]} #{_1[1]}" }.join(", ")}"
+puts "Lint offenses: #{offense_count_by_rule.sort_by { |_, count| -count }.map { |rule, count| "#{rule} #{count}" }.join(", ")}"
 CHECKS.each do |check|
   messages = messages_by_check.fetch(check, [])
   puts "#{check}: #{messages.size} failures"
   messages.first(Integer(ENV.fetch("SHOW", 10))).each { puts "  #{_1}" }
 end
-File.write(report_path, JSON.pretty_generate(results.to_h { [_1[:path], _1.slice(:compiles, :reformatted, :offenses)] })) if report_path
+File.write(report_path, JSON.pretty_generate(results.to_h { |result| [result[:path], result.slice(:compiles, :reformatted, :offenses)] })) if report_path
 exit(messages_by_check.empty? ? 0 : 1)

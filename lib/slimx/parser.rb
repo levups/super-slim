@@ -39,15 +39,15 @@ module SlimX
     CLOSED_TAG = /\s*\/\s*/
     SHORTCUT_VALUE_TO_ESCAPE = /[&<>"']/
     # Runs of characters the scanners would otherwise copy one by one: no delimiter, no line continuation.
-    CODE_CHUNK_BY_CLOSING = [nil, *DELIMITERS.values].to_h { [_1, /(?:[^\s(\[{,\\#{Regexp.escape(_1.to_s)}]|[,\\](?!\z))+/] }.freeze
+    CODE_CHUNK_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /(?:[^\s(\[{,\\#{Regexp.escape(closing.to_s)}]|[,\\](?!\z))+/] }.freeze
     NESTED_CODE_CHUNK_BY_OPENING = DELIMITERS.to_h { |opening, closing| [opening, /(?:[^,\\#{Regexp.escape(opening + closing)}]|[,\\](?!\z))+/] }.freeze
-    QUOTED_CHUNK_BY_QUOTE = %w[" '].to_h { [_1, /(?:[^{}\\#{_1}]|\\(?!\z))+/] }.freeze
+    QUOTED_CHUNK_BY_QUOTE = %w[" '].to_h { |quote| [quote, /(?:[^{}\\#{quote}]|\\(?!\z))+/] }.freeze
     SLASH, PIPE, APOSTROPHE, LESS_THAN, GREATER_THAN, DASH, EQUALS = "/|'<>-=".bytes
     OPENING_BRACE, CLOSING_BRACE = "{}".bytes
     WHITESPACE_MARKER_BYTES = "<>'".bytes.freeze
-    BOOLEAN_ATTRIBUTE_BY_CLOSING = DELIMITERS.values.to_h { [_1, /#{ATTRIBUTE_NAME}(?=(\s|#{Regexp.escape(_1)}|\z))/] }.freeze
-    ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { [_1, /\s*#{Regexp.escape(_1)}/] }.freeze
-    CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { [_1, /[\s#{Regexp.escape(_1.to_s)}]/] }.freeze
+    BOOLEAN_ATTRIBUTE_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /#{ATTRIBUTE_NAME}(?=(\s|#{Regexp.escape(closing)}|\z))/] }.freeze
+    ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /\s*#{Regexp.escape(closing)}/] }.freeze
+    CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /[\s#{Regexp.escape(closing.to_s)}]/] }.freeze
 
     # What the formatter and the linter need to know about each source line, indexed by line number.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column)
@@ -341,7 +341,7 @@ module SlimX
 
         # Tailwind arbitrary values may hold quotes and ampersands, which Slim names never do.
         value = ERB::Escape.html_escape(value) if value.match?(SHORTCUT_VALUE_TO_ESCAPE)
-        names.each { attributes << StaticAttribute.new(_1, value) }
+        names.each { |name| attributes << StaticAttribute.new(name, value) }
         @shortcuts.additional_attributes_by_shortcut[shortcut]&.each { |name, value| attributes << StaticAttribute.new(name.to_s, value) }
         @scanner.pos += shortcut_length
       end

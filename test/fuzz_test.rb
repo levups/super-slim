@@ -124,7 +124,7 @@ class FuzzTest < Minitest::Test
   def test_slim_and_slimx_render_the_same
     generator = Generator.new(Random.new(SEED))
     sources = Array.new(CASE_COUNT) { generator.template }
-    renderings = SlimX::Parallel.map(sources, minimum_per_process: 500) { [render(:slim, _1), render(:slimx, _1)] }
+    renderings = SlimX::Parallel.map(sources, minimum_per_process: 500) { |source| [render(:slim, source), render(:slimx, source)] }
     sources.zip(renderings).each_with_index do |(source, (slim_html, slimx_html)), index|
       assert_equal slim_html, slimx_html, "Case #{index} (seed #{SEED}):\n#{source}"
     end
