@@ -16,7 +16,8 @@ Gem::Specification.new do |spec|
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
-  spec.files = Dir["lib/**/*.rb", "exe/slimx", "LICENSE"]
+  spec.metadata["default_lint_roller_plugin"] = "SlimX::RuboCop::Plugin"
+  spec.files = Dir["lib/**/*.rb", "config/*.yml", "exe/slimx", "LICENSE"]
   spec.bindir = "exe"
   spec.executables = ["slimx"]
   spec.require_paths = ["lib"]

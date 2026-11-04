@@ -52,7 +52,8 @@ module SlimX
     # What the formatter and the linter need to know about each source line, indexed by line number.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column)
 
-    attr_reader :outline, :line_by_node
+    # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
+    attr_reader :outline, :line_by_node, :ruby_ranges
 
     def initialize(shortcuts: Shortcuts::DEFAULT, file: nil, outline: false, tailwind_classes: SlimX.tailwind_classes)
       @file = file
@@ -66,8 +67,11 @@ module SlimX
       if @record_outline
         @outline = [nil]
         @line_by_node = {}.compare_by_identity
+        @ruby_ranges = []
       end
-      @lines = normalize(source).split(/\r?\n/)
+      normalized = normalize(source)
+      @line_starts = line_starts(normalized, source.size - normalized.size) if @record_outline
+      @lines = normalized.split(/\r?\n/)
       @scanner = StringScanner.new("")
       @stacks = [root]
       @indents = []
@@ -90,6 +94,12 @@ module SlimX
       source.delete_prefix("﻿")
     end
 
+    def line_starts(source, byte_order_mark_size)
+      line_starts = [nil, byte_order_mark_size]
+      source.each_line { line_starts << line_starts.last + it.size }
+      line_starts
+    end
+
     def next_line
       if @lines.empty?
         @line = nil
@@ -97,6 +107,7 @@ module SlimX
         @line = @lines.shift
         @lineno += 1
         @scanner.string = @line
+        @scanner_column = 0
         @outline << LineInfo.new(:continuation, nil, @structure_lineno) if @outline
         @line
       end
@@ -106,6 +117,7 @@ module SlimX
     def expect_next_line
       next_line || syntax_error!("Unexpected end of file")
       @scanner.string = @line.strip
+      @scanner_column = @line.size - @line.lstrip.size
     end
 
     def outline_line(kind)
@@ -115,6 +127,19 @@ module SlimX
     # Characters of the line read so far, even when the scanner reads a stripped copy or attribute source.
     def column
       @line.size - (@scanner.string.size - @scanner.charpos)
+    end
+
+    # Where the scanner stands in the source, unlike `column` exact on a stripped line or on attribute source.
+    def source_offset
+      @line_starts[@lineno] + @scanner_column + @scanner.charpos
+    end
+
+    def line_end_offset
+      @line_starts[@lineno] + @line.rstrip.size
+    end
+
+    def record_ruby(kind, first, last)
+      @ruby_ranges << [kind, first, last] if last > first
     end
 
     def located(node, lineno = @lineno)
@@ -197,6 +222,7 @@ module SlimX
     end
 
     def parse_inline_html
+      record_ruby(:text, source_offset, line_end_offset) if @outline
       children = []
       @stacks.last << located(InlineHtml.new(@scanner.rest, children))
       @stacks << children
@@ -253,9 +279,10 @@ module SlimX
 
       lineno = @lineno
       text_indent = @line.size - text.size + attributes_source.size
+      @scanner_column += @scanner.charpos - @scanner[3].size - 1 - attributes_source.size
       @scanner.string = attributes_source
       attributes = parse_attributes
-      located Embedded.new(engine, parse_text_block(text, text_indent), attributes), lineno
+      located Embedded.new(engine, parse_text_block(text, text_indent, engine == "ruby" ? :embedded_ruby : :text), attributes), lineno
     end
 
     def skip_comment_block
@@ -265,13 +292,17 @@ module SlimX
       end
     end
 
-    def parse_text_block(first_line = nil, text_indent = nil)
+    def parse_text_block(first_line = nil, text_indent = nil, kind = :text)
       nodes = []
       if !first_line || first_line.empty?
         text_indent = nil
       else
         nodes << Text.new(first_line)
-        @outline[@lineno].text = true if @outline
+        if @outline
+          @outline[@lineno].text = true
+          first = @line_starts[@lineno] + @line.rstrip.size - first_line.rstrip.size
+          last = line_end_offset
+        end
       end
 
       empty_lines = 0
@@ -302,6 +333,10 @@ module SlimX
           end
           next_line
           outline_line(:text)
+          if @outline
+            first ||= @line_starts[@lineno] + @line.size - @line.lstrip.size
+            last = line_end_offset
+          end
 
           offset = text_indent ? indent - text_indent : 0
           if offset < 0
@@ -312,16 +347,21 @@ module SlimX
           text_indent ||= indent
         end
       end
-      rendered_blank_linenos.each { @outline[it].kind = :blank } if @outline
+      if @outline
+        rendered_blank_linenos.each { @outline[it].kind = :blank }
+        record_ruby(kind, first, last) if first
+      end
       nodes
     end
 
     def parse_broken_line
+      first = source_offset + @scanner.rest[/\A\s*/].size if @outline
       broken_line = @scanner.rest.strip
       while broken_line.match?(LINE_CONTINUATION)
         expect_next_line
         broken_line << "\n" << @scanner.string
       end
+      record_ruby(:code, first, line_end_offset) if @outline
       broken_line
     end
 
@@ -438,6 +478,7 @@ module SlimX
     end
 
     def parse_ruby_code(outer_closing)
+      first = source_offset if @outline
       code = +""
       depth = 0
       opening = closing = nil
@@ -462,10 +503,12 @@ module SlimX
         end
       end
       syntax_error!("Expected closing delimiter #{closing}") if depth != 0
+      record_ruby(:code, first, source_offset) if @outline
       code
     end
 
     def parse_quoted_attribute(quote)
+      first = source_offset if @outline
       value = +""
       depth = 0
       quote_byte = quote.ord
@@ -485,6 +528,7 @@ module SlimX
         end
       end
 
+      record_ruby(:text, first, source_offset) if @outline
       @scanner.pos += 1
       value
     end

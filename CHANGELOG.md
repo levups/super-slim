@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- A RuboCop plugin (`plugins: [slimx]`) lints the Ruby of templates, read by SlimX's parser: it replaces
+  rubocop-slim, slimi and Temple, with the same offenses and autocorrection.
+
 ## 1.0.0 — 2026-11-03
 
 First release: a Slim 5 engine written from scratch, without Temple.

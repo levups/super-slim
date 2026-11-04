@@ -109,6 +109,26 @@ linters:
       text-muted: text-body-secondary
 ```
 
+The Ruby inside templates is RuboCop's job: SlimX ships a RuboCop plugin that hands it each `-` and `=` line,
+code attribute, splat, `#{}` interpolation and `ruby:` block, read by SlimX's own parser. Offenses point at their
+line and column in the `.slim` file, and autocorrection writes back into it. It replaces rubocop-slim, and with
+it slimi and Temple:
+
+```yaml
+# .rubocop-slim.yml, run with rubocop -c .rubocop-slim.yml
+inherit_from: .rubocop.yml
+plugins:
+  - slimx
+AllCops:
+  Include:
+    - "**/*.slim"
+```
+
+The cops that cannot hold in a template — indentation and alignment across lines, frozen string comments,
+`Lint/UselessAssignment` on a variable a later line reads — are turned off for `.slim` files, as rubocop-slim
+does. Unlike slimi, SlimX also reads the output of a tag with whitespace markers and attributes
+(`span> title="x" = name`), so a few offenses appear when switching.
+
 ## How it is tested
 
 - Slim's own test suite and its literate specification (`TESTS.md`) run against SlimX: every template renders

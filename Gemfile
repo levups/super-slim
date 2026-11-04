@@ -15,6 +15,7 @@ group :development, :test do
   gem "minitest"
   gem "ostruct"
   gem "rake"
+  gem "rubocop"
   gem "slim", "5.2.2"
   gem "stackprof"
   gem "tilt"
