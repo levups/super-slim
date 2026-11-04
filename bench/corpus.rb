@@ -30,31 +30,24 @@ rescue => exception
 end
 puts failures.first(20), "#{failures.size} failures / #{templates.size} templates"
 
+# Both engines time the same templates: the ones each compiles (Slim needs gems for some embedded engines).
+compiled_by_both = templates.select do |path, source|
+  compile_with_slim.call(path, source)
+  compile_with_slimx.call(path, source)
+rescue StandardError, LoadError
+  false
+end
+puts "#{compiled_by_both.size} templates compiled by both, timed below"
+
 def measure(label, templates, compiler)
-  3.times {
-    templates.each { |path, source|
-      begin
-        compiler.call(path, source)
-      rescue
-        nil
-      end
-    }
-  }
+  3.times { templates.each { |path, source| compiler.call(path, source) } }
   GC.start
   allocations = GC.stat(:total_allocated_objects)
   started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-  5.times {
-    templates.each { |path, source|
-      begin
-        compiler.call(path, source)
-      rescue
-        nil
-      end
-    }
-  }
+  5.times { templates.each { |path, source| compiler.call(path, source) } }
   milliseconds = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000 / 5
   printf("%-9s %7.1f ms  %9d allocations per corpus\n", label, milliseconds, (GC.stat(:total_allocated_objects) - allocations) / 5)
 end
 
-measure("Slim", templates, compile_with_slim)
-measure("SlimX", templates, compile_with_slimx)
+measure("Slim", compiled_by_both, compile_with_slim)
+measure("SlimX", compiled_by_both, compile_with_slimx)
