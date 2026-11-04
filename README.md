@@ -89,7 +89,7 @@ the formatter compiles both versions and refuses if the Ruby differs. Formatting
 Strict mode (`SlimX.strict = true`, or `strict: true` per compile) refuses any template that `slimx fmt` would
 change, pointing at the first line and what it should be: `gofmt` discipline at compile time.
 
-`slimx lint [PATH…]` reads `.slimx.yml` and checks, in about half the time slim-lint takes:
+`slimx lint [PATH…]` reads `.slimx.yml` and checks, with about a third of the CPU time slim-lint takes:
 
 | Rule | From | Default |
 |---|---|---|
