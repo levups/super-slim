@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-11-04
+
+A RuboCop plugin that lints the Ruby inside templates with SlimX's own parser, and templates compiled up to 10% faster.
+
+**New**
+- A RuboCop plugin (`plugins: [slimx]`) lints the Ruby of templates: `-` and `=` lines, code attributes, splats,
+  `#{}` interpolations and `ruby:` blocks. Offenses point at their line and column in the `.slim` file, and
+  autocorrection writes back into it. It replaces rubocop-slim, and with it slimi and Temple; unlike slimi, it
+  also reads the output of a tag with whitespace markers and attributes (`span> title="x" = name`).
+
+**Faster**
+- Templates compile 7% faster without JIT and 10% faster with YJIT, with 11% to 16% fewer allocations (6,097
+  public templates, Ruby 3.3 and 4.0). Rendering is unchanged.
+
+**Fixed**
+- `slimx lint` reports the offenses of one line in the same order on every Ruby version.
+
 ## [1.0.0] — 2026-11-04
 
 First stable release: a Slim 5 engine written from scratch, without Temple. 0.1.0 and 0.1.1 were previews. It
@@ -26,5 +43,6 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/next-gen-gems/slimx/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/next-gen-gems/slimx/releases/tag/v1.0.0
