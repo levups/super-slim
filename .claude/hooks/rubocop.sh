@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PostToolUse hook: autocorrects the Ruby file Claude just wrote, then hands back what RuboCop cannot fix
-# (exit 2 shows stderr to Claude). Files git ignores are left alone: in levups/oss, the upstream clones.
+# (exit 2 shows stderr to Claude). Files git ignores are left alone: the downloaded templates in corpus/cache.
 set -u
 
 file=$(jq -r '.tool_input.file_path // empty')
