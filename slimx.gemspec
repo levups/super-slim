@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
   spec.metadata["default_lint_roller_plugin"] = "SlimX::RuboCop::Plugin"
-  spec.files = Dir["lib/**/*.rb", "config/*.yml", "exe/slimx", "LICENSE", "README.md", "CHANGELOG.md"]
+  spec.files = Dir["lib/**/*.rb", "config/*.yml", "exe/slimx", "LICENSE", "LICENSE-slim", "README.md", "CHANGELOG.md"]
   spec.bindir = "exe"
   spec.executables = ["slimx"]
   spec.require_paths = ["lib"]
