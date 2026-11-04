@@ -319,7 +319,8 @@ module SlimX
     end
 
     def parse_broken_line
-      broken_line = @scanner.rest.strip
+      broken_line = @scanner.rest
+      broken_line.strip!
       while broken_line.match?(LINE_CONTINUATION)
         expect_next_line
         broken_line << "\n" << @scanner.string
