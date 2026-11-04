@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.metadata["documentation_uri"] = "https://next-gen-gems.github.io/slimx/"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
-  spec.files = Dir["lib/**/*.rb", "exe/slimx", "LICENSE", "README.md", "CHANGELOG.md"]
+  spec.files = Dir["lib/**/*.rb", "exe/slimx", "LICENSE", "LICENSE-slim", "README.md", "CHANGELOG.md"]
   spec.bindir = "exe"
   spec.executables = ["slimx"]
   spec.require_paths = ["lib"]
