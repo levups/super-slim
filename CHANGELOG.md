@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-11-04
+
 First stable release: a Slim 5 engine written from scratch, without Temple. 0.1.0 and 0.1.1 were previews. It
 renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for byte; XML formats (`.xml`, `.rss`,
 `.atom`) render as XML.
@@ -23,3 +25,6 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 **Requires**
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
+
+[Unreleased]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/next-gen-gems/slimx/releases/tag/v1.0.0
