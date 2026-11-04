@@ -95,8 +95,8 @@ rules_html = RULES_BY_GROUP.map do |title, rules|
       <details class="rule">
         <summary><span class="rule-name">#{rule}</span>#{default}<span class="rule-message">#{message}</span></summary>
         <div class="rule-examples">
-          <div><p class="example-label">Flagged</p><pre><code>#{escape(visible_source(rule, example.flagged))}</code></pre></div>
-          <div><p class="example-label">Clean</p><pre><code>#{escape(example.clean)}</code></pre></div>
+          <div><p class="example-label">Flagged</p><pre><code class="language-slim">#{escape(visible_source(rule, example.flagged))}</code></pre></div>
+          <div><p class="example-label">Clean</p><pre><code class="language-slim">#{escape(example.clean)}</code></pre></div>
         </div>
       </details>
     HTML
