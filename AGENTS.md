@@ -46,3 +46,7 @@ bundle exec rake docs                        # rewrites the linter rules of docs
   its line, with the reason.
 - Test and bench data stay anonymized (`alice`, `Post`, `example.com`).
 - User-facing changes go in `CHANGELOG.md`; the release steps end `README.md`.
+
+## Code style
+
+`STYLE.md` (naming, method size, comments, dead code), a copy of next-gen-gems/.github's: change it there first, then copy it here as is.
