@@ -46,3 +46,7 @@ bundle exec rake docs                        # rewrites the linter rules of docs
   its line, with the reason.
 - Test and bench data stay anonymized (`alice`, `Post`, `example.com`).
 - User-facing changes go in `CHANGELOG.md`; the release steps end `README.md`.
+
+## Code style
+
+Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't settle.
