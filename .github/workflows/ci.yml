@@ -1,41 +1,85 @@
 name: CI
 
+# The blocks shared by the gems of next-gen-gems are kept identical across the family.
+
 on:
   push:
     branches: [main]
+  # A draft runs nothing: marking it ready for review starts the CI.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# A new push makes the runs of older commits of the same branch pointless.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  gem:
-    uses: next-gen-gems/.github/.github/workflows/gem-ci.yml@main
-    with:
-      test-command: |
-        bundle exec rake test:slimx
-        bundle exec rake test:slim_suite
-        FUZZ_SEED=$GITHUB_RUN_ID FUZZ_CASES=10000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
+  rubocop:
+    name: RuboCop
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Lint with RuboCop
+        run: bundle exec rubocop --format github
+
+  test:
+    name: Ruby ${{ matrix.ruby }}${{ matrix.rails && format(' · Rails {0}', matrix.rails.version) || '' }}
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: ${{ endsWith(matrix.ruby, '-head') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every Ruby the core team still maintains (https://endoflife.date/ruby), ruby-head, then this gem's extra ones.
+        ruby: ["3.3", "3.4", "4.0", ruby-head]
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.rails.gemfile != 'Gemfile' && matrix.rails.gemfile || '' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - name: Run the tests
+        run: bundle exec rake test:slimx
+      - name: Run Slim's test suite
+        run: bundle exec rake test:slim_suite
+      - name: Fuzz 10,000 templates
+        run: FUZZ_SEED=$GITHUB_RUN_ID FUZZ_CASES=10000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 
   corpus:
     name: Corpus of public apps
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - name: Check out
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # corpus:diff checks out the base revision
-      - uses: ruby/setup-ruby@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
           bundler-cache: true
       # Restored and saved apart, so templates fetched by a run whose checks fail are kept for the next one.
-      - uses: actions/cache/restore@v6
+      - name: Restore the cached templates
+        uses: actions/cache/restore@v6
         id: corpus-cache
         with:
           path: corpus/cache
@@ -45,16 +89,47 @@ jobs:
         run: bundle exec rake corpus:fetch
         env:
           GH_TOKEN: ${{ github.token }}
-      - uses: actions/cache/save@v6
+      - name: Cache the fetched templates
+        uses: actions/cache/save@v6
         if: always() && steps.corpus-cache.outputs.cache-hit != 'true'
         with:
           path: corpus/cache
           key: corpus-${{ hashFiles('corpus/manifest.yml') }}
       # Compiles, formats and lints every template without rendering it: rendering would run their Ruby.
-      - name: Check SlimX against them
+      - name: Check the templates with SlimX
         run: bundle exec rake corpus:check
-      - name: Compare with the base branch
+      - name: Compare the corpus with the base branch
         if: github.event_name == 'pull_request'
         run: bundle exec rake corpus:diff BASE="origin/$BASE_BRANCH"
         env:
           BASE_BRANCH: ${{ github.base_ref }}
+
+  docs:
+    name: Highlighted docs
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Check the highlighted docs
+        run: bundle exec rake docs:highlight:check
+
+  # The one check main's ruleset requires, so the Rubies, Rails and jobs above can change without touching it.
+  # Every other job belongs in needs: bin/x-gems-ci-check in levups/oss checks it.
+  passed:
+    name: CI passed
+    if: ${{ always() && !github.event.pull_request.draft }}
+    needs: [rubocop, test, corpus, docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check every job succeeded
+        run: echo "$NEEDS" | jq --exit-status 'all(.[]; .result == "success")'
+        env:
+          NEEDS: ${{ toJSON(needs) }}

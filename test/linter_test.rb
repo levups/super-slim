@@ -79,6 +79,12 @@ class LinterTest < Minitest::Test
     assert_equal %w[LineLength ButtonType DeprecatedClasses].sort, offenses.map(&:rule).sort
   end
 
+  def test_offenses_of_one_line_come_in_rule_order
+    offenses = SlimX::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
+    assert_equal %w[LineLength ImageAlt], offenses.map(&:rule)
+    assert_equal %w[Indentation Tab TrailingWhitespace], SlimX::Linter::Rules.all.first(3).map(&:rule_name)
+  end
+
   def test_syntax_errors_are_offenses
     assert_offenses ["Syntax:2"], "p\n  a(href='/'\n"
   end
@@ -87,6 +93,6 @@ class LinterTest < Minitest::Test
 
   def assert_offenses(expected, source, path: "app/views/show.html.slim")
     offenses = SlimX::Linter.new.call(path, source)
-    assert_equal expected.sort, offenses.map { "#{_1.rule}:#{_1.lineno}" }.sort
+    assert_equal expected.sort, offenses.map { |offense| "#{offense.rule}:#{offense.lineno}" }.sort
   end
 end

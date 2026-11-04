@@ -61,14 +61,14 @@ end
 
 paths = (before.keys | after.keys).sort
 relative = ->(path) { directories.reduce(path) { |shortened, directory| shortened.delete_prefix("#{File.dirname(directory)}/") } }
-stopped_compiling = paths.select { before[_1] && after[_1] && compiles?(before[_1]) && !compiles?(after[_1]) }
-started_compiling = paths.select { before[_1] && after[_1] && !compiles?(before[_1]) && compiles?(after[_1]) }
+stopped_compiling = paths.select { |path| before[path] && after[path] && compiles?(before[path]) && !compiles?(after[path]) }
+started_compiling = paths.select { |path| before[path] && after[path] && !compiles?(before[path]) && compiles?(after[path]) }
 compiled_changed = paths.select do |path|
   before[path] && after[path] && compiles?(before[path]) && compiles?(after[path]) &&
     before[path].values_at("tilt", "rails") != after[path].values_at("tilt", "rails")
 end
-formatting_changed = paths.select { before[_1] && after[_1] && before[_1]["fmt"] != after[_1]["fmt"] }
-html_changed = render ? paths.select { before[_1] && after[_1] && before[_1]["html"] != after[_1]["html"] } : []
+formatting_changed = paths.select { |path| before[path] && after[path] && before[path]["fmt"] != after[path]["fmt"] }
+html_changed = render ? paths.select { |path| before[path] && after[path] && before[path]["html"] != after[path]["html"] } : []
 
 offense_changes_by_rule = Hash.new { |hash, rule| hash[rule] = {appeared: [], disappeared: []} }
 paths.each do |path|
@@ -80,7 +80,7 @@ paths.each do |path|
   {appeared: after_offenses - Array(before_offenses), disappeared: before_offenses - Array(after_offenses)}.each do |change, offenses|
     next unless offenses.is_a?(Array)
 
-    offenses.each { offense_changes_by_rule[_1[/\A[^:]+/]][change] << "#{relative.call(path)}:#{_1[/:(\d+):/, 1]} #{_1[/: (.*)\z/, 1]}" }
+    offenses.each { |offense| offense_changes_by_rule[offense[/\A[^:]+/]][change] << "#{relative.call(path)}:#{offense[/:(\d+):/, 1]} #{offense[/: (.*)\z/, 1]}" }
   end
 end
 

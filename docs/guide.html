@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SlimX Guide</title>
 <meta name="description" content="Install SlimX in Rails or with Tilt, configure it, use Tailwind class names, and migrate from Slim.">
+<link rel="canonical" href="https://next-gen-gems.github.io/slimx/guide.html">
+<meta property="og:title" content="SlimX Guide">
+<meta property="og:description" content="Install SlimX in Rails or with Tilt, configure it, use Tailwind class names, and migrate from Slim.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://next-gen-gems.github.io/slimx/guide.html">
+<meta property="og:site_name" content="Next Gen Gems">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,8 +49,8 @@
   <section id="rails" aria-labelledby="rails-title">
     <h2 id="rails-title">Rails</h2>
     <div class="prose">
-<pre><code># Gemfile
-gem "slimx" # instead of slim-rails</code></pre>
+<pre><code class="language-ruby"><span class="c1"># Gemfile</span>
+<span class="n">gem</span> <span class="s2">"slimx"</span> <span class="c1"># instead of slim-rails</span></code></pre>
       <p>A railtie registers the <code>.slim</code> handler with Action View. Nothing else to configure:</p>
       <ul>
         <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
@@ -60,17 +67,17 @@ gem "slimx" # instead of slim-rails</code></pre>
     <div class="split">
       <div>
         <p class="code-label">Sinatra, Hanami, Roda — anything on Tilt</p>
-<pre><code>require "slimx/tilt"
+<pre><code class="language-ruby"><span class="nb">require</span> <span class="s2">"slimx/tilt"</span>
 
-Tilt.new("page.slim").render(scope, title: "Hi")
-SlimX::Template.new("page.slim", tailwind_classes: true)</code></pre>
+<span class="no">Tilt</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"page.slim"</span><span class="p">).</span><span class="nf">render</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="ss">title: </span><span class="s2">"Hi"</span><span class="p">)</span>
+<span class="no">SlimX</span><span class="o">::</span><span class="no">Template</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"page.slim"</span><span class="p">,</span> <span class="ss">tailwind_classes: </span><span class="kp">true</span><span class="p">)</span></code></pre>
       </div>
       <div>
         <p class="code-label">Plain Ruby</p>
-<pre><code>require "slimx"
+<pre><code class="language-ruby"><span class="nb">require</span> <span class="s2">"slimx"</span>
 
-code = SlimX.compile(source, file: "page.slim")
-# Ruby that builds the HTML in _buf and returns it</code></pre>
+<span class="n">code</span> <span class="o">=</span> <span class="no">SlimX</span><span class="p">.</span><span class="nf">compile</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="ss">file: </span><span class="s2">"page.slim"</span><span class="p">)</span>
+<span class="c1"># Ruby that builds the HTML in _buf and returns it</span></code></pre>
       </div>
     </div>
     <div class="prose">
@@ -114,14 +121,14 @@ code = SlimX.compile(source, file: "page.slim")
     <div class="split">
       <div>
         <p class="code-label">Template</p>
-<pre><code>.p-1.rounded-b-[3px].lg:[&amp;:nth-child(3)]:hover:underline
-.font-['Open_Sans'].bg-(--brand).mx-0.5.w-1/2.!font-bold
-ul.*:p-2</code></pre>
+<pre><code class="language-slim"><span class="nc">.p-1.rounded-b-</span>[3px]<span class="nc">.lg</span>:[&amp;:nth-child(3)]:hover:underline
+<span class="nc">.font-</span>['Open_Sans']<span class="nc">.bg-</span>(--brand)<span class="nc">.mx-0.5.w-1</span>/2<span class="nc">.</span>!font-bold
+<span class="nt">ul</span><span class="nc">.</span>*:p-2</code></pre>
       </div>
       <div>
         <p class="code-label">config/initializers/slimx.rb, and .slimx.yml for the CLI</p>
-<pre><code>SlimX.tailwind_classes = true</code></pre>
-<pre><code>tailwind_classes: true</code></pre>
+<pre><code class="language-ruby"><span class="no">SlimX</span><span class="p">.</span><span class="nf">tailwind_classes</span> <span class="o">=</span> <span class="kp">true</span></code></pre>
+<pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span></code></pre>
       </div>
     </div>
     <div class="prose">

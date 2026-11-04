@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SlimX Formatter and Linter</title>
 <meta name="description" content="slimx fmt rewrites Slim templates in one layout and cannot change a page; slimx lint checks layout, Rails and accessibility rules.">
+<link rel="canonical" href="https://next-gen-gems.github.io/slimx/tools.html">
+<meta property="og:title" content="SlimX Formatter and Linter">
+<meta property="og:description" content="slimx fmt rewrites Slim templates in one layout and cannot change a page; slimx lint checks layout, Rails and accessibility rules.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://next-gen-gems.github.io/slimx/tools.html">
+<meta property="og:site_name" content="Next Gen Gems">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,8 +48,8 @@
   <section id="formatter" aria-labelledby="formatter-title">
     <h2 id="formatter-title">Formatter</h2>
     <div class="prose">
-<pre><code>slimx fmt [PATH…]           # rewrite templates in place
-slimx fmt --check [PATH…]   # list the ones it would rewrite, exit 1 if any</code></pre>
+<pre><code class="language-sh">slimx <span class="nb">fmt</span> <span class="o">[</span>PATH…]           <span class="c"># rewrite templates in place</span>
+slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
       <p>Paths default to the current directory; <code>.git</code>, <code>node_modules</code>, <code>tmp</code> and <code>vendor</code> are skipped.</p>
@@ -53,11 +60,11 @@ slimx fmt --check [PATH…]   # list the ones it would rewrite, exit 1 if any</c
     <h2 id="strict-title">Strict mode</h2>
     <div class="split">
       <div>
-<pre><code># config/initializers/slimx.rb
-SlimX.strict = Rails.env.local?</code></pre>
+<pre><code class="language-ruby"><span class="c1"># config/initializers/slimx.rb</span>
+<span class="no">SlimX</span><span class="p">.</span><span class="nf">strict</span> <span class="o">=</span> <span class="no">Rails</span><span class="p">.</span><span class="nf">env</span><span class="p">.</span><span class="nf">local?</span></code></pre>
       </div>
       <div>
-<pre><code>Not formatted, `slimx fmt` writes: "  li Home"
+<pre><code class="language-plaintext">Not formatted, `slimx fmt` writes: "  li Home"
   app/views/home/show.html.slim, Line 2, Column 3
     li Home
     ^</code></pre>
@@ -71,8 +78,8 @@ SlimX.strict = Rails.env.local?</code></pre>
   <section id="linter" aria-labelledby="linter-title">
     <h2 id="linter-title">Linter</h2>
     <div class="prose">
-<pre><code>slimx lint [PATH…]
-app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</code></pre>
+<pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>slimx lint <span class="o">[</span>PATH…]
+<span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
       <p><span id="rule-count">29</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
@@ -81,29 +88,29 @@ app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or 
     <h2 id="configuration-title">Configuration</h2>
     <div class="prose">
       <p>Both commands read <code>.slimx.yml</code> from the current directory. Every key is optional:</p>
-<pre><code>tailwind_classes: true     # read templates the way the app compiles them
+<pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span>     <span class="c1"># read templates the way the app compiles them</span>
 
-linters:
-  LineLength:
-    max: 150                 # default 120
-  ConsecutiveControlStatements:
-    max: 3                   # lines of `-` before asking for a ruby: block, default 2
-  ButtonType:
-    enabled: true            # rules off by default: ButtonType, InlineStyles, StrictLocals
-  DeprecatedClasses:
-    classes:
-      text-muted: text-body-secondary
-  InstanceVariables:
-    enabled: false</code></pre>
+<span class="na">linters</span><span class="pi">:</span>
+  <span class="na">LineLength</span><span class="pi">:</span>
+    <span class="na">max</span><span class="pi">:</span> <span class="m">150</span>                 <span class="c1"># default 120</span>
+  <span class="na">ConsecutiveControlStatements</span><span class="pi">:</span>
+    <span class="na">max</span><span class="pi">:</span> <span class="m">3</span>                   <span class="c1"># lines of `-` before asking for a ruby: block, default 2</span>
+  <span class="na">ButtonType</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># rules off by default: ButtonType, InlineStyles, StrictLocals</span>
+  <span class="na">DeprecatedClasses</span><span class="pi">:</span>
+    <span class="na">classes</span><span class="pi">:</span>
+      <span class="na">text-muted</span><span class="pi">:</span> <span class="s">text-body-secondary</span>
+  <span class="na">InstanceVariables</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">false</span></code></pre>
     </div>
   </section>
 
   <section id="ci" aria-labelledby="ci-title">
     <h2 id="ci-title">In CI</h2>
     <div class="prose">
-<pre><code># .github/workflows/lint.yml
-- run: bundle exec slimx fmt --check app
-- run: bundle exec slimx lint app</code></pre>
+<pre><code class="language-yaml"><span class="c1"># .github/workflows/lint.yml</span>
+<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec slimx fmt --check app</span>
+<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec slimx lint app</span></code></pre>
       <p>Both print one line per file or offense, <code>path:line: [Rule] message</code> for the linter, and exit 0 when there is nothing to report, 1 otherwise, 64 on a usage error.</p>
     </div>
   </section>
@@ -116,77 +123,77 @@ linters:
 <details class="rule">
   <summary><span class="rule-name">Indentation</span><span class="rule-message">Indent with 2 spaces, not 3</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>ul
-   li Home
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>
+   <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>ul
-  li Home
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
+  <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">Tab</span><span class="rule-message">Indent with spaces, not tabs</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>ul
-→   li Home
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>
+<span class="err">→   </span><span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>ul
-  li Home
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
+  <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">TrailingWhitespace</span><span class="rule-message">Trailing whitespace renders: write it with <code>&#39;</code> or <code>&gt;</code> instead</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p Hello·
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello·
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p Hello
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">EmptyLines</span><span class="rule-message">Remove this extra empty line</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>h1 Title
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
 
 
-p Text
+<span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>h1 Title
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
 
-p Text
+<span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">TrailingBlankLines</span><span class="rule-message">Remove the empty lines at the end of the file</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">ControlStatementSpacing</span><span class="rule-message">Put a space after <code>-</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>-if admin?
-  p Admin
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span><span class="k">if</span> <span class="n">admin?</span>
+  <span class="nt">p</span><span class="w"> </span>Admin
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>- if admin?
-  p Admin
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">admin?</span>
+  <span class="nt">p</span><span class="w"> </span>Admin
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">RedundantDiv</span><span class="rule-message"><code>div</code> is implied by the <code>.class</code> or <code>#id</code> shortcut</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>div.card
-  p Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">div</span><span class="nc">.card</span>
+  <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>.card
-  p Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.card</span>
+  <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
@@ -195,65 +202,65 @@ p Text
 <details class="rule">
   <summary><span class="rule-name">LineLength</span><span class="rule-message">Line is too long [127/120]</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p word word word word word word word word word word word word word word word word word word word word word word word word word 
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p
-  | word word word word word word word word word word
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span>
+  <span class="p">|</span> word word word word word word word word word word
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">CommentControlStatement</span><span class="rule-message">Write comments with <code>/</code>, not <code>- #</code>: they cost nothing at render time</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>- # TODO
-p Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="c1"># TODO</span>
+<span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>/ TODO
-p Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/ TODO</span>
+<span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">EmptyControlStatement</span><span class="rule-message">Remove this empty <code>-</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>-
-p Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span>
+<span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">ConsecutiveControlStatements</span><span class="rule-message">Merge these 3 lines of Ruby into a <code>ruby:</code> block</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>- a = 1
-- b = 2
-- c = 3
-p = a + b + c
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="p">-</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="p">-</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>ruby:
-  a = 1
-  b = 2
-  c = 3
-p = a + b + c
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nd">ruby:
+</span>  <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span>
+  <span class="n">c</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">TagCase</span><span class="rule-message">Write <code>p</code> in lowercase</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>P Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">P</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">Zwsp</span><span class="rule-message">Remove the invisible zero-width character</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p Hello\u200Bworld
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello\u200Bworld
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p Hello world
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello<span class="w"> </span>world
 </code></pre></div>
   </div>
 </details>
@@ -262,38 +269,38 @@ p = a + b + c
 <details class="rule">
   <summary><span class="rule-name">UnnecessaryInterpolation</span><span class="rule-message">Write <code>= post.title</code> instead of interpolating it alone</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p #{post.title}
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="si">#{</span><span class="n">post</span><span class="p">.</span><span class="nf">title</span><span class="si">}</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p = post.title
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">UnnecessaryStringOutput</span><span class="rule-message">Write the text <code>| Hello</code> instead of outputting a string</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p
-  = &quot;Hello&quot;
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span>
+  <span class="p">=</span> <span class="s2">"Hello"</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p
-  | Hello
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span>
+  <span class="p">|</span> Hello
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">DeprecatedClasses</span><span class="rule-message"><code>text-muted</code> is deprecated: use <code>text-body-secondary</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p.text-muted Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-muted</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p.text-body-secondary Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-body-secondary</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">InlineStyles</span><span class="rule-default off">off by default</span><span class="rule-message">Move inline styles to a stylesheet</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p style=&quot;color: red&quot; Text
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="na">style</span><span class="p">=</span><span class="s">"color: red"</span><span class="w"> </span>Text
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>p.text-danger Text
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-danger</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
 </details>
@@ -302,20 +309,20 @@ p = a + b + c
 <details class="rule">
   <summary><span class="rule-name">InstanceVariables</span><span class="rule-message">Pass <code>@post</code> to the partial as a local</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p = @post.title
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="vi">@post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>/# locals: (post:)
-p = post.title
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/# locals: (post:)</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">StrictLocals</span><span class="rule-default off">off by default</span><span class="rule-message">Declare the partial&#39;s locals: <code>/# locals: (name:)</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>p = post.title
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>/# locals: (post:)
-p = post.title
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/# locals: (post:)</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
 </details>
@@ -324,94 +331,94 @@ p = post.title
 <details class="rule">
   <summary><span class="rule-name">DuplicateId</span><span class="rule-message">The id <code>menu</code> is already used in this template</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>#menu
-#menu
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nf">#menu</span>
+<span class="nf">#menu</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>#menu
-#footer-menu
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nf">#menu</span>
+<span class="nf">#footer-menu</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">ImageAlt</span><span class="rule-message">Describe the image with <code>alt</code>, or mark it decorative with <code>alt=&quot;&quot;</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>img src=post.image_url
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>img src=post.image_url alt=post.title
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span><span class="w"> </span><span class="na">alt</span><span class="p">=</span><span class="n">post</span><span class="nc">.title</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">IframeTitle</span><span class="rule-message">Name the frame with <code>title</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>iframe src=video_url
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">iframe</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">video_url</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>iframe src=video_url title=&quot;Intro video&quot;
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">iframe</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">video_url</span><span class="w"> </span><span class="na">title</span><span class="p">=</span><span class="s">"Intro video"</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">AnchorHref</span><span class="rule-message">A link without <code>href</code> is not a link: use a <code>button</code> for actions</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>a Read more
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span>Read<span class="w"> </span>more
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>a href=post_path(post) Read more
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="n">post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span><span class="w"> </span>Read<span class="w"> </span>more
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">NestedLinks</span><span class="rule-message">Links cannot contain links</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>a href=&quot;/a&quot;
-  a href=&quot;/b&quot; B
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/a"</span>
+  <span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/b"</span><span class="w"> </span>B
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>a href=&quot;/a&quot; A
-a href=&quot;/b&quot; B
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/a"</span><span class="w"> </span>A
+<span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/b"</span><span class="w"> </span>B
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">PositiveTabindex</span><span class="rule-message">A positive <code>tabindex</code> breaks the reading order: use 0 or -1</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>button tabindex=&quot;3&quot; type=&quot;button&quot; Save
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">tabindex</span><span class="p">=</span><span class="s">"3"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Save
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>button tabindex=&quot;0&quot; type=&quot;button&quot; Save
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">tabindex</span><span class="p">=</span><span class="s">"0"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Save
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">BooleanAttributeValue</span><span class="rule-message">Write <code>disabled=true</code>, or <code>disabled</code> alone inside an attribute list</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>input disabled=&quot;disabled&quot;
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="s">"disabled"</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>input disabled=true
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="kp">true</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">AriaRole</span><span class="rule-message"><code>buton</code> is not an ARIA role</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>div role=&quot;buton&quot;
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">role</span><span class="p">=</span><span class="s">"buton"</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>div role=&quot;button&quot;
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">role</span><span class="p">=</span><span class="s">"button"</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">AriaAttribute</span><span class="rule-message"><code>aria-lable</code> is not an ARIA attribute</span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>button aria-lable=&quot;Close&quot; type=&quot;button&quot;
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">aria-lable</span><span class="p">=</span><span class="s">"Close"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span>
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>button aria-label=&quot;Close&quot; type=&quot;button&quot;
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">aria-label</span><span class="p">=</span><span class="s">"Close"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span>
 </code></pre></div>
   </div>
 </details>
 <details class="rule">
   <summary><span class="rule-name">ButtonType</span><span class="rule-default off">off by default</span><span class="rule-message">Say what the button does with <code>type=&quot;button&quot;</code> or <code>type=&quot;submit&quot;</code></span></summary>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code>button Save
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span>Save
 </code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code>button type=&quot;submit&quot; Save
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"submit"</span><span class="w"> </span>Save
 </code></pre></div>
   </div>
 </details>

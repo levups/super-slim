@@ -5,7 +5,7 @@ require_relative "lib/slimx/version"
 Gem::Specification.new do |spec|
   spec.name = "slimx"
   spec.version = SlimX::VERSION
-  spec.authors = ["Level UP Solutions", "Clément Joubert"]
+  spec.authors = ["Level UP Solutions"]
   spec.summary = "Slim templates, rewritten: faster to compile and render, with a formatter and a linter"
   spec.description = "A Slim template engine rewritten from scratch, without Temple: same HTML as Slim 5, " \
                      "faster compilation and rendering with fewer allocations, a formatter that cannot change " \
@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.metadata["documentation_uri"] = "https://next-gen-gems.github.io/slimx/"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
-  spec.files = Dir["lib/**/*.rb", "exe/slimx", "LICENSE"]
+  spec.files = Dir["lib/**/*.rb", "exe/slimx", "LICENSE", "README.md", "CHANGELOG.md"]
   spec.bindir = "exe"
   spec.executables = ["slimx"]
   spec.require_paths = ["lib"]

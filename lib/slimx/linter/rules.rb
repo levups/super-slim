@@ -3,9 +3,10 @@
 module SlimX
   class Linter
     module Rules
+      # In the order of this file, which orders the offenses of one line: Module#constants has no order of its own.
       def self.all
-        constants.filter_map do
-          rule = const_get(_1)
+        constants.sort_by { const_source_location(_1).last }.filter_map do |constant_name|
+          rule = const_get(constant_name)
           rule if rule < Rule
         end
       end

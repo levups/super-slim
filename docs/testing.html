@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SlimX Testing</title>
 <meta name="description" content="How SlimX proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
+<link rel="canonical" href="https://next-gen-gems.github.io/slimx/testing.html">
+<meta property="og:title" content="SlimX Testing">
+<meta property="og:description" content="How SlimX proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://next-gen-gems.github.io/slimx/testing.html">
+<meta property="og:site_name" content="Next Gen Gems">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,10 +122,10 @@
   <section id="ci" aria-labelledby="ci-title">
     <h2 id="ci-title">Every commit</h2>
     <div class="prose">
-      <p>GitHub Actions runs the suite and Slim’s suites on every maintained Ruby (3.3, 3.4 and 4.0), ruby-head and macOS, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
-<pre><code>bundle exec rake test
-FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
-bundle exec rake corpus:fetch corpus:check</code></pre>
+      <p>GitHub Actions runs the suite and Slim’s suites on every maintained Ruby (3.3, 3.4 and 4.0), and ruby-head, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.</p>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>rake <span class="nb">test
+</span><span class="nv">FUZZ_SEED</span><span class="o">=</span>42 <span class="nv">FUZZ_CASES</span><span class="o">=</span>20000 bundle <span class="nb">exec </span>ruby <span class="nt">-Ilib</span> <span class="nt">-Itest</span> <span class="nb">test</span>/fuzz_test.rb
+bundle <span class="nb">exec </span>rake corpus:fetch corpus:check</code></pre>
     </div>
   </section>
 

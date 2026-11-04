@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX</title>
+<title>SlimX — Slim templates, compiled faster</title>
 <meta name="description" content="Slim templates, compiled faster, with fewer allocations. Same HTML, byte for byte. A formatter and a linter in the box.">
 <meta property="og:title" content="SlimX — Slim templates, compiled faster">
 <meta property="og:description" content="A from-scratch Slim engine for Rails: same HTML byte for byte, a single-pass compiler, a formatter and a linter.">
 <meta property="og:type" content="website">
+<link rel="canonical" href="https://next-gen-gems.github.io/slimx/">
+<meta property="og:url" content="https://next-gen-gems.github.io/slimx/">
+<meta property="og:site_name" content="Next Gen Gems">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"SlimX","description":"Slim templates, rewritten: faster to compile and render, with a formatter and a linter","url":"https://next-gen-gems.github.io/slimx/","codeRepository":"https://github.com/next-gen-gems/slimx","programmingLanguage":"Ruby","runtimePlatform":"Ruby 3.3 or later","license":"https://spdx.org/licenses/MIT.html","author":{"@type":"Organization","name":"Level UP Solutions","url":"https://levups.com"}}</script>
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -99,13 +104,13 @@
     <div class="split">
       <div>
         <p class="code-label">Gemfile</p>
-<pre><code>gem "slimx" # instead of slim-rails</code></pre>
+<pre><code class="language-ruby"><span class="n">gem</span> <span class="s2">"slimx"</span> <span class="c1"># instead of slim-rails</span></code></pre>
       </div>
       <div>
         <p class="code-label">Terminal</p>
-<pre><code>bundle exec slimx fmt          # once
-bundle exec slimx lint         # in CI
-bundle exec slimx fmt --check  # in CI</code></pre>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>slimx <span class="nb">fmt</span>          <span class="c"># once</span>
+bundle <span class="nb">exec </span>slimx lint         <span class="c"># in CI</span>
+bundle <span class="nb">exec </span>slimx <span class="nb">fmt</span> <span class="nt">--check</span>  <span class="c"># in CI</span></code></pre>
       </div>
     </div>
   </section>

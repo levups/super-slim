@@ -30,8 +30,8 @@ module SlimX
 
     def lint(paths, configuration)
       linter = Linter.new(configuration.fetch("linters", {}))
-      offenses = Parallel.map(templates(paths)) { linter.call(_1, File.read(_1)) }.flatten
-      offenses.each { puts "#{_1.path}:#{_1.lineno}: [#{_1.rule}] #{_1.message}" }
+      offenses = Parallel.map(templates(paths)) { |path| linter.call(path, File.read(path)) }.flatten
+      offenses.each { |offense| puts "#{offense.path}:#{offense.lineno}: [#{offense.rule}] #{offense.message}" }
       offenses.empty? ? 0 : 1
     end
 
@@ -56,7 +56,7 @@ module SlimX
       paths.flat_map do |path|
         next [path] unless File.directory?(path)
 
-        Dir.glob("**/*.slim", base: path).filter_map { File.join(path, _1) unless _1.match?(SKIPPED_DIRECTORIES) }
+        Dir.glob("**/*.slim", base: path).filter_map { |template| File.join(path, template) unless template.match?(SKIPPED_DIRECTORIES) }
       end.sort
     end
   end

@@ -12,9 +12,8 @@ Solutions, and the model the organization's other gems copy.
   in the release after its end of life.
 - Rails is optional (railtie, `RailsHandler`). `Gemfile` takes the newest Rails, `gemfiles/rails_8_0.gemfile`
   the oldest maintained one.
-- CI (`.github/workflows/ci.yml`) runs RuboCop, the tests on each maintained Ruby, `ruby-head` and macOS, and
-  the corpus check. A macOS job that never gets a runner is GitHub's capacity on private repositories, not a
-  failure.
+- CI (`.github/workflows/ci.yml`) runs RuboCop, the tests on each maintained Ruby, and `ruby-head`, and the
+  corpus check; not on drafts. No macOS job: we run the tests on Macs.
 
 ## Commands
 
@@ -27,7 +26,7 @@ FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 bundle exec rake corpus:fetch corpus:check   # public templates of corpus/manifest.yml
 bundle exec rake corpus:diff BASE=main       # what a change does to the corpus: compiled Ruby, format, lint
 bundle exec ruby --yjit -Ilib bench/render.rb
-BENCH_LOCK=~/github/oss/benchmarks/.bench.lock bundle exec rake bench  # rewrites docs/benchmarks.json
+BENCH_LOCK=path/to/.bench.lock bundle exec rake bench  # rewrites docs/benchmarks.json; the lock serializes benchmarks
 bundle exec rake docs                        # rewrites the linter rules of docs/tools.html
 ```
 
@@ -45,4 +44,26 @@ bundle exec rake docs                        # rewrites the linter rules of docs
 - A hot-path change is measured with and without YJIT; a Performance cop the numbers contradict is disabled on
   its line, with the reason.
 - Test and bench data stay anonymized (`alice`, `Post`, `example.com`).
-- User-facing changes go in `CHANGELOG.md`; the release steps end `README.md`.
+
+## Code style
+
+Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't settle.
+
+## Changelog and releases
+
+- Never edit `CHANGELOG.md` in a PR: any two PRs adding a line there conflict. The changelog is written when
+  releasing, from the PRs merged since the last tag; a PR title says what changes for users.
+- A draft runs no CI, so it never turns green. Confident in the change: open the pull request ready for review,
+  auto-merge on. Not yet: a draft, then `gh pr ready` when it needs the CI.
+- To release, read every PR merged since the last tag (`git log --first-parent --oneline <tag>..origin/main`,
+  squash merges end in `(#n)`, then `gh pr view n`), and write the release under `## [Unreleased]` without
+  committing it: a one-sentence lede, then **Breaking**, **New**, **Faster** (measured, with and without YJIT)
+  and **Fixed**, only those with entries. One entry per change users can see, written for them: several PRs may
+  make one, CI, refactoring, docs and tests make none. Show it to the user, then `bin/release` commits it with
+  the version. No version heading, date or link by hand: `bin/release` writes them.
+- `main` takes no direct push, ours included: every change, a release too, goes through a pull request that merges
+  itself once the required CI checks are green (`gh pr merge --auto --squash`).
+- `bin/release patch|minor|major` cuts a release from a green, up-to-date `main` through such a pull request, then
+  tags its merge commit (README, Releasing), and `.github/workflows/release.yml` publishes it. Both are the same in
+  every next-gen-gems gem: change them in all four at once.
+- RubyGems trusts the Release workflow (trusted publishing): never `gem push` from a machine.
