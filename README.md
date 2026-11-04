@@ -161,12 +161,18 @@ bundle exec ruby --yjit -Ilib bench/render.rb        # render speed and allocati
 
 ### Releasing
 
-1. Bump `SlimX::VERSION` and add the version to `CHANGELOG.md`.
-2. On a quiet machine, `SLIMX_CORPUS=path/to/app/views bundle exec rake bench` refreshes the website's numbers.
-3. Commit, push, and wait for CI.
-4. `GEM_HOST_OTP_CODE=123456 bundle exec rake release` builds `pkg/slimx-X.Y.Z.gem` from the committed tree,
-   tags `vX.Y.Z`, pushes the tag and publishes the gem.
-5. `gh release create vX.Y.Z --notes "…"`, the notes being the version's section of `CHANGELOG.md`.
+Changes go under `## [Unreleased]` in `CHANGELOG.md` as they land. To release them, refresh the website's
+numbers on a quiet machine (`SLIMX_CORPUS=path/to/app/views bundle exec rake bench`) and commit them, then,
+from an up-to-date `main` whose CI is green:
+
+```sh
+bin/release minor --dry-run   # the notes and the changes, nothing written
+bin/release minor             # or patch, major, or an exact version such as 1.2.0
+```
+
+`bin/release` dates the Unreleased section, bumps the version, commits, and pushes the commit with a signed tag
+`vX.Y.Z`. The tag starts the Release workflow, which publishes the gem to RubyGems through trusted publishing and
+creates the GitHub release with the version's notes and the `.gem`.
 
 ## License
 
