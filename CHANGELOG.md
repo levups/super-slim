@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-11-05
+
+SlimX becomes SuperSlim, sheds what a Rails app doesn't need, and `super-slim fmt` wraps long lines.
+
+**Breaking**
+- The gem is renamed: `super_slim` in the Gemfile, the `SuperSlim` module, the `super-slim lint|fmt` command,
+  `.super-slim.yml` and `plugins: [super_slim]` for RuboCop. Compiled templates name their variables
+  `_super_slim1` instead of `_slimx1`.
+- No more Tilt adapter: `require "slimx/tilt"` has no replacement. Rails and `SuperSlim.compile` are unchanged.
+- No more strict mode (`SlimX.strict`, `strict: true`): run `super-slim fmt --check` in CI instead.
+- No more custom shortcuts: only `#id` and `.class`.
+- Only `doctype 5`, `doctype html` and `doctype xml` remain; HTML 4 and XHTML doctypes, such as
+  `doctype transitional`, raise `Invalid doctype`.
+
+**New**
+- `super-slim fmt` wraps lines longer than `fmt: max_line_length` in `.super-slim.yml`, off by default: a tag's
+  attributes one per line inside `fmt: attribute_delimiters` (`"()"`, `"[]"` or `"{}"`), then the arguments of
+  its Ruby code after each comma, four spaces deep when the line opens a block. A wrap is kept only when the
+  compiled Ruby differs by whitespace alone.
+
 ## [1.1.0] — 2026-11-04
 
 A RuboCop plugin that lints the Ruby inside templates with SlimX's own parser, and templates compiled up to 10% faster.
@@ -43,6 +63,7 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/next-gen-gems/slimx/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/levups/super-slim/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/next-gen-gems/slimx/releases/tag/v1.0.0
