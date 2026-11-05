@@ -2,7 +2,7 @@
 
 require "etc"
 
-module SlimX
+module SuperSlim
   # Maps items in forked processes, one per core, and returns the results in item order. Below
   # minimum_per_process items per process, forking costs more than it saves, and the map stays in this process.
   module Parallel

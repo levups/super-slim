@@ -13,7 +13,7 @@ body:
   - type: textarea
     id: outputs
     attributes:
-      label: Slim's output and SlimX's
+      label: Slim's output and SuperSlim's
       description: 'Both HTML outputs, or the error and its backtrace. Slim must run with `format: :html, sort_attrs: false`.'
     validations:
       required: true
@@ -21,6 +21,6 @@ body:
     id: versions
     attributes:
       label: Versions
-      placeholder: SlimX 1.0.0 (or commit), Slim 5.2.1, Ruby 4.0.1, Rails 8.1
+      placeholder: SuperSlim 1.0.0 (or commit), Slim 5.2.1, Ruby 4.0.1, Rails 8.1
     validations:
       required: true

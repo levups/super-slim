@@ -3,7 +3,7 @@
 require "minitest/autorun"
 require "stringio"
 require "tmpdir"
-require "slimx/cli"
+require "super_slim/cli"
 
 class CLITest < Minitest::Test
   # Enough templates to split them between processes.
@@ -55,7 +55,7 @@ class CLITest < Minitest::Test
   def run_cli(*arguments)
     stdout = $stdout
     $stdout = StringIO.new
-    status = SlimX::CLI.new.call(arguments)
+    status = SuperSlim::CLI.new.call(arguments)
     [status, $stdout.string]
   ensure
     $stdout = stdout

@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <?xml version="1.0" encoding="utf-8" ?><rss version="2.0"><channel><title>Posts &amp; comments</title><link>/search?q=a&amp;b=&lt;c&gt;</link><item><title>Hello &lt;World&gt;</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure url="/posts/1" length="0" type="image/webp" /><guid>1</guid></item><item><title>Tips &amp; tricks</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure url="/posts/2" length="0" type="image/webp" /><guid>2</guid></item></channel></rss>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
@@ -10,10 +10,10 @@ _buf << "</link>".freeze; posts.each do |post|
 
 _buf << "<item><title>".freeze; _buf << ::ERB::Escape.html_escape((post.title))
 
-_buf << "</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure".freeze; case (_slimx1 = post.url); when true; _buf << " url=\"\"".freeze; when false, nil; else; _buf << " url=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx1)); _buf << "\"".freeze; end
-_buf << " length=\"0\" type=\"image/webp\" /><guid".freeze; case (_slimx2 = no); when true; _buf << " isPermaLink=\"\"".freeze; when false, nil; else; _buf << " isPermaLink=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx2)); _buf << "\"".freeze; end; _buf << ">".freeze; _buf << ::ERB::Escape.html_escape((post.id))
+_buf << "</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure".freeze; case (_super_slim1 = post.url); when true; _buf << " url=\"\"".freeze; when false, nil; else; _buf << " url=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim1)); _buf << "\"".freeze; end
+_buf << " length=\"0\" type=\"image/webp\" /><guid".freeze; case (_super_slim2 = no); when true; _buf << " isPermaLink=\"\"".freeze; when false, nil; else; _buf << " isPermaLink=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim2)); _buf << "\"".freeze; end; _buf << ">".freeze; _buf << ::ERB::Escape.html_escape((post.id))
 _buf << "</guid></item>".freeze; end; _buf << "</channel></rss>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
@@ -23,10 +23,10 @@ _buf << "</guid></item>".freeze; end; _buf << "</channel></rss>".freeze; _buf
 
 @output_buffer.safe_concat("<item><title>".freeze); @output_buffer << (post.title)
 
-@output_buffer.safe_concat("</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure".freeze); case (_slimx1 = post.url); when true; @output_buffer.safe_concat(" url=\"\"".freeze); when false, nil; else; @output_buffer.safe_concat(" url=\"".freeze); @output_buffer << (_slimx1); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(" length=\"0\" type=\"image/webp\" /><guid".freeze); case (_slimx2 = no); when true; @output_buffer.safe_concat(" isPermaLink=\"\"".freeze); when false, nil; else; @output_buffer.safe_concat(" isPermaLink=\"".freeze); @output_buffer << (_slimx2); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(">".freeze); @output_buffer << (post.id)
+@output_buffer.safe_concat("</title><pubDate>Fri, 30 Oct 2026 10:00:00 +0000</pubDate><enclosure".freeze); case (_super_slim1 = post.url); when true; @output_buffer.safe_concat(" url=\"\"".freeze); when false, nil; else; @output_buffer.safe_concat(" url=\"".freeze); @output_buffer << (_super_slim1); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(" length=\"0\" type=\"image/webp\" /><guid".freeze); case (_super_slim2 = no); when true; @output_buffer.safe_concat(" isPermaLink=\"\"".freeze); when false, nil; else; @output_buffer.safe_concat(" isPermaLink=\"".freeze); @output_buffer << (_super_slim2); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(">".freeze); @output_buffer << (post.id)
 @output_buffer.safe_concat("</guid></item>".freeze); end; @output_buffer.safe_concat("</channel></rss>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 doctype xml
 rss version="2.0"
   channel
@@ -38,5 +38,5 @@ rss version="2.0"
         pubDate Fri, 30 Oct 2026 10:00:00 +0000
         enclosure url=post.url length="0" type="image/webp"
         guid isPermaLink=no = post.id
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

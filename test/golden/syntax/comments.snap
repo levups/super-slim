@@ -1,7 +1,7 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <!--HTML comment with Posts &amp; comments--><!--Multi-line HTML comment
 on two lines--><p>After comments</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 _buf << "<!--HTML comment with ".freeze; _buf << ::ERB::Escape.html_escape((title))
@@ -10,7 +10,7 @@ _buf << "<!--HTML comment with ".freeze; _buf << ::ERB::Escape.html_escape((titl
 
 
 _buf << "--><!--Multi-line HTML comment\non two lines--><p>After comments</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 @output_buffer.safe_concat("<!--HTML comment with ".freeze); @output_buffer << (title)
@@ -19,7 +19,7 @@ _buf << "--><!--Multi-line HTML comment\non two lines--><p>After comments</p>".f
 
 
 @output_buffer.safe_concat("--><!--Multi-line HTML comment\non two lines--><p>After comments</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 / Code comment, never rendered
   with an indented continuation
 /! HTML comment with #{title}
@@ -27,5 +27,5 @@ _buf << "--><!--Multi-line HTML comment\non two lines--><p>After comments</p>".f
   Multi-line HTML comment
   on two lines
 p After comments
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

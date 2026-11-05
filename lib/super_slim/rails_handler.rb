@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   class RailsHandler
     def call(template, source = nil)
-      SlimX.compile(
+      SuperSlim.compile(
         source || template.source,
         file: template.identifier,
         format: xml?(template) ? :xml : :html,

@@ -55,7 +55,7 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Run the tests
-        run: bundle exec rake test:slimx
+        run: bundle exec rake test:super_slim
       - name: Run Slim's test suite
         run: bundle exec rake test:slim_suite
       - name: Fuzz 10,000 templates
@@ -111,7 +111,7 @@ jobs:
           path: corpus/cache
           key: corpus-${{ hashFiles('corpus/manifest.yml') }}
       # Compiles, formats and lints every template without rendering it: rendering would run their Ruby.
-      - name: Check the templates with SlimX
+      - name: Check the templates with SuperSlim
         run: bundle exec rake corpus:check
       - name: Compare the corpus with the base branch
         if: github.event_name == 'pull_request'

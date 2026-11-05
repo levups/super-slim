@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX Formatter and Linter</title>
-<meta name="description" content="slimx fmt rewrites Slim templates in one layout and cannot change a page; slimx lint checks layout, Rails and accessibility rules.">
-<link rel="canonical" href="https://next-gen-gems.github.io/slimx/tools.html">
-<meta property="og:title" content="SlimX Formatter and Linter">
-<meta property="og:description" content="slimx fmt rewrites Slim templates in one layout and cannot change a page; slimx lint checks layout, Rails and accessibility rules.">
+<title>SuperSlim Formatter and Linter</title>
+<meta name="description" content="super-slim fmt rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
+<link rel="canonical" href="https://next-gen-gems.github.io/super-slim/tools.html">
+<meta property="og:title" content="SuperSlim Formatter and Linter">
+<meta property="og:description" content="super-slim fmt rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://next-gen-gems.github.io/slimx/tools.html">
+<meta property="og:url" content="https://next-gen-gems.github.io/super-slim/tools.html">
 <meta property="og:site_name" content="Next Gen Gems">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
@@ -23,12 +23,12 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="page">
   <nav class="site-nav" aria-label="Site">
-    <a class="brand" href="./">SlimX</a>
+    <a class="brand" href="./">SuperSlim</a>
     <a href="guide.html">Guide</a>
     <a href="tools.html" aria-current="page">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
     <a href="testing.html">Testing</a>
-    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+    <a href="https://github.com/next-gen-gems/super-slim">GitHub</a>
   </nav>
 
   <main id="content">
@@ -48,8 +48,8 @@
   <section id="formatter" aria-labelledby="formatter-title">
     <h2 id="formatter-title">Formatter</h2>
     <div class="prose">
-<pre><code class="language-sh">slimx <span class="nb">fmt</span> <span class="o">[</span>PATH…]           <span class="c"># rewrite templates in place</span>
-slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
+<pre><code class="language-sh">super_slim <span class="nb">fmt</span> <span class="o">[</span>PATH…]           <span class="c"># rewrite templates in place</span>
+super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
       <p>Paths default to the current directory; <code>.git</code>, <code>node_modules</code>, <code>tmp</code> and <code>vendor</code> are skipped.</p>
@@ -59,7 +59,7 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
   <section id="linter" aria-labelledby="linter-title">
     <h2 id="linter-title">Linter</h2>
     <div class="prose">
-<pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>slimx lint <span class="o">[</span>PATH…]
+<pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATH…]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
       <p><span id="rule-count">29</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
@@ -68,11 +68,11 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
   <section id="rubocop" aria-labelledby="rubocop-title">
     <h2 id="rubocop-title">Ruby in templates</h2>
     <div class="prose">
-      <p>The Ruby inside templates is RuboCop&rsquo;s job. SlimX ships a RuboCop plugin that hands it each <code>-</code> and <code>=</code> line, code attribute, splat, <code>#{}</code> interpolation and <code>ruby:</code> block, read by SlimX&rsquo;s own parser:</p>
+      <p>The Ruby inside templates is RuboCop&rsquo;s job. SuperSlim ships a RuboCop plugin that hands it each <code>-</code> and <code>=</code> line, code attribute, splat, <code>#{}</code> interpolation and <code>ruby:</code> block, read by SuperSlim&rsquo;s own parser:</p>
 <pre><code class="language-yaml"><span class="c1"># .rubocop-slim.yml</span>
 <span class="na">inherit_from</span><span class="pi">:</span> <span class="s">.rubocop.yml</span>
 <span class="na">plugins</span><span class="pi">:</span>
-  <span class="pi">-</span> <span class="s">slimx</span>
+  <span class="pi">-</span> <span class="s">super_slim</span>
 <span class="na">AllCops</span><span class="pi">:</span>
   <span class="na">Include</span><span class="pi">:</span>
     <span class="pi">-</span> <span class="s2">"</span><span class="s">**/*.slim"</span></code></pre>
@@ -84,7 +84,7 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
   <section id="configuration" aria-labelledby="configuration-title">
     <h2 id="configuration-title">Configuration</h2>
     <div class="prose">
-      <p>Both commands read <code>.slimx.yml</code> from the current directory. Every key is optional:</p>
+      <p>Both commands read <code>.super-slim.yml</code> from the current directory. Every key is optional:</p>
 <pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span>     <span class="c1"># read templates the way the app compiles them</span>
 
 <span class="na">linters</span><span class="pi">:</span>
@@ -106,8 +106,8 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
     <h2 id="ci-title">In CI</h2>
     <div class="prose">
 <pre><code class="language-yaml"><span class="c1"># .github/workflows/lint.yml</span>
-<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec slimx fmt --check app</span>
-<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec slimx lint app</span>
+<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec super-slim fmt --check app</span>
+<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec super-slim lint app</span>
 <span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec rubocop -c .rubocop-slim.yml app</span></code></pre>
       <p>Both print one line per file or offense, <code>path:line: [Rule] message</code> for the linter, and exit 0 when there is nothing to report, 1 otherwise, 64 on a usage error.</p>
     </div>
@@ -117,7 +117,7 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
     <h2 id="rules-title">Rules</h2>
     <p class="note">Each example below is run through the linter when the page is generated: the flagged one must be flagged, the clean one must pass.</p>
 <!-- linter-rules -->
-<section class="rule-group"><h3>Layout — fixed by <code>slimx fmt</code></h3>
+<section class="rule-group"><h3>Layout — fixed by <code>super-slim fmt</code></h3>
 <details class="rule">
   <summary><span class="rule-name">Indentation</span><span class="rule-message">Indent with 2 spaces, not 3</span></summary>
   <div class="rule-examples">
@@ -429,13 +429,13 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
     <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
     <nav aria-label="Next Gen Gems">
       <ul>
-        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://next-gen-gems.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
         <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
         <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
         <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
       </ul>
     </nav>
-    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
+    <p><a href="https://github.com/next-gen-gems/super-slim">Source on GitHub</a></p>
   </footer>
 </div>
 </body>

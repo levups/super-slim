@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative "slimx/version"
-require_relative "slimx/ast"
-require_relative "slimx/shortcuts"
-require_relative "slimx/parser"
-require_relative "slimx/compiler"
-require_relative "slimx/runtime"
+require_relative "super_slim/version"
+require_relative "super_slim/ast"
+require_relative "super_slim/shortcuts"
+require_relative "super_slim/parser"
+require_relative "super_slim/compiler"
+require_relative "super_slim/runtime"
 
-module SlimX
-  autoload :Formatter, "slimx/formatter"
-  autoload :RuboCop, "slimx/rubocop"
+module SuperSlim
+  autoload :Formatter, "super_slim/formatter"
+  autoload :RuboCop, "super_slim/rubocop"
 
   class Error < StandardError; end
   class InvalidAttributeNameError < Error; end
@@ -50,4 +50,4 @@ module SlimX
   end
 end
 
-require_relative "slimx/railtie" if defined?(Rails::Railtie)
+require_relative "super_slim/railtie" if defined?(Rails::Railtie)

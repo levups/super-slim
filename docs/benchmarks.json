@@ -5,7 +5,7 @@
   "page": "24 post cards, 11772 bytes of HTML",
   "engines": [
     {
-      "name": "SlimX",
+      "name": "SuperSlim",
       "version": "1.0.0",
       "compiles_per_second": 12423,
       "compile_allocations": 618,
@@ -47,7 +47,7 @@
   ],
   "html_sha256": {
     "Slim": "ba3b3468763ef933ad65868bc311f83660127d7110979407d5414c99f9704e60",
-    "SlimX": "ba3b3468763ef933ad65868bc311f83660127d7110979407d5414c99f9704e60"
+    "SuperSlim": "ba3b3468763ef933ad65868bc311f83660127d7110979407d5414c99f9704e60"
   },
   "corpora": [
     {
@@ -55,7 +55,7 @@
       "templates": 1399,
       "engines": [
         {
-          "name": "SlimX",
+          "name": "SuperSlim",
           "milliseconds": 108,
           "allocations": 510106
         },
@@ -71,7 +71,7 @@
       "templates": 6053,
       "engines": [
         {
-          "name": "SlimX",
+          "name": "SuperSlim",
           "milliseconds": 529,
           "allocations": 2630209
         },
@@ -88,12 +88,12 @@
     "processors": 14,
     "commands": [
       {
-        "name": "slimx lint",
+        "name": "super-slim lint",
         "milliseconds": 517,
         "cpu_milliseconds": 2994
       },
       {
-        "name": "slimx fmt --check",
+        "name": "super-slim fmt --check",
         "milliseconds": 526,
         "cpu_milliseconds": 3302
       },

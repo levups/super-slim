@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   # Rewrites a template in its canonical layout. Text blocks shift as a whole, so the whitespace they render is
   # kept; and the formatted template must compile to the same Ruby as the original, or nothing is rewritten.
   class Formatter
@@ -14,7 +14,7 @@ module SlimX
       new(**).call(source)
     end
 
-    def initialize(tailwind_classes: SlimX.tailwind_classes)
+    def initialize(tailwind_classes: SuperSlim.tailwind_classes)
       @tailwind_classes = tailwind_classes
     end
 
@@ -89,7 +89,7 @@ module SlimX
     end
 
     def compiled(source)
-      SlimX.compile(source, tailwind_classes: @tailwind_classes, format: :xml).gsub(/(?:\s*[;\n]\s*)+/, ";")
+      SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml).gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
     end

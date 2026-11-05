@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX — Slim templates, compiled faster</title>
+<title>SuperSlim — Slim templates, compiled faster</title>
 <meta name="description" content="Slim templates, compiled faster, with fewer allocations. Same HTML, byte for byte. A formatter and a linter in the box.">
-<meta property="og:title" content="SlimX — Slim templates, compiled faster">
+<meta property="og:title" content="SuperSlim — Slim templates, compiled faster">
 <meta property="og:description" content="A from-scratch Slim engine for Rails: same HTML byte for byte, a single-pass compiler, a formatter and a linter.">
 <meta property="og:type" content="website">
-<link rel="canonical" href="https://next-gen-gems.github.io/slimx/">
-<meta property="og:url" content="https://next-gen-gems.github.io/slimx/">
+<link rel="canonical" href="https://next-gen-gems.github.io/super-slim/">
+<meta property="og:url" content="https://next-gen-gems.github.io/super-slim/">
 <meta property="og:site_name" content="Next Gen Gems">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"SlimX","description":"Slim templates, rewritten: faster to compile and render, with a formatter and a linter","url":"https://next-gen-gems.github.io/slimx/","codeRepository":"https://github.com/next-gen-gems/slimx","programmingLanguage":"Ruby","runtimePlatform":"Ruby 3.3 or later","license":"https://spdx.org/licenses/MIT.html","author":{"@type":"Organization","name":"Level UP Solutions","url":"https://levups.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"SuperSlim","description":"Slim templates, rewritten: faster to compile and render, with a formatter and a linter","url":"https://next-gen-gems.github.io/super-slim/","codeRepository":"https://github.com/next-gen-gems/super-slim","programmingLanguage":"Ruby","runtimePlatform":"Ruby 3.3 or later","license":"https://spdx.org/licenses/MIT.html","author":{"@type":"Organization","name":"Level UP Solutions","url":"https://levups.com"}}</script>
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,21 +24,21 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="page">
   <nav class="site-nav" aria-label="Site">
-    <a class="brand" href="./" aria-current="page">SlimX</a>
+    <a class="brand" href="./" aria-current="page">SuperSlim</a>
     <a href="guide.html">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
     <a href="testing.html">Testing</a>
-    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+    <a href="https://github.com/next-gen-gems/super-slim">GitHub</a>
   </nav>
 
   <main id="content">
   <header class="hero">
-    <h1 class="wordmark">SlimX</h1>
+    <h1 class="wordmark">SuperSlim</h1>
     <div>
       <p class="byline"><span id="byline-speed">Slim templates, compiled faster.</span><span class="byline-sub">Same HTML, byte for byte.</span></p>
       <p class="summary">A from-scratch Slim engine for Rails: no Temple, a single-pass compiler, and a formatter and a linter that read templates with the same parser.</p>
-      <code class="install">gem "slimx"</code>
+      <code class="install">gem "super_slim"</code>
       <p class="links"><a href="guide.html">Get started</a><a href="guide.html#migrating">Migrating from Slim</a><a href="benchmarks.html">Benchmarks</a></p>
     </div>
   </header>
@@ -53,14 +53,14 @@
   <section aria-labelledby="proof-title">
     <h2 id="proof-title">Same HTML</h2>
     <div class="prose">
-      <p>SlimX renders what Slim 5 renders with <code>format: :html, sort_attrs: false</code>, down to the byte. Here is the benchmark page, rendered by both engines:</p>
+      <p>SuperSlim renders what Slim 5 renders with <code>format: :html, sort_attrs: false</code>, down to the byte. Here is the benchmark page, rendered by both engines:</p>
     </div>
-    <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SlimX">
+    <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SuperSlim">
       <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
-      <div class="proof-row"><span>SlimX</span><code data-sha="SlimX">…</code></div>
+      <div class="proof-row"><span>SuperSlim</span><code data-sha="SuperSlim">…</code></div>
       <p class="proof-verdict">Identical on 295 of Slim’s own tests, on the 1,400 templates of a production app, and on 10,000 new random templates at every CI run.</p>
     </div>
-    <p class="more"><a href="testing.html">How SlimX is tested</a></p>
+    <p class="more"><a href="testing.html">How SuperSlim is tested</a></p>
   </section>
 
   <section aria-labelledby="box-title">
@@ -68,12 +68,12 @@
     <div class="cards">
       <div class="card">
         <h3>An engine for Rails</h3>
-        <p>A railtie registers <code>.slim</code> with Action View, and <code>SlimX.compile</code> serves plain Ruby. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
+        <p>A railtie registers <code>.slim</code> with Action View, and <code>SuperSlim.compile</code> serves plain Ruby. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
         <p><a href="guide.html">Guide</a></p>
       </div>
       <div class="card">
         <h3>A formatter that cannot change a page</h3>
-        <p><code>slimx fmt</code> writes one layout, and compiles both versions before writing: if the Ruby differs, it refuses.</p>
+        <p><code>super-slim fmt</code> writes one layout, and compiles both versions before writing: if the Ruby differs, it refuses.</p>
         <p><a href="tools.html#formatter">Formatter</a></p>
       </div>
       <div class="card">
@@ -88,8 +88,8 @@
       </div>
       <div class="card">
         <h3>Nothing new to learn</h3>
-        <p>The whole Slim 5 grammar, the same HTML, the same errors. What SlimX leaves out fails at compile time instead of rendering wrong. The grammar is Slim’s, by the Slim Team.</p>
-        <p><a href="guide.html#left-out">What SlimX leaves out</a></p>
+        <p>The whole Slim 5 grammar, the same HTML, the same errors. What SuperSlim leaves out fails at compile time instead of rendering wrong. The grammar is Slim’s, by the Slim Team.</p>
+        <p><a href="guide.html#left-out">What SuperSlim leaves out</a></p>
       </div>
     </div>
   </section>
@@ -99,13 +99,13 @@
     <div class="split">
       <div>
         <p class="code-label">Gemfile</p>
-<pre><code class="language-ruby"><span class="n">gem</span> <span class="s2">"slimx"</span> <span class="c1"># instead of slim-rails</span></code></pre>
+<pre><code class="language-ruby"><span class="n">gem</span> <span class="s2">"super_slim"</span> <span class="c1"># instead of slim-rails</span></code></pre>
       </div>
       <div>
         <p class="code-label">Terminal</p>
-<pre><code class="language-sh">bundle <span class="nb">exec </span>slimx <span class="nb">fmt</span>          <span class="c"># once</span>
-bundle <span class="nb">exec </span>slimx lint         <span class="c"># in CI</span>
-bundle <span class="nb">exec </span>slimx <span class="nb">fmt</span> <span class="nt">--check</span>  <span class="c"># in CI</span></code></pre>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>super_slim <span class="nb">fmt</span>          <span class="c"># once</span>
+bundle <span class="nb">exec </span>super-slim lint         <span class="c"># in CI</span>
+bundle <span class="nb">exec </span>super_slim <span class="nb">fmt</span> <span class="nt">--check</span>  <span class="c"># in CI</span></code></pre>
       </div>
     </div>
   </section>
@@ -116,13 +116,13 @@ bundle <span class="nb">exec </span>slimx <span class="nb">fmt</span> <span clas
     <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
     <nav aria-label="Next Gen Gems">
       <ul>
-        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://next-gen-gems.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
         <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
         <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
         <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
       </ul>
     </nav>
-    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
+    <p><a href="https://github.com/next-gen-gems/super-slim">Source on GitHub</a></p>
   </footer>
 </div>
 <script src="site.js"></script>

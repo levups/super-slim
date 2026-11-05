@@ -1,8 +1,8 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 onetwo<a title="spread
 over
 three lines" href="/search?q=a&amp;b=&lt;c&gt;">three</a><a title="joined  by backslash">42</a><p>Posts &amp; comments</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 first = items.first
 last = items.last # comment on the last line
@@ -13,12 +13,12 @@ middle = items[1]
 _buf << ::ERB::Escape.html_escape((middle))
 
 
-_buf << "<a title=\"spread\nover\nthree lines\"".freeze; case (_slimx1 = url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx1)); _buf << "\"".freeze; end; _buf << ">".freeze; _buf << ::ERB::Escape.html_escape((last))
+_buf << "<a title=\"spread\nover\nthree lines\"".freeze; case (_super_slim1 = url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim1)); _buf << "\"".freeze; end; _buf << ">".freeze; _buf << ::ERB::Escape.html_escape((last))
 
 _buf << "</a><a title=\"joined  by backslash\">".freeze; _buf << ::ERB::Escape.html_escape((number))
 _buf << "</a><p>".freeze; _buf << ::ERB::Escape.html_escape((title))
 _buf << "</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 first = items.first
 last = items.last # comment on the last line
@@ -29,12 +29,12 @@ middle = items[1]
 @output_buffer << (middle)
 
 
-@output_buffer.safe_concat("<a title=\"spread\nover\nthree lines\"".freeze); case (_slimx1 = url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_slimx1); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(">".freeze); @output_buffer << (last)
+@output_buffer.safe_concat("<a title=\"spread\nover\nthree lines\"".freeze); case (_super_slim1 = url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_super_slim1); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(">".freeze); @output_buffer << (last)
 
 @output_buffer.safe_concat("</a><a title=\"joined  by backslash\">".freeze); @output_buffer << (number)
 @output_buffer.safe_concat("</a><p>".freeze); @output_buffer << (title)
 @output_buffer.safe_concat("</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 ruby:
   first = items.first
   last = items.last # comment on the last line
@@ -49,5 +49,5 @@ a title="spread
 a title="joined \
   by backslash" = number
 p = title
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 12: [AnchorHref] A link without `href` is not a link: use a `button` for actions

@@ -1,21 +1,21 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <div class="p-1 rounded-b-" 3px>x</div><div class="w-1/2">half</div><div class="mx-0 5">dot</div><p 3px>bracket</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
 
 _buf << "<div class=\"p-1 rounded-b-\" 3px>x</div><div class=\"w-1/2\">half</div><div class=\"mx-0 5\">dot</div><p 3px>bracket</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
 
 @output_buffer.safe_concat("<div class=\"p-1 rounded-b-\" 3px>x</div><div class=\"w-1/2\">half</div><div class=\"mx-0 5\">dot</div><p 3px>bracket</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 .p-1.rounded-b-[3px] x
 .w-1/2 half
 .mx-0.5 dot
 p[3px] bracket
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

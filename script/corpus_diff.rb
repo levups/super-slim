@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Compares two SlimX revisions over a corpus, as RuboCop's corpus_diff does: the working tree against a base
+# Compares two SuperSlim revisions over a corpus, as RuboCop's corpus_diff does: the working tree against a base
 # revision checked out in a temporary git worktree, each run in its own Ruby process.
 #   ruby script/corpus_diff.rb [--base REV] [--render] DIRECTORY...
 #
@@ -26,7 +26,7 @@ def default_base
   status.success? ? "origin/main" : "main"
 end
 
-# Gems come from this checkout's bundle; SlimX comes from the revision's lib, first on the load path.
+# Gems come from this checkout's bundle; SuperSlim comes from the revision's lib, first on the load path.
 def snapshot(lib_directory, directories, render)
   environment = ENV.to_h.select { |name, _| name == "RUBYOPT" || name.start_with?("BUNDLE_") }.transform_values { nil }
   environment["BUNDLE_GEMFILE"] = File.join(ROOT, "Gemfile")
@@ -51,7 +51,7 @@ directories = ARGV.map { File.expand_path(_1) }
 abort "Usage: ruby script/corpus_diff.rb [--base REV] [--render] DIRECTORY..." if directories.empty?
 
 base_sha = git("rev-parse", "--verify", "#{base}^{commit}")
-before, after = Dir.mktmpdir("slimx-corpus-diff") do |temporary_directory|
+before, after = Dir.mktmpdir("super-slim-corpus-diff") do |temporary_directory|
   worktree = File.join(temporary_directory, "base")
   git("worktree", "add", "--detach", worktree, base_sha)
   [snapshot(File.join(worktree, "lib"), directories, render), snapshot(File.join(ROOT, "lib"), directories, render)]

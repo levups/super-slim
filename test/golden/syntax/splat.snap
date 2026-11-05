@@ -1,34 +1,34 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <p title="&lt;t&gt;" data-x="1" disabled>Splat</p><p title="&lt;t&gt;" data-x="1" disabled>Splat without space</p><a class="base extra" href="/search?q=a&amp;b=&lt;c&gt;">Literal splat</a><a class="base static dyn ">Merge with splat</a><input type="text" value="&lt;b class=&quot;x&quot;&gt;&amp;&#39;&quot;&lt;/b&gt;"><div data-x="1" aria-label="Label"></div><section>Dynamic tag</section><section class="k" id="dyn">Dynamic tag with attributes</section><p data-user_id="1" data-nested-deep="&lt;v&gt;" data-flag data-off="false" data-none="" data-list="[1, 2]">Data hash</p><p aria-label="Close" aria-hidden>Aria hash</p><p>Data nil</p><p data="plain">Data string</p>
-~~~~~~~~ slimx: tilt
-_buf = +""; _buf << "<p".freeze; _slimx1 = ::SlimX::Runtime::Attributes.new(false); _slimx1.splat_attrs((attributes)); _buf << (_slimx1).to_s
-_buf << ">Splat</p><p".freeze; _slimx2 = ::SlimX::Runtime::Attributes.new(false); _slimx2.splat_attrs((attributes)); _buf << (_slimx2).to_s
-_buf << ">Splat without space</p><a".freeze; _slimx3 = ::SlimX::Runtime::Attributes.new(false); _slimx3.attr("class", "base"); _slimx3.splat_attrs(({href: url, class: "extra"})); _buf << (_slimx3).to_s
-_buf << ">Literal splat</a><a".freeze; _slimx4 = ::SlimX::Runtime::Attributes.new(false); _slimx4.attr("class", "base"); _slimx4.attr("class", "static"); _slimx4.splat_attrs(({class: ["dyn", nil]})); _buf << (_slimx4).to_s
-_buf << ">Merge with splat</a><input".freeze; _slimx5 = ::SlimX::Runtime::Attributes.new(false); _slimx5.splat_attrs(({type: "text", value: markup})); _buf << (_slimx5).to_s
-_buf << "><div".freeze; _slimx6 = ::SlimX::Runtime::Attributes.new(false); _slimx6.splat_attrs(({"data-x" => 1, "aria-label" => "Label"})); _buf << (_slimx6).to_s
-_buf << "></div>".freeze; _slimx7 = ::SlimX::Runtime::Attributes.new(false); _slimx7.splat_attrs(({tag: tag_name})); _slimx8 = +""; _slimx8 << "Dynamic tag".freeze; _slimx8; _buf << (_slimx7.build_tag(_slimx8)).to_s
-_slimx9 = ::SlimX::Runtime::Attributes.new(false); _slimx9.splat_attrs(({tag: tag_name, class: "k", id: "dyn"})); _slimx10 = +""; _slimx10 << "Dynamic tag with attributes".freeze; _slimx10; _buf << (_slimx9.build_tag(_slimx10)).to_s
-_buf << "<p".freeze; _slimx11 = ::SlimX::Runtime::Attributes.new(false); _slimx11.code_attr("data", true, (data)); _buf << (_slimx11).to_s
-_buf << ">Data hash</p><p".freeze; _slimx12 = ::SlimX::Runtime::Attributes.new(false); _slimx12.code_attr("aria", true, (aria)); _buf << (_slimx12).to_s
-_buf << ">Aria hash</p><p".freeze; _slimx13 = ::SlimX::Runtime::Attributes.new(false); _slimx13.code_attr("data", true, (nothing)); _buf << (_slimx13).to_s
+~~~~~~~~ super_slim: tilt
+_buf = +""; _buf << "<p".freeze; _super_slim1 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim1.splat_attrs((attributes)); _buf << (_super_slim1).to_s
+_buf << ">Splat</p><p".freeze; _super_slim2 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim2.splat_attrs((attributes)); _buf << (_super_slim2).to_s
+_buf << ">Splat without space</p><a".freeze; _super_slim3 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim3.attr("class", "base"); _super_slim3.splat_attrs(({href: url, class: "extra"})); _buf << (_super_slim3).to_s
+_buf << ">Literal splat</a><a".freeze; _super_slim4 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim4.attr("class", "base"); _super_slim4.attr("class", "static"); _super_slim4.splat_attrs(({class: ["dyn", nil]})); _buf << (_super_slim4).to_s
+_buf << ">Merge with splat</a><input".freeze; _super_slim5 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim5.splat_attrs(({type: "text", value: markup})); _buf << (_super_slim5).to_s
+_buf << "><div".freeze; _super_slim6 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim6.splat_attrs(({"data-x" => 1, "aria-label" => "Label"})); _buf << (_super_slim6).to_s
+_buf << "></div>".freeze; _super_slim7 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim7.splat_attrs(({tag: tag_name})); _super_slim8 = +""; _super_slim8 << "Dynamic tag".freeze; _super_slim8; _buf << (_super_slim7.build_tag(_super_slim8)).to_s
+_super_slim9 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim9.splat_attrs(({tag: tag_name, class: "k", id: "dyn"})); _super_slim10 = +""; _super_slim10 << "Dynamic tag with attributes".freeze; _super_slim10; _buf << (_super_slim9.build_tag(_super_slim10)).to_s
+_buf << "<p".freeze; _super_slim11 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim11.code_attr("data", true, (data)); _buf << (_super_slim11).to_s
+_buf << ">Data hash</p><p".freeze; _super_slim12 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim12.code_attr("aria", true, (aria)); _buf << (_super_slim12).to_s
+_buf << ">Aria hash</p><p".freeze; _super_slim13 = ::SuperSlim::Runtime::Attributes.new(false); _super_slim13.code_attr("data", true, (nothing)); _buf << (_super_slim13).to_s
 
 _buf << ">Data nil</p><p data=\"plain\">Data string</p>".freeze; _buf
-~~~~~~~~ slimx: rails
-@output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer.safe_concat("<p".freeze); _slimx1 = ::SlimX::Runtime::Attributes.new(true); _slimx1.splat_attrs((attributes)); @output_buffer.safe_concat((_slimx1).to_s)
-@output_buffer.safe_concat(">Splat</p><p".freeze); _slimx2 = ::SlimX::Runtime::Attributes.new(true); _slimx2.splat_attrs((attributes)); @output_buffer.safe_concat((_slimx2).to_s)
-@output_buffer.safe_concat(">Splat without space</p><a".freeze); _slimx3 = ::SlimX::Runtime::Attributes.new(true); _slimx3.attr("class", "base"); _slimx3.splat_attrs(({href: url, class: "extra"})); @output_buffer.safe_concat((_slimx3).to_s)
-@output_buffer.safe_concat(">Literal splat</a><a".freeze); _slimx4 = ::SlimX::Runtime::Attributes.new(true); _slimx4.attr("class", "base"); _slimx4.attr("class", "static"); _slimx4.splat_attrs(({class: ["dyn", nil]})); @output_buffer.safe_concat((_slimx4).to_s)
-@output_buffer.safe_concat(">Merge with splat</a><input".freeze); _slimx5 = ::SlimX::Runtime::Attributes.new(true); _slimx5.splat_attrs(({type: "text", value: markup})); @output_buffer.safe_concat((_slimx5).to_s)
-@output_buffer.safe_concat("><div".freeze); _slimx6 = ::SlimX::Runtime::Attributes.new(true); _slimx6.splat_attrs(({"data-x" => 1, "aria-label" => "Label"})); @output_buffer.safe_concat((_slimx6).to_s)
-@output_buffer.safe_concat("></div>".freeze); _slimx7 = ::SlimX::Runtime::Attributes.new(true); _slimx7.splat_attrs(({tag: tag_name})); _slimx8 = capture do; @output_buffer.safe_concat("Dynamic tag".freeze); end; @output_buffer.safe_concat((_slimx7.build_tag(_slimx8)).to_s)
-_slimx9 = ::SlimX::Runtime::Attributes.new(true); _slimx9.splat_attrs(({tag: tag_name, class: "k", id: "dyn"})); _slimx10 = capture do; @output_buffer.safe_concat("Dynamic tag with attributes".freeze); end; @output_buffer.safe_concat((_slimx9.build_tag(_slimx10)).to_s)
-@output_buffer.safe_concat("<p".freeze); _slimx11 = ::SlimX::Runtime::Attributes.new(true); _slimx11.code_attr("data", true, (data)); @output_buffer.safe_concat((_slimx11).to_s)
-@output_buffer.safe_concat(">Data hash</p><p".freeze); _slimx12 = ::SlimX::Runtime::Attributes.new(true); _slimx12.code_attr("aria", true, (aria)); @output_buffer.safe_concat((_slimx12).to_s)
-@output_buffer.safe_concat(">Aria hash</p><p".freeze); _slimx13 = ::SlimX::Runtime::Attributes.new(true); _slimx13.code_attr("data", true, (nothing)); @output_buffer.safe_concat((_slimx13).to_s)
+~~~~~~~~ super_slim: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer.safe_concat("<p".freeze); _super_slim1 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim1.splat_attrs((attributes)); @output_buffer.safe_concat((_super_slim1).to_s)
+@output_buffer.safe_concat(">Splat</p><p".freeze); _super_slim2 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim2.splat_attrs((attributes)); @output_buffer.safe_concat((_super_slim2).to_s)
+@output_buffer.safe_concat(">Splat without space</p><a".freeze); _super_slim3 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim3.attr("class", "base"); _super_slim3.splat_attrs(({href: url, class: "extra"})); @output_buffer.safe_concat((_super_slim3).to_s)
+@output_buffer.safe_concat(">Literal splat</a><a".freeze); _super_slim4 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim4.attr("class", "base"); _super_slim4.attr("class", "static"); _super_slim4.splat_attrs(({class: ["dyn", nil]})); @output_buffer.safe_concat((_super_slim4).to_s)
+@output_buffer.safe_concat(">Merge with splat</a><input".freeze); _super_slim5 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim5.splat_attrs(({type: "text", value: markup})); @output_buffer.safe_concat((_super_slim5).to_s)
+@output_buffer.safe_concat("><div".freeze); _super_slim6 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim6.splat_attrs(({"data-x" => 1, "aria-label" => "Label"})); @output_buffer.safe_concat((_super_slim6).to_s)
+@output_buffer.safe_concat("></div>".freeze); _super_slim7 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim7.splat_attrs(({tag: tag_name})); _super_slim8 = capture do; @output_buffer.safe_concat("Dynamic tag".freeze); end; @output_buffer.safe_concat((_super_slim7.build_tag(_super_slim8)).to_s)
+_super_slim9 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim9.splat_attrs(({tag: tag_name, class: "k", id: "dyn"})); _super_slim10 = capture do; @output_buffer.safe_concat("Dynamic tag with attributes".freeze); end; @output_buffer.safe_concat((_super_slim9.build_tag(_super_slim10)).to_s)
+@output_buffer.safe_concat("<p".freeze); _super_slim11 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim11.code_attr("data", true, (data)); @output_buffer.safe_concat((_super_slim11).to_s)
+@output_buffer.safe_concat(">Data hash</p><p".freeze); _super_slim12 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim12.code_attr("aria", true, (aria)); @output_buffer.safe_concat((_super_slim12).to_s)
+@output_buffer.safe_concat(">Aria hash</p><p".freeze); _super_slim13 = ::SuperSlim::Runtime::Attributes.new(true); _super_slim13.code_attr("data", true, (nothing)); @output_buffer.safe_concat((_super_slim13).to_s)
 
 @output_buffer.safe_concat(">Data nil</p><p data=\"plain\">Data string</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 p *attributes Splat
 p*attributes Splat without space
 a.base *{href: url, class: "extra"} Literal splat
@@ -41,5 +41,5 @@ p data=data Data hash
 p aria=aria Aria hash
 p data=nothing Data nil
 p data="plain" Data string
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

@@ -1,6 +1,0 @@
-#!/usr/bin/env ruby
-# frozen_string_literal: true
-
-require_relative "../lib/slimx/cli"
-
-exit SlimX::CLI.new.call(ARGV)

@@ -1,12 +1,12 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <main class="blog"><h1>Posts &amp; comments</h1><article class="card featured" data-id="1"><a class="stretched-link" href="/posts/1" title="Hello &lt;World&gt;"><img alt="Hello &lt;World&gt;" loading="lazy" src="/images/1.webp"></a><div class="card-body"><h2 class="card-title">Hello &lt;World&gt;</h2><p class="meta"><span class="count">1,299</span> <span class="label">comments</span></p><ul class="tags"><li class="tag tag-new">new</li><li class="tag tag-popular">popular</li></ul><button class="btn" data-action="click-&gt;post#save" type="button">Save</button></div></article><article class="card" data-id="2"><a class="stretched-link" href="/posts/2" title="Tips &amp; tricks"><img alt="Tips &amp; tricks" loading="lazy" src="/images/2.webp"></a><div class="card-body"><h2 class="card-title">Tips &amp; tricks</h2><p class="meta"><span class="count">499</span> <span class="label">comments</span></p><button class="btn" data-action="click-&gt;post#save" disabled type="button">Save</button></div></article></main>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 _buf << "<main class=\"blog\"><h1>".freeze; _buf << ::ERB::Escape.html_escape((title))
 _buf << "</h1>".freeze; posts.each do |post|
-_buf << "<article".freeze; _slimx1 = ("featured" if post.featured); _buf << " class=\"card".freeze; _slimx2 = ::SlimX::Runtime.class_value(_slimx1, true, false); unless _slimx2.empty?; _buf << " ".freeze; _buf << (_slimx2).to_s; end; _buf << "\"".freeze; case (_slimx3 = post.id); when true; _buf << " data-id".freeze; when false, nil; else; _buf << " data-id=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx3)); _buf << "\"".freeze; end
-_buf << "><a class=\"stretched-link\"".freeze; case (_slimx4 = post.url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx4)); _buf << "\"".freeze; end; case (_slimx5 = post.title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx5)); _buf << "\"".freeze; end
-_buf << "><img".freeze; case (_slimx6 = post.title); when true; _buf << " alt".freeze; when false, nil; else; _buf << " alt=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx6)); _buf << "\"".freeze; end; _buf << " loading=\"lazy\" src=\"/images/".freeze; _buf << ::ERB::Escape.html_escape((post.id))
+_buf << "<article".freeze; _super_slim1 = ("featured" if post.featured); _buf << " class=\"card".freeze; _super_slim2 = ::SuperSlim::Runtime.class_value(_super_slim1, true, false); unless _super_slim2.empty?; _buf << " ".freeze; _buf << (_super_slim2).to_s; end; _buf << "\"".freeze; case (_super_slim3 = post.id); when true; _buf << " data-id".freeze; when false, nil; else; _buf << " data-id=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim3)); _buf << "\"".freeze; end
+_buf << "><a class=\"stretched-link\"".freeze; case (_super_slim4 = post.url); when true; _buf << " href".freeze; when false, nil; else; _buf << " href=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim4)); _buf << "\"".freeze; end; case (_super_slim5 = post.title); when true; _buf << " title".freeze; when false, nil; else; _buf << " title=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim5)); _buf << "\"".freeze; end
+_buf << "><img".freeze; case (_super_slim6 = post.title); when true; _buf << " alt".freeze; when false, nil; else; _buf << " alt=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim6)); _buf << "\"".freeze; end; _buf << " loading=\"lazy\" src=\"/images/".freeze; _buf << ::ERB::Escape.html_escape((post.id))
 
 _buf << ".webp\"></a><div class=\"card-body\"><h2 class=\"card-title\">".freeze; _buf << ::ERB::Escape.html_escape((post.title))
 
@@ -17,15 +17,15 @@ _buf << "</span> <span class=\"label\">comments</span></p>".freeze; if post.tags
 
 _buf << "<ul class=\"tags\">".freeze; post.tags.each do |tag|
 _buf << "<li class=\"tag tag-".freeze; _buf << ::ERB::Escape.html_escape((tag)); _buf << "\">".freeze; _buf << ::ERB::Escape.html_escape((tag))
-_buf << "</li>".freeze; end; _buf << "</ul>".freeze; end; _buf << "<button class=\"btn\" data-action=\"click-&gt;post#save\"".freeze; case (_slimx7 = post.draft); when true; _buf << " disabled".freeze; when false, nil; else; _buf << " disabled=\"".freeze; _buf << ::ERB::Escape.html_escape((_slimx7)); _buf << "\"".freeze; end
+_buf << "</li>".freeze; end; _buf << "</ul>".freeze; end; _buf << "<button class=\"btn\" data-action=\"click-&gt;post#save\"".freeze; case (_super_slim7 = post.draft); when true; _buf << " disabled".freeze; when false, nil; else; _buf << " disabled=\"".freeze; _buf << ::ERB::Escape.html_escape((_super_slim7)); _buf << "\"".freeze; end
 _buf << " type=\"button\">Save</button></div></article>".freeze; end; _buf << "</main>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 @output_buffer.safe_concat("<main class=\"blog\"><h1>".freeze); @output_buffer << (title)
 @output_buffer.safe_concat("</h1>".freeze); posts.each do |post|
-@output_buffer.safe_concat("<article".freeze); _slimx1 = ("featured" if post.featured); @output_buffer.safe_concat(" class=\"card".freeze); _slimx2 = ::SlimX::Runtime.class_value(_slimx1, true, true); unless _slimx2.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_slimx2).to_s); end; @output_buffer.safe_concat("\"".freeze); case (_slimx3 = post.id); when true; @output_buffer.safe_concat(" data-id".freeze); when false, nil; else; @output_buffer.safe_concat(" data-id=\"".freeze); @output_buffer << (_slimx3); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat("><a class=\"stretched-link\"".freeze); case (_slimx4 = post.url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_slimx4); @output_buffer.safe_concat("\"".freeze); end; case (_slimx5 = post.title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_slimx5); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat("><img".freeze); case (_slimx6 = post.title); when true; @output_buffer.safe_concat(" alt".freeze); when false, nil; else; @output_buffer.safe_concat(" alt=\"".freeze); @output_buffer << (_slimx6); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(" loading=\"lazy\" src=\"/images/".freeze); @output_buffer << (post.id)
+@output_buffer.safe_concat("<article".freeze); _super_slim1 = ("featured" if post.featured); @output_buffer.safe_concat(" class=\"card".freeze); _super_slim2 = ::SuperSlim::Runtime.class_value(_super_slim1, true, true); unless _super_slim2.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_super_slim2).to_s); end; @output_buffer.safe_concat("\"".freeze); case (_super_slim3 = post.id); when true; @output_buffer.safe_concat(" data-id".freeze); when false, nil; else; @output_buffer.safe_concat(" data-id=\"".freeze); @output_buffer << (_super_slim3); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><a class=\"stretched-link\"".freeze); case (_super_slim4 = post.url); when true; @output_buffer.safe_concat(" href".freeze); when false, nil; else; @output_buffer.safe_concat(" href=\"".freeze); @output_buffer << (_super_slim4); @output_buffer.safe_concat("\"".freeze); end; case (_super_slim5 = post.title); when true; @output_buffer.safe_concat(" title".freeze); when false, nil; else; @output_buffer.safe_concat(" title=\"".freeze); @output_buffer << (_super_slim5); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("><img".freeze); case (_super_slim6 = post.title); when true; @output_buffer.safe_concat(" alt".freeze); when false, nil; else; @output_buffer.safe_concat(" alt=\"".freeze); @output_buffer << (_super_slim6); @output_buffer.safe_concat("\"".freeze); end; @output_buffer.safe_concat(" loading=\"lazy\" src=\"/images/".freeze); @output_buffer << (post.id)
 
 @output_buffer.safe_concat(".webp\"></a><div class=\"card-body\"><h2 class=\"card-title\">".freeze); @output_buffer << (post.title)
 
@@ -36,9 +36,9 @@ _buf << " type=\"button\">Save</button></div></article>".freeze; end; _buf << "<
 
 @output_buffer.safe_concat("<ul class=\"tags\">".freeze); post.tags.each do |tag|
 @output_buffer.safe_concat("<li class=\"tag tag-".freeze); @output_buffer << (tag); @output_buffer.safe_concat("\">".freeze); @output_buffer << (tag)
-@output_buffer.safe_concat("</li>".freeze); end; @output_buffer.safe_concat("</ul>".freeze); end; @output_buffer.safe_concat("<button class=\"btn\" data-action=\"click-&gt;post#save\"".freeze); case (_slimx7 = post.draft); when true; @output_buffer.safe_concat(" disabled".freeze); when false, nil; else; @output_buffer.safe_concat(" disabled=\"".freeze); @output_buffer << (_slimx7); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat("</li>".freeze); end; @output_buffer.safe_concat("</ul>".freeze); end; @output_buffer.safe_concat("<button class=\"btn\" data-action=\"click-&gt;post#save\"".freeze); case (_super_slim7 = post.draft); when true; @output_buffer.safe_concat(" disabled".freeze); when false, nil; else; @output_buffer.safe_concat(" disabled=\"".freeze); @output_buffer << (_super_slim7); @output_buffer.safe_concat("\"".freeze); end
 @output_buffer.safe_concat(" type=\"button\">Save</button></div></article>".freeze); end; @output_buffer.safe_concat("</main>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 main.blog
   h1 = title
   - posts.each do |post|
@@ -56,5 +56,5 @@ main.blog
             - post.tags.each do |tag|
               li class="tag tag-#{tag}" = tag
         button.btn data-action="click->post#save" disabled=post.draft type="button" Save
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

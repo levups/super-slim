@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require "slimx"
-require "slimx/linter"
+require "super_slim"
+require "super_slim/linter"
 
 class LinterTest < Minitest::Test
   def test_layout_rules
@@ -40,7 +40,7 @@ class LinterTest < Minitest::Test
   end
 
   def test_string_output_inline_after_a_tag
-    linter = SlimX::Linter.new
+    linter = SuperSlim::Linter.new
     messages = linter.call("show.html.slim", %(span.note = "(estimate)"\nspan = "Hello"\np\n  = "(alone)"\n)).map(&:message)
     assert_equal ["Write the text `| (estimate)` on its own line, under the tag: inline, it would read as attributes",
       "Write the text `| Hello` instead of outputting a string",
@@ -72,7 +72,7 @@ class LinterTest < Minitest::Test
   end
 
   def test_configuration
-    linter = SlimX::Linter.new("LineLength" => {"max" => 10}, "ButtonType" => {"enabled" => true},
+    linter = SuperSlim::Linter.new("LineLength" => {"max" => 10}, "ButtonType" => {"enabled" => true},
       "DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
     offenses = linter.call("x.slim", "button.text-muted Ok, long line\n")
 
@@ -80,9 +80,9 @@ class LinterTest < Minitest::Test
   end
 
   def test_offenses_of_one_line_come_in_rule_order
-    offenses = SlimX::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
+    offenses = SuperSlim::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
     assert_equal %w[LineLength ImageAlt], offenses.map(&:rule)
-    assert_equal %w[Indentation Tab TrailingWhitespace], SlimX::Linter::Rules.all.first(3).map(&:rule_name)
+    assert_equal %w[Indentation Tab TrailingWhitespace], SuperSlim::Linter::Rules.all.first(3).map(&:rule_name)
   end
 
   def test_syntax_errors_are_offenses
@@ -92,7 +92,7 @@ class LinterTest < Minitest::Test
   private
 
   def assert_offenses(expected, source, path: "app/views/show.html.slim")
-    offenses = SlimX::Linter.new.call(path, source)
+    offenses = SuperSlim::Linter.new.call(path, source)
     assert_equal expected.sort, offenses.map { |offense| "#{offense.rule}:#{offense.lineno}" }.sort
   end
 end

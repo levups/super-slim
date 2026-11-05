@@ -2,16 +2,16 @@
 
 require "lint_roller"
 require "strscan"
-require_relative "../slimx"
+require_relative "../super_slim"
 require_relative "linter"
 
-module SlimX
-  # Loaded by RuboCop from `plugins: [slimx]`: lints the Ruby of each template, offenses at their place in the `.slim` file.
+module SuperSlim
+  # Loaded by RuboCop from `plugins: [super_slim]`: lints the Ruby of each template, offenses at their place in the `.slim` file.
   module RuboCop
     class Plugin < LintRoller::Plugin
       def about
-        LintRoller::About.new(name: "slimx", version: VERSION, homepage: "https://github.com/next-gen-gems/slimx",
-          description: "Lints the Ruby of Slim templates, read by SlimX's parser")
+        LintRoller::About.new(name: "super_slim", version: VERSION, homepage: "https://github.com/next-gen-gems/super-slim",
+          description: "Lints the Ruby of Slim templates, read by SuperSlim's parser")
       end
 
       def supported?(context)
@@ -77,7 +77,7 @@ module SlimX
 
       def tailwind_classes?
         configuration = Linter.configuration
-        configuration.key?("tailwind_classes") ? configuration["tailwind_classes"] : SlimX.tailwind_classes
+        configuration.key?("tailwind_classes") ? configuration["tailwind_classes"] : SuperSlim.tailwind_classes
       end
 
       def interpolations(text)

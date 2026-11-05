@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <p><a href="/a">after</a>  <a href="/b">before</a> <a href="/c">both</a> <a href="/d">apostrophe</a><span>text</span>trailing space text no space leading spacePosts &amp; comments Posts &amp; commentsPosts &amp; comments  Posts &amp; comments </p> <p>inner</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
@@ -17,7 +17,7 @@ _buf << "  ".freeze; _buf << ::ERB::Escape.html_escape((title))
 
 
 _buf << " </p> <p>inner</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
@@ -34,7 +34,7 @@ _buf << " </p> <p>inner</p>".freeze; _buf
 
 
 @output_buffer.safe_concat(" </p> <p>inner</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 p
   a> href="/a" after
   a< href="/b" before
@@ -50,5 +50,5 @@ p
   =<> title
 p<
   | inner
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

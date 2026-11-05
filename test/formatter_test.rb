@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require "slimx"
+require "super_slim"
 
 class FormatterTest < Minitest::Test
   def test_indents_two_spaces_per_level
@@ -27,18 +27,18 @@ class FormatterTest < Minitest::Test
   def test_keeps_blank_lines_and_trailing_whitespace_that_render
     source = "javascript:\n  one()\n\n\n  two()\np Hello \n"
 
-    assert_equal source, SlimX::Formatter.call(source)
+    assert_equal source, SuperSlim::Formatter.call(source)
   end
 
   def test_is_idempotent
-    formatted = SlimX::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
+    formatted = SuperSlim::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
 
-    assert_equal formatted, SlimX::Formatter.call(formatted)
+    assert_equal formatted, SuperSlim::Formatter.call(formatted)
   end
 
   private
 
   def assert_formats(expected, source)
-    assert_equal expected, SlimX::Formatter.call(source)
+    assert_equal expected, SuperSlim::Formatter.call(source)
   end
 end

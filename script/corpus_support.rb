@@ -83,7 +83,7 @@ module Corpus
     render(Slim::Engine.new(format: format_of(path), sort_attrs: false, pretty: false).call(source), path, source)
   end
 
-  def render_with_slimx(source, path)
-    render(SlimX.compile(source, file: path, format: format_of(path)), path, source)
+  def render_with_super_slim(source, path)
+    render(SuperSlim.compile(source, file: path, format: format_of(path)), path, source)
   end
 end

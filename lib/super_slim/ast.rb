@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   module AST
     NEWLINE = :newline
 

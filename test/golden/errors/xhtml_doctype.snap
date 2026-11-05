@@ -1,10 +1,10 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 error: Error: Invalid doctype 1.1
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 error: Error: Invalid doctype 1.1
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 error: Error: Invalid doctype 1.1
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 doctype 1.1
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

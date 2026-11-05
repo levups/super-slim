@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   # `#name` sets the id and `.name` a class, on a div unless a tag name comes first.
   module Shortcuts
     ATTRIBUTE_BY_SHORTCUT = {"#" => "id", "." => "class"}.freeze

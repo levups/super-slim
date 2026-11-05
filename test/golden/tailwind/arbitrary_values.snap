@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <div class="p-1 rounded-b-[3px]">Arbitrary length</div><div class="lg:[&amp;:nth-child(3)]:hover:underline">Arbitrary variant</div><div class="font-[&#39;Open_Sans&#39;]">Quoted value</div><div class="[&amp;[data-state=open]]:bg-red">Nested brackets</div><div class="grid-cols-[1fr_2fr] gap-[calc(1rem+2px)]">Underscores and functions</div><div class="bg-(--brand) text-(length:--size)">CSS variables</div><div class="bg-[#0f172a] text-[color:var(--ink)]">Colors</div>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
@@ -9,7 +9,7 @@ _buf = +""
 
 
 _buf << "<div class=\"p-1 rounded-b-[3px]\">Arbitrary length</div><div class=\"lg:[&amp;:nth-child(3)]:hover:underline\">Arbitrary variant</div><div class=\"font-[&#39;Open_Sans&#39;]\">Quoted value</div><div class=\"[&amp;[data-state=open]]:bg-red\">Nested brackets</div><div class=\"grid-cols-[1fr_2fr] gap-[calc(1rem+2px)]\">Underscores and functions</div><div class=\"bg-(--brand) text-(length:--size)\">CSS variables</div><div class=\"bg-[#0f172a] text-[color:var(--ink)]\">Colors</div>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
@@ -18,7 +18,7 @@ _buf << "<div class=\"p-1 rounded-b-[3px]\">Arbitrary length</div><div class=\"l
 
 
 @output_buffer.safe_concat("<div class=\"p-1 rounded-b-[3px]\">Arbitrary length</div><div class=\"lg:[&amp;:nth-child(3)]:hover:underline\">Arbitrary variant</div><div class=\"font-[&#39;Open_Sans&#39;]\">Quoted value</div><div class=\"[&amp;[data-state=open]]:bg-red\">Nested brackets</div><div class=\"grid-cols-[1fr_2fr] gap-[calc(1rem+2px)]\">Underscores and functions</div><div class=\"bg-(--brand) text-(length:--size)\">CSS variables</div><div class=\"bg-[#0f172a] text-[color:var(--ink)]\">Colors</div>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 .p-1.rounded-b-[3px] Arbitrary length
 .lg:[&:nth-child(3)]:hover:underline Arbitrary variant
 .font-['Open_Sans'] Quoted value
@@ -26,5 +26,5 @@ _buf << "<div class=\"p-1 rounded-b-[3px]\">Arbitrary length</div><div class=\"l
 .grid-cols-[1fr_2fr].gap-[calc(1rem+2px)] Underscores and functions
 .bg-(--brand).text-(length:--size) CSS variables
 .bg-[#0f172a].text-[color:var(--ink)] Colors
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

@@ -1,5 +1,5 @@
 /Gemfile.lock
-slimx-*.gem
+super_slim-*.gem
 /corpus/cache/
 /corpus/*.json
 /pkg/

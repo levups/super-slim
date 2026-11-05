@@ -3,7 +3,7 @@
 require "bundler/gem_tasks"
 require "rake/testtask"
 
-Rake::TestTask.new("test:slimx") do |task|
+Rake::TestTask.new("test:super_slim") do |task|
   task.libs << "lib" << "test"
   task.test_files = FileList["test/*_test.rb"]
 end
@@ -14,11 +14,11 @@ Rake::TestTask.new("test:slim_suite") do |task|
   task.test_files = FileList["test/slim_suite/*_test.rb", "test/slim_suite/run.rb"]
 end
 
-desc "Run SlimX's tests, then Slim's own suites against SlimX"
-task test: %w[test:slimx test:slim_suite]
+desc "Run SuperSlim's tests, then Slim's own suites against SuperSlim"
+task test: %w[test:super_slim test:slim_suite]
 task default: :test
 
-desc "Compare SlimX with Slim, Haml, Erubi and Herb and write docs/benchmarks.json (run before each release)"
+desc "Compare SuperSlim with Slim, Haml, Erubi and Herb and write docs/benchmarks.json (run before each release)"
 task :bench do
   command = ["ruby", "--yjit", "-Ilib", "bench/compare.rb"]
   command = ["lockf", "-k", ENV["BENCH_LOCK"], *command] if ENV["BENCH_LOCK"]
@@ -37,11 +37,11 @@ namespace :corpus do
     ruby "script/corpus_fetch.rb"
   end
 
-  desc "Check SlimX against corpus/cache, and render SLIMX_CORPUS directories you trust (colon-separated)"
+  desc "Check SuperSlim against corpus/cache, and render SUPER_SLIM_CORPUS directories you trust (colon-separated)"
   task :check do
     report = ["--report", ENV["REPORT"]] if ENV["REPORT"]
     ruby "-Ilib", "script/corpus_check.rb", *report, File.join("corpus", "cache") if File.directory?(File.join("corpus", "cache"))
-    trusted_directories = ENV.fetch("SLIMX_CORPUS", "").split(":").reject(&:empty?)
+    trusted_directories = ENV.fetch("SUPER_SLIM_CORPUS", "").split(":").reject(&:empty?)
     ruby "-Ilib", "script/corpus_check.rb", "--render", *trusted_directories if trusted_directories.any?
   end
 end

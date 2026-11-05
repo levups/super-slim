@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-# Renders the same templates through Slim (configured like a production app) and SlimX inside Action View.
+# Renders the same templates through Slim (configured like a production app) and SuperSlim inside Action View.
 #   bundle exec ruby -Ilib bench/render.rb            # interpreter
 #   bundle exec ruby --yjit -Ilib bench/render.rb     # YJIT
 require "action_dispatch"
 require "action_view"
 require "benchmark/ips"
 require "slim"
-require "slimx"
-require "slimx/rails_handler"
+require "super_slim"
+require "super_slim/rails_handler"
 require "tmpdir"
 
 Temple::Generators::RailsOutputBuffer.set_options(capture_generator: Temple::Generators::StringBuffer)
@@ -18,7 +18,7 @@ module Temple::Utils
 end
 Temple::Templates::Rails(Slim::Engine, register_as: :slim, generator: Temple::Generators::RailsOutputBuffer,
   disable_capture: true, streaming: true, format: :html, sort_attrs: false, pretty: false)
-ActionView::Template.register_template_handler(:slimx, SlimX::RailsHandler.new)
+ActionView::Template.register_template_handler(:super_slim, SuperSlim::RailsHandler.new)
 
 posts = Array.new(24) do |index|
   {id: index, title: "Hello <World> no. #{index}", url: "/posts/#{index}", image: "/images/#{index}.webp",
@@ -34,16 +34,16 @@ Dir.mktmpdir do |directory|
   Dir[File.join(__dir__, "templates/*.slim")].each do |path|
     name = File.basename(path, ".slim")
     File.write(File.join(directory, "#{name}.html.slim"), File.read(path))
-    File.write(File.join(directory, "#{name}.html.slimx"), File.read(path))
+    File.write(File.join(directory, "#{name}.html.super_slim"), File.read(path))
   end
   view = ActionView::Base.with_empty_template_cache.with_view_paths([directory])
 
   render = ->(name, handler) { view.render(template: name, handlers: [handler], locals:) }
   %w[post_list form_fields].each do |name|
-    raise "#{name}: outputs differ" unless render.call(name, :slim) == render.call(name, :slimx)
+    raise "#{name}: outputs differ" unless render.call(name, :slim) == render.call(name, :super_slim)
 
     puts "", "#{name} (#{RubyVM::YJIT.enabled? ? "YJIT" : "interpreter"})"
-    %i[slim slimx].each do |handler|
+    %i[slim super_slim].each do |handler|
       render.call(name, handler)
       allocations = GC.stat(:total_allocated_objects)
       100.times { render.call(name, handler) }
@@ -53,7 +53,7 @@ Dir.mktmpdir do |directory|
 
     Benchmark.ips(quiet: true) do |benchmark|
       benchmark.config(time: 3, warmup: 1)
-      %i[slim slimx].each { |handler| benchmark.report(handler.to_s) { render.call(name, handler) } }
+      %i[slim super_slim].each { |handler| benchmark.report(handler.to_s) { render.call(name, handler) } }
       benchmark.compare!
     end
   end

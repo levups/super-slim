@@ -2,7 +2,7 @@
 
 require "minitest/autorun"
 require "slim"
-require "slimx"
+require "super_slim"
 
 class LineEndingsTest < Minitest::Test
   TEMPLATE = "ul\n  - %w[alice bob].each do |name|\n    li = name\n\np\n  | Hello\n    world\n"
@@ -19,6 +19,6 @@ class LineEndingsTest < Minitest::Test
   private
 
   def render(source)
-    eval(SlimX.compile(source)) # rubocop:disable Security/Eval -- the template is the test's own
+    eval(SuperSlim.compile(source)) # rubocop:disable Security/Eval -- the template is the test's own
   end
 end

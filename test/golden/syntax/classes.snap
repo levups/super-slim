@@ -1,34 +1,34 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <div class="a b c">Static merge</div><div class="a primary">Shortcut and dynamic</div><p class="a b c false">Array</p><p>Nil class</p><p>Empty class</p><p class="a">Shortcut and nil</p><p class="x y z">Two class attributes</p><p>Empty array</p><div class="a on false">Conditional</div><p class="primary static">Interpolated</p><p class="a b c d" id="id">Many shortcuts</p><p class="&lt;b class=&quot;x&quot;&gt;&amp;&#39;&quot;&lt;/b&gt;">Escaped class</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
-_buf << "<div class=\"a b c\">Static merge</div><div".freeze; _slimx1 = symbol; _buf << " class=\"a".freeze; _slimx2 = ::SlimX::Runtime.class_value(_slimx1, true, false); unless _slimx2.empty?; _buf << " ".freeze; _buf << (_slimx2).to_s; end
-_buf << "\">Shortcut and dynamic</div><p".freeze; _slimx3 = classes; _slimx4 = ::SlimX::Runtime.class_value(_slimx3, true, false); unless _slimx4.empty?; _buf << " class=\"".freeze; _buf << (_slimx4).to_s; _buf << "\"".freeze; end
-_buf << ">Array</p><p".freeze; _slimx5 = nothing; _slimx6 = ::SlimX::Runtime.class_value(_slimx5, true, false); unless _slimx6.empty?; _buf << " class=\"".freeze; _buf << (_slimx6).to_s; _buf << "\"".freeze; end
-_buf << ">Nil class</p><p".freeze; _slimx7 = empty; _slimx8 = ::SlimX::Runtime.class_value(_slimx7, true, false); unless _slimx8.empty?; _buf << " class=\"".freeze; _buf << (_slimx8).to_s; _buf << "\"".freeze; end
-_buf << ">Empty class</p><p".freeze; _slimx9 = nothing; _buf << " class=\"a".freeze; _slimx10 = ::SlimX::Runtime.class_value(_slimx9, true, false); unless _slimx10.empty?; _buf << " ".freeze; _buf << (_slimx10).to_s; end
-_buf << "\">Shortcut and nil</p><p".freeze; _slimx11 = ["x", "y"]; _slimx12 = ::SlimX::Runtime.join_classes(::SlimX::Runtime.class_value(_slimx11, true, false), "z"); unless _slimx12.empty?; _buf << " class=\"".freeze; _buf << (_slimx12).to_s; _buf << "\"".freeze; end
-_buf << ">Two class attributes</p><p".freeze; _slimx13 = []; _slimx14 = ::SlimX::Runtime.class_value(_slimx13, true, false); unless _slimx14.empty?; _buf << " class=\"".freeze; _buf << (_slimx14).to_s; _buf << "\"".freeze; end
-_buf << ">Empty array</p><div".freeze; _slimx15 = (yes ? "on" : nil); _slimx16 = no; _buf << " class=\"a".freeze; _slimx17 = ::SlimX::Runtime.class_value(_slimx15, true, false); unless _slimx17.empty?; _buf << " ".freeze; _buf << (_slimx17).to_s; end; _slimx18 = ::SlimX::Runtime.class_value(_slimx16, true, false); unless _slimx18.empty?; _buf << " ".freeze; _buf << (_slimx18).to_s; end
+_buf << "<div class=\"a b c\">Static merge</div><div".freeze; _super_slim1 = symbol; _buf << " class=\"a".freeze; _super_slim2 = ::SuperSlim::Runtime.class_value(_super_slim1, true, false); unless _super_slim2.empty?; _buf << " ".freeze; _buf << (_super_slim2).to_s; end
+_buf << "\">Shortcut and dynamic</div><p".freeze; _super_slim3 = classes; _super_slim4 = ::SuperSlim::Runtime.class_value(_super_slim3, true, false); unless _super_slim4.empty?; _buf << " class=\"".freeze; _buf << (_super_slim4).to_s; _buf << "\"".freeze; end
+_buf << ">Array</p><p".freeze; _super_slim5 = nothing; _super_slim6 = ::SuperSlim::Runtime.class_value(_super_slim5, true, false); unless _super_slim6.empty?; _buf << " class=\"".freeze; _buf << (_super_slim6).to_s; _buf << "\"".freeze; end
+_buf << ">Nil class</p><p".freeze; _super_slim7 = empty; _super_slim8 = ::SuperSlim::Runtime.class_value(_super_slim7, true, false); unless _super_slim8.empty?; _buf << " class=\"".freeze; _buf << (_super_slim8).to_s; _buf << "\"".freeze; end
+_buf << ">Empty class</p><p".freeze; _super_slim9 = nothing; _buf << " class=\"a".freeze; _super_slim10 = ::SuperSlim::Runtime.class_value(_super_slim9, true, false); unless _super_slim10.empty?; _buf << " ".freeze; _buf << (_super_slim10).to_s; end
+_buf << "\">Shortcut and nil</p><p".freeze; _super_slim11 = ["x", "y"]; _super_slim12 = ::SuperSlim::Runtime.join_classes(::SuperSlim::Runtime.class_value(_super_slim11, true, false), "z"); unless _super_slim12.empty?; _buf << " class=\"".freeze; _buf << (_super_slim12).to_s; _buf << "\"".freeze; end
+_buf << ">Two class attributes</p><p".freeze; _super_slim13 = []; _super_slim14 = ::SuperSlim::Runtime.class_value(_super_slim13, true, false); unless _super_slim14.empty?; _buf << " class=\"".freeze; _buf << (_super_slim14).to_s; _buf << "\"".freeze; end
+_buf << ">Empty array</p><div".freeze; _super_slim15 = (yes ? "on" : nil); _super_slim16 = no; _buf << " class=\"a".freeze; _super_slim17 = ::SuperSlim::Runtime.class_value(_super_slim15, true, false); unless _super_slim17.empty?; _buf << " ".freeze; _buf << (_super_slim17).to_s; end; _super_slim18 = ::SuperSlim::Runtime.class_value(_super_slim16, true, false); unless _super_slim18.empty?; _buf << " ".freeze; _buf << (_super_slim18).to_s; end
 _buf << "\">Conditional</div><p class=\"".freeze; _buf << ::ERB::Escape.html_escape((symbol))
 
-_buf << " static\">Interpolated</p><p class=\"a b c d\" id=\"id\">Many shortcuts</p><p".freeze; _slimx19 = markup; _slimx20 = ::SlimX::Runtime.class_value(_slimx19, true, false); unless _slimx20.empty?; _buf << " class=\"".freeze; _buf << (_slimx20).to_s; _buf << "\"".freeze; end
+_buf << " static\">Interpolated</p><p class=\"a b c d\" id=\"id\">Many shortcuts</p><p".freeze; _super_slim19 = markup; _super_slim20 = ::SuperSlim::Runtime.class_value(_super_slim19, true, false); unless _super_slim20.empty?; _buf << " class=\"".freeze; _buf << (_super_slim20).to_s; _buf << "\"".freeze; end
 _buf << ">Escaped class</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
-@output_buffer.safe_concat("<div class=\"a b c\">Static merge</div><div".freeze); _slimx1 = symbol; @output_buffer.safe_concat(" class=\"a".freeze); _slimx2 = ::SlimX::Runtime.class_value(_slimx1, true, true); unless _slimx2.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_slimx2).to_s); end
-@output_buffer.safe_concat("\">Shortcut and dynamic</div><p".freeze); _slimx3 = classes; _slimx4 = ::SlimX::Runtime.class_value(_slimx3, true, true); unless _slimx4.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx4).to_s); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(">Array</p><p".freeze); _slimx5 = nothing; _slimx6 = ::SlimX::Runtime.class_value(_slimx5, true, true); unless _slimx6.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx6).to_s); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(">Nil class</p><p".freeze); _slimx7 = empty; _slimx8 = ::SlimX::Runtime.class_value(_slimx7, true, true); unless _slimx8.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx8).to_s); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(">Empty class</p><p".freeze); _slimx9 = nothing; @output_buffer.safe_concat(" class=\"a".freeze); _slimx10 = ::SlimX::Runtime.class_value(_slimx9, true, true); unless _slimx10.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_slimx10).to_s); end
-@output_buffer.safe_concat("\">Shortcut and nil</p><p".freeze); _slimx11 = ["x", "y"]; _slimx12 = ::SlimX::Runtime.join_classes(::SlimX::Runtime.class_value(_slimx11, true, true), "z"); unless _slimx12.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx12).to_s); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(">Two class attributes</p><p".freeze); _slimx13 = []; _slimx14 = ::SlimX::Runtime.class_value(_slimx13, true, true); unless _slimx14.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx14).to_s); @output_buffer.safe_concat("\"".freeze); end
-@output_buffer.safe_concat(">Empty array</p><div".freeze); _slimx15 = (yes ? "on" : nil); _slimx16 = no; @output_buffer.safe_concat(" class=\"a".freeze); _slimx17 = ::SlimX::Runtime.class_value(_slimx15, true, true); unless _slimx17.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_slimx17).to_s); end; _slimx18 = ::SlimX::Runtime.class_value(_slimx16, true, true); unless _slimx18.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_slimx18).to_s); end
+@output_buffer.safe_concat("<div class=\"a b c\">Static merge</div><div".freeze); _super_slim1 = symbol; @output_buffer.safe_concat(" class=\"a".freeze); _super_slim2 = ::SuperSlim::Runtime.class_value(_super_slim1, true, true); unless _super_slim2.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_super_slim2).to_s); end
+@output_buffer.safe_concat("\">Shortcut and dynamic</div><p".freeze); _super_slim3 = classes; _super_slim4 = ::SuperSlim::Runtime.class_value(_super_slim3, true, true); unless _super_slim4.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim4).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Array</p><p".freeze); _super_slim5 = nothing; _super_slim6 = ::SuperSlim::Runtime.class_value(_super_slim5, true, true); unless _super_slim6.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim6).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Nil class</p><p".freeze); _super_slim7 = empty; _super_slim8 = ::SuperSlim::Runtime.class_value(_super_slim7, true, true); unless _super_slim8.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim8).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Empty class</p><p".freeze); _super_slim9 = nothing; @output_buffer.safe_concat(" class=\"a".freeze); _super_slim10 = ::SuperSlim::Runtime.class_value(_super_slim9, true, true); unless _super_slim10.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_super_slim10).to_s); end
+@output_buffer.safe_concat("\">Shortcut and nil</p><p".freeze); _super_slim11 = ["x", "y"]; _super_slim12 = ::SuperSlim::Runtime.join_classes(::SuperSlim::Runtime.class_value(_super_slim11, true, true), "z"); unless _super_slim12.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim12).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Two class attributes</p><p".freeze); _super_slim13 = []; _super_slim14 = ::SuperSlim::Runtime.class_value(_super_slim13, true, true); unless _super_slim14.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim14).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(">Empty array</p><div".freeze); _super_slim15 = (yes ? "on" : nil); _super_slim16 = no; @output_buffer.safe_concat(" class=\"a".freeze); _super_slim17 = ::SuperSlim::Runtime.class_value(_super_slim15, true, true); unless _super_slim17.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_super_slim17).to_s); end; _super_slim18 = ::SuperSlim::Runtime.class_value(_super_slim16, true, true); unless _super_slim18.empty?; @output_buffer.safe_concat(" ".freeze); @output_buffer.safe_concat((_super_slim18).to_s); end
 @output_buffer.safe_concat("\">Conditional</div><p class=\"".freeze); @output_buffer << (symbol)
 
-@output_buffer.safe_concat(" static\">Interpolated</p><p class=\"a b c d\" id=\"id\">Many shortcuts</p><p".freeze); _slimx19 = markup; _slimx20 = ::SlimX::Runtime.class_value(_slimx19, true, true); unless _slimx20.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_slimx20).to_s); @output_buffer.safe_concat("\"".freeze); end
+@output_buffer.safe_concat(" static\">Interpolated</p><p class=\"a b c d\" id=\"id\">Many shortcuts</p><p".freeze); _super_slim19 = markup; _super_slim20 = ::SuperSlim::Runtime.class_value(_super_slim19, true, true); unless _super_slim20.empty?; @output_buffer.safe_concat(" class=\"".freeze); @output_buffer.safe_concat((_super_slim20).to_s); @output_buffer.safe_concat("\"".freeze); end
 @output_buffer.safe_concat(">Escaped class</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 .a.b class="c" Static merge
 .a class=symbol Shortcut and dynamic
 p class=classes Array
@@ -41,5 +41,5 @@ p class=[] Empty array
 p class="#{symbol} static" Interpolated
 p.a.b.c#id class="d" Many shortcuts
 p class=markup Escaped class
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

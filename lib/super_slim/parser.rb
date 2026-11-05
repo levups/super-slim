@@ -2,7 +2,7 @@
 
 require "strscan"
 
-module SlimX
+module SuperSlim
   # Reads each line with one StringScanner that moves forward: no MatchData, and no copy of the rest of the
   # line after each token, so parsing allocates little more than the nodes it builds.
   class Parser
@@ -12,7 +12,7 @@ module SlimX
     TAB = /\G((?: {#{TAB_SIZE}})*) {0,#{TAB_SIZE - 1}}\t/
     DELIMITERS = {"(" => ")", "[" => "]", "{" => "}"}.freeze
     SUPPORTED_ENGINES = %w[javascript css ruby markdown].freeze
-    # Engines Slim ships that SlimX deliberately refuses, so they fail loudly instead of parsing as a tag.
+    # Engines Slim ships that SuperSlim deliberately refuses, so they fail loudly instead of parsing as a tag.
     UNSUPPORTED_ENGINES = %w[asciidoc textile rdoc coffee sass scss less erb builder creole wiki org].freeze
     ENGINE = /(#{Regexp.union(SUPPORTED_ENGINES + UNSUPPORTED_ENGINES)})(?:\s*(?:(.*)))?:(\s*)/
     DOCTYPE = /doctype\b/
@@ -55,7 +55,7 @@ module SlimX
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
 
-    def initialize(file: nil, outline: false, tailwind_classes: SlimX.tailwind_classes)
+    def initialize(file: nil, outline: false, tailwind_classes: SuperSlim.tailwind_classes)
       @file = file
       @attribute_shortcut = tailwind_classes ? Shortcuts::TAILWIND_ATTRIBUTE_PATTERN : Shortcuts::ATTRIBUTE_PATTERN
       @record_outline = outline

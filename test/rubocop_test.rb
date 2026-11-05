@@ -47,7 +47,7 @@ class RuboCopTest < Minitest::Test
     assert_equal CORRECTED, File.read(File.join(@directory, "page.html.slim"))
   end
 
-  def test_a_template_slimx_cannot_parse_has_no_offense
+  def test_a_template_super_slim_cannot_parse_has_no_offense
     assert_includes rubocop("--format", "simple", template: "p(\n"), "no offenses detected"
   end
 
@@ -63,7 +63,7 @@ class RuboCopTest < Minitest::Test
     File.write(File.join(@directory, "page.html.slim"), template)
     File.write(File.join(@directory, ".rubocop.yml"), <<~YAML)
       plugins:
-        - slimx
+        - super_slim
       AllCops:
         NewCops: disable
         SuggestExtensions: false

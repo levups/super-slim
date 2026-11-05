@@ -2,7 +2,7 @@
 
 require "erb/escape"
 
-module SlimX
+module SuperSlim
   module Runtime
     module_function
 
