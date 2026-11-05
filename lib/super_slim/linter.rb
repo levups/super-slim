@@ -78,4 +78,5 @@ module SuperSlim
   end
 end
 
+require_relative "linter/presets"
 require_relative "linter/rules"

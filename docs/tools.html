@@ -105,12 +105,12 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   <span class="na">ButtonType</span><span class="pi">:</span>
     <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, EmbeddedEngines, HardcodedText, InlineStyles, StrictLocals, UnescapedOutput</span>
   <span class="na">DeprecatedClasses</span><span class="pi">:</span>
+    <span class="na">preset</span><span class="pi">:</span> <span class="s">bootstrap5</span>       <span class="c1"># Bootstrap 4 classes that Bootstrap 5.3 renamed or dropped</span>
     <span class="na">classes</span><span class="pi">:</span>
-      <span class="na">text-muted</span><span class="pi">:</span> <span class="s">text-body-secondary</span>
-      <span class="na">ml-*</span><span class="pi">:</span> <span class="s">ms-*</span>             <span class="c1"># a prefix: ml-auto becomes ms-auto</span>
+      <span class="na">media</span><span class="pi">:</span> <span class="s">~</span>               <span class="c1"># drops an entry of the preset</span>
+      <span class="na">legacy-*</span><span class="pi">:</span> <span class="s">modern-*</span>     <span class="c1"># a prefix: legacy-card becomes modern-card</span>
   <span class="na">DeprecatedAttributes</span><span class="pi">:</span>
-    <span class="na">attributes</span><span class="pi">:</span>
-      <span class="na">data-toggle</span><span class="pi">:</span> <span class="s">data-bs-toggle</span>
+    <span class="na">preset</span><span class="pi">:</span> <span class="s">bootstrap5</span>       <span class="c1"># data-toggle becomes data-bs-toggle, and so on</span>
   <span class="na">EmbeddedEngines</span><span class="pi">:</span>
     <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>
     <span class="na">forbidden_engines</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">javascript</span><span class="pi">,</span> <span class="nv">css</span><span class="pi">]</span>

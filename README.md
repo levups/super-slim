@@ -100,7 +100,7 @@ when the compiled Ruby differs by whitespace alone, and leaves lines already spr
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
 | DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
 | ButtonType, InlineStyles | eslint-plugin-react, haml-lint | off |
-| DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`) | erb_lint | on, empty |
+| DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text to translate) | erb_lint | off |
@@ -115,9 +115,12 @@ linters:
   ButtonType:
     enabled: true
   DeprecatedClasses:
+    preset: bootstrap5 # Bootstrap 4 classes Bootstrap 5.3 renamed or dropped
     classes:
-      text-muted: text-body-secondary
-      ml-*: ms-*
+      media: ~ # drops an entry of the preset
+      legacy-*: modern-*
+  DeprecatedAttributes:
+    preset: bootstrap5 # data-toggle becomes data-bs-toggle, and so on
   InlineStyles:
     enabled: true
     exclude: ["app/views/*_mailer/**/*"]
