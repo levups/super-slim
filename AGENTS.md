@@ -2,8 +2,8 @@
 
 A Slim 5 template engine rewritten without Temple: the HTML Slim renders with `format: :html, sort_attrs: false`,
 byte for byte, plus a formatter (`super-slim format`) and a linter (`super-slim lint`). One parser
-(`lib/super_slim/parser.rb`) feeds the compiler, the formatter and the linter. A Next Gen Gems gem, by Level UP
-Solutions, and the model the organization's other gems copy.
+(`lib/super_slim/parser.rb`) feeds the compiler, the formatter and the linter. A Level UP Solutions gem,
+and the model our other gems copy.
 
 ## Compatibility
 
@@ -65,7 +65,7 @@ Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't
   itself once the required CI checks are green (`gh pr merge --auto --squash`).
 - `bin/release patch|minor|major` cuts a release from a green, up-to-date `main` through such a pull request, then
   tags its merge commit (README, Releasing), and `.github/workflows/release.yml` publishes it. Both are the same in
-  every next-gen-gems gem: change them in all four at once.
+  every Level UP Solutions gem: change them in all four at once.
 - RubyGems trusts the Release workflow (trusted publishing): never `gem push` from a machine.
 
 ## Pull requests and issues

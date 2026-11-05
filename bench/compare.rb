@@ -139,7 +139,7 @@ if File.directory?(PUBLIC_CORPUS_DIRECTORY)
 end
 results[:corpora] = corpora
 
-# Wall time, and CPU time across processes: super_slim spreads templates over every core, slim-lint uses one.
+# Wall time, and CPU time across processes: super-slim spreads templates over every core, slim-lint uses one.
 def command_timing(name, *command)
   system(*command, out: File::NULL, err: File::NULL)
   cpu_before = Process.times
