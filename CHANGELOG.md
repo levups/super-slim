@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-11-05
+
+Slim's doctypes are back, for email layouts.
+
+**New**
+- `doctype transitional`, `strict` and `frameset` render the HTML 4.01 doctypes again, and XML templates take `1.1`,
+  `basic`, `mobile`, `svg` and the XHTML 1.0 ones, as in Slim 5. Email layouts need `doctype transitional`:
+  `<!DOCTYPE html>` switches Apple Mail and iOS Mail to standards mode, which opens a gap under the images of table
+  cells.
+
 ## [2.0.1] — 2026-11-05
 
 Two fixes to `super-slim`: braces around wrapped attributes, and `--help`.
@@ -74,7 +84,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/levups/super-slim/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/levups/super-slim/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/levups/super-slim/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...v1.1.0
