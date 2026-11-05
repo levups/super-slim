@@ -63,7 +63,7 @@ class RuboCopTest < Minitest::Test
     File.write(File.join(@directory, "page.html.slim"), template)
     File.write(File.join(@directory, ".rubocop.yml"), <<~YAML)
       plugins:
-        - super_slim
+        - super-slim
       AllCops:
         NewCops: disable
         SuggestExtensions: false
