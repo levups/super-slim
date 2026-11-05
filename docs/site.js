@@ -112,7 +112,7 @@ function renderBenchmarks(benchmarks) {
     element("div", { class: "charts" },
       columnChart({ title: "Wall time", better: "lower", rows: rowsFor("milliseconds"), format: formatSeconds }),
       columnChart({ title: "CPU time, all processes", better: "lower", rows: rowsFor("cpu_milliseconds"), format: formatSeconds })));
-  fill("#tools-note", `super_slim splits the templates between ${tools.processors} processes, one per core; slim-lint uses one. CPU time adds up every process, so it compares the work itself. slim-lint runs without its RuboCop linter, which SuperSlim has no equivalent of. Median of 3 runs.`);
+  fill("#tools-note", `super-slim splits the templates between ${tools.processors} processes, one per core; slim-lint uses one. CPU time adds up every process, so it compares the work itself. slim-lint runs without its RuboCop linter, which SuperSlim has no equivalent of. Median of 3 runs.`);
 }
 
 fetch("benchmarks.json").then((response) => response.json()).then((benchmarks) => {

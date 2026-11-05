@@ -10,7 +10,7 @@ https://levups.github.io/super-slim/
 
 ```ruby
 # Gemfile
-gem "super_slim" # instead of slim-rails
+gem "super-slim" # instead of slim-rails
 ```
 
 ## Usage
@@ -75,7 +75,7 @@ They can come back if people ask, as long as they cost nothing at render time.
 
 Slim's defaults are `format: :xhtml` and `sort_attrs: true`. If you never changed them, first switch Slim
 to `format: :html, sort_attrs: false` and check your test suite: that is the output SuperSlim gives. Then swap
-`slim-rails` for `super_slim`, and drop any `Slim::Engine.set_options`/`with_options` call.
+`slim-rails` for `super-slim`, and drop any `Slim::Engine.set_options`/`with_options` call.
 
 ## Formatter and linter
 
@@ -138,7 +138,7 @@ it slimi and Temple:
 # .rubocop-slim.yml, run with rubocop -c .rubocop-slim.yml
 inherit_from: .rubocop.yml
 plugins:
-  - super_slim
+  - super-slim
 AllCops:
   Include:
     - "**/*.slim"

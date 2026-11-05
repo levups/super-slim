@@ -3,7 +3,7 @@
 require_relative "lib/super_slim/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "super_slim"
+  spec.name = "super-slim"
   spec.version = SuperSlim::VERSION
   spec.authors = ["Level UP Solutions"]
   spec.summary = "Slim templates, rewritten: faster to compile and render, with a formatter and a linter"

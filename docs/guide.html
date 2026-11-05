@@ -50,7 +50,7 @@
     <h2 id="rails-title">Rails</h2>
     <div class="prose">
 <pre><code class="language-ruby"><span class="c1"># Gemfile</span>
-<span class="n">gem</span> <span class="s2">"super_slim"</span> <span class="c1"># instead of slim-rails</span></code></pre>
+<span class="n">gem</span> <span class="s2">"super-slim"</span> <span class="c1"># instead of slim-rails</span></code></pre>
       <p>A railtie registers the <code>.slim</code> handler with Action View. Nothing else to configure:</p>
       <ul>
         <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
@@ -132,7 +132,7 @@
     <h2 id="migrating-title">Migrating from Slim</h2>
     <ol class="steps">
       <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SuperSlim renders.</li>
-      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "super_slim"</code>.</li>
+      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "super-slim"</code>.</li>
       <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call. Custom shortcuts are gone: write the attribute instead.</li>
       <li>Run <code>super-slim format</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim format --check</code> to CI.</li>
     </ol>
