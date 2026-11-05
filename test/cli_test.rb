@@ -42,16 +42,26 @@ class CLITest < Minitest::Test
     end
   end
 
-  def test_help_prints_the_usage_instead_of_reading_a_template
-    status, output = run_cli("lint", "--help")
+  def test_fmt_wraps_lines_longer_than_the_configured_length
+    in_templates(%(a.btn href="/posts/1" data-turbo="false" Edit\n)) do |directory|
+      File.write(".super-slim.yml", "fmt:\n  max_line_length: 30\n  attribute_delimiters: \"{}\"\n")
 
-    assert_equal 0, status
-    assert_equal SuperSlim::CLI::USAGE, output
+      assert_equal 0, run_cli("fmt", ".").first
+      assert_equal %(a.btn {\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
+    end
   end
 
-  def test_unknown_option_is_a_usage_error
-    _, stderr = capture_io { assert_equal [SuperSlim::CLI::EX_USAGE, ""], run_cli("lint", "--fix") }
-    assert_match(/\AUnknown option: --fix\n/, stderr)
+  def test_help_prints_the_usage_and_succeeds
+    [["--help"], ["-h"], ["help"], ["fmt", "--help"], ["lint", "-h", "app"]].each do |arguments|
+      assert_equal [0, SuperSlim::CLI::USAGE], run_cli(*arguments), arguments.join(" ")
+    end
+  end
+
+  def test_unknown_options_fail_with_the_usage
+    assert_output("", "Unknown option --chek\n#{SuperSlim::CLI::USAGE}") do
+      assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["fmt", "--chek", "."])
+    end
+    assert_output("", /Unknown option --check/) { SuperSlim::CLI.new.call(["lint", "--check"]) }
   end
 
   def test_include_and_exclude_globs_match_paths_from_the_configuration_directory

@@ -26,7 +26,8 @@ HTML5, with attributes in the order you write them — what Slim renders with
 The whole Slim 5 grammar is supported: tags and `#id`/`.class` shortcuts, attributes with
 any delimiter, boolean attributes, `*splat`, `data`/`aria` hashes, `class` merging, `<`/`>` whitespace
 markers, `|` and `'` text, inline HTML, `/` and `/!` comments, `-` control code, `=`/`==` output, `#{}` and
-`#{{}}` interpolation, `doctype 5`/`html`/`xml`, and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
+`#{{}}` interpolation, Slim's doctypes (`html`, `transitional` for email clients, their XHTML versions in XML
+templates), and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
 [Markly](https://github.com/ioquatix/markly)) embedded engines.
 
 ## Tailwind class names
@@ -63,7 +64,7 @@ noise), and the compiled Ruby, so the time it takes to render, is the same.
 
 Each fails at compile time with a clear error instead of being silently ignored:
 
-- the XHTML format and its doctypes, the HTML 4 doctypes, `sort_attrs`, `attr_quote`, `pretty`, `js_wrapper` and every Temple option;
+- the XHTML format, `sort_attrs`, `attr_quote`, `pretty`, `js_wrapper` and every Temple option;
 - the `coffee:`, `sass:`, `scss:`, `less:`, `erb:`, `builder:`, `textile:`, `rdoc:`, `asciidoc:` and wiki
   engines, and `/[if IE]` conditional comments;
 - the `logic_less`, `translator`, `include` and `smart` plugins, and custom shortcuts: only `#id` and `.class`.
@@ -84,6 +85,10 @@ One parser serves the compiler, the formatter and the linter, so all three read 
 `= output` and `p = output` spacing, no redundant `div`, no trailing whitespace, single blank lines, one final
 newline. Text blocks move as a whole, so the whitespace they render stays put — and before writing anything,
 the formatter compiles both versions and refuses if the Ruby differs. Formatting cannot change a page.
+
+With `fmt: max_line_length: 120` in `.super-slim.yml`, `fmt` also wraps longer lines: a tag's attributes one
+per line inside `attribute_delimiters` (`"()"` by default, `"[]"` or `"{}"`), then the arguments of its Ruby code after each comma, four spaces deep when the line opens a block. It keeps a wrap only
+when the compiled Ruby differs by whitespace alone, and leaves lines already spread over several lines alone.
 
 `super-slim lint [PATH…]` reads `.super-slim.yml` and checks, with about a third of the CPU time slim-lint takes:
 
