@@ -74,3 +74,7 @@ Follow `STYLE.md` (naming, method size, comments, dead code): what RuboCop can't
 - Body, no headings: two short paragraphs, the problem then the change (an issue: what to do); 3 to 5 bullets,
   each a **bold 2–4 word lead-in** and two lines at most (decisions, divergences, what is left out); the proof
   (reproduction, tests, fuzz seeds, benchmarks) folded in one `<details>`. Nothing the diff or the CI says.
+- Never hard-wrap a pull request, an issue or a comment: GitHub renders each line break, so text wrapped at
+  80 columns reads broken. One line per paragraph and per bullet, however long.
+- Everything here is in English: code, comments, commits, pull requests, issues, reviews and replies, whatever
+  the language of the conversation that produced them.
