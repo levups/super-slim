@@ -49,8 +49,9 @@ module SuperSlim
     ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /\s*#{Regexp.escape(closing)}/] }.freeze
     CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /[\s#{Regexp.escape(closing.to_s)}]/] }.freeze
 
-    # What the formatter and the linter need to know about each source line, indexed by line number.
-    LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column)
+    # What the formatter and the linter need to know about each source line, indexed by line number. A tag's
+    # attribute list on one line is [first, last, delimited, [[first, last], …]], in columns of that line.
+    LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists)
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
@@ -390,7 +391,7 @@ module SuperSlim
         leading_whitespace = markers.include?("<")
       end
 
-      parse_attributes(attributes)
+      parse_attributes(attributes, outline: true)
 
       siblings = @stacks.last
       content, block, output_whitespace = parse_tag_content
@@ -439,37 +440,53 @@ module SuperSlim
       end
     end
 
-    def parse_attributes(attributes = [])
+    def parse_attributes(attributes = [], outline: false)
+      outline &&= @outline
+      if outline
+        lineno = @lineno
+        list_first = column + @scanner.match?(WHITESPACE)
+        spans = []
+      end
       closing = DELIMITERS[@scanner[1]] if @scanner.skip(ATTRIBUTE_LIST_OPENING)
 
       loop do
-        if @scanner.skip(SPLAT)
-          attributes << Splat.new(parse_ruby_code(closing))
-        elsif @scanner.skip(QUOTED_ATTRIBUTE)
-          name = @scanner[1]
-          escape = @scanner[2].empty?
-          attributes << QuotedAttribute.new(name, escape, parse_quoted_attribute(@scanner[3]))
-        elsif @scanner.skip(CODE_ATTRIBUTE)
-          name = @scanner[1]
-          escape = @scanner[2].empty?
-          code = parse_ruby_code(closing)
-          syntax_error!("Invalid empty attribute") if code.empty?
-          attributes << CodeAttribute.new(name, escape, code)
-        else
-          break unless closing
-
-          if @scanner.skip(BOOLEAN_ATTRIBUTE_BY_CLOSING[closing])
-            attributes << BooleanAttribute.new(@scanner[1])
-          elsif @scanner.skip(ATTRIBUTE_LIST_END_BY_CLOSING[closing])
-            break
-          else
-            @scanner.skip(WHITESPACE)
-            syntax_error!("Expected attribute") unless @scanner.eos?
-            @stacks.last << NEWLINE
-            syntax_error!("Expected closing delimiter #{closing}") if @lines.empty?
-            next_line
+        first = column + @scanner.match?(WHITESPACE) if outline
+        attribute =
+          if @scanner.skip(SPLAT)
+            Splat.new(parse_ruby_code(closing))
+          elsif @scanner.skip(QUOTED_ATTRIBUTE)
+            name = @scanner[1]
+            escape = @scanner[2].empty?
+            QuotedAttribute.new(name, escape, parse_quoted_attribute(@scanner[3]))
+          elsif @scanner.skip(CODE_ATTRIBUTE)
+            name = @scanner[1]
+            escape = @scanner[2].empty?
+            code = parse_ruby_code(closing)
+            syntax_error!("Invalid empty attribute") if code.empty?
+            CodeAttribute.new(name, escape, code)
+          elsif closing && @scanner.skip(BOOLEAN_ATTRIBUTE_BY_CLOSING[closing])
+            BooleanAttribute.new(@scanner[1])
           end
+        if attribute
+          attributes << attribute
+          spans << [first, column] if outline
+          next
         end
+        break unless closing
+
+        if @scanner.skip(ATTRIBUTE_LIST_END_BY_CLOSING[closing])
+          break
+        else
+          @scanner.skip(WHITESPACE)
+          syntax_error!("Expected attribute") unless @scanner.eos?
+          @stacks.last << NEWLINE
+          syntax_error!("Expected closing delimiter #{closing}") if @lines.empty?
+          next_line
+        end
+      end
+      if outline && lineno == @lineno && !spans.empty?
+        list_first = spans.first.first unless closing
+        (@outline[lineno].attribute_lists ||= []) << [list_first, column, !closing.nil?, spans]
       end
       attributes
     end

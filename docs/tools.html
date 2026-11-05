@@ -52,6 +52,12 @@
 super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
+      <p>With <code>fmt: max_line_length</code> in <code>.super-slim.yml</code>, longer lines are wrapped: a tag&rsquo;s attributes one per line inside their delimiters, then the arguments of its Ruby code after each comma, which Slim reads as a line that goes on. Lines already spread over several lines stay as they are, and a wrap is only kept when the compiled Ruby differs by whitespace alone.</p>
+<pre><code class="language-slim">a.btn(
+  href=edit_post_path(post)
+  data-turbo-frame="modal"
+) = t ".edit",
+  title: post.title</code></pre>
       <p>Paths default to the current directory; <code>.git</code>, <code>node_modules</code>, <code>tmp</code> and <code>vendor</code> are skipped.</p>
     </div>
   </section>
@@ -86,6 +92,9 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
     <div class="prose">
       <p>Both commands read <code>.super-slim.yml</code> from the current directory. Every key is optional:</p>
 <pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span>     <span class="c1"># read templates the way the app compiles them</span>
+
+<span class="na">fmt</span><span class="pi">:</span>
+  <span class="na">max_line_length</span><span class="pi">:</span> <span class="m">120</span>     <span class="c1"># wrap longer lines, default off</span>
 
 <span class="na">linters</span><span class="pi">:</span>
   <span class="na">LineLength</span><span class="pi">:</span>
