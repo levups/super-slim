@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require_relative "../slimx"
+require_relative "../super_slim"
 require_relative "linter"
 require_relative "parallel"
 
-module SlimX
+module SuperSlim
   class CLI
     USAGE = <<~TEXT
-      Usage: slimx lint [PATH…]             report what breaks the rules of .slimx.yml
-             slimx fmt [--check] [PATH…]    rewrite templates in their canonical layout
-             slimx version
+      Usage: super-slim lint [PATH…]             report what breaks the rules of .super-slim.yml
+             super-slim fmt [--check] [PATH…]    rewrite templates in their canonical layout
+             super-slim version
     TEXT
     SKIPPED_DIRECTORIES = %r{(\A|/)(\.git|node_modules|tmp|vendor)/}
     EX_USAGE = 64
@@ -17,7 +17,7 @@ module SlimX
     def call(arguments)
       command, *arguments = arguments
       configuration = Linter.configuration
-      SlimX.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
+      SuperSlim.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
       case command
       when "lint" then lint(arguments, configuration)
       when "fmt" then format(arguments)

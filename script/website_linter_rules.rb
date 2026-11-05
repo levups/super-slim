@@ -4,8 +4,8 @@
 # that does not), then rewrites the linter rules block of docs/tools.html with the real messages.
 #   rake docs
 require "cgi"
-require "slimx"
-require "slimx/linter"
+require "super_slim"
+require "super_slim/linter"
 
 PAGE_PATH = File.expand_path("../docs/tools.html", __dir__)
 RULES_BLOCK = /(<!-- linter-rules -->\n).*(<!-- \/linter-rules -->)/m
@@ -49,7 +49,7 @@ EXAMPLE_BY_RULE = {
 }.freeze
 
 RULES_BY_GROUP = {
-  "Layout — fixed by <code>slimx fmt</code>" =>
+  "Layout — fixed by <code>super-slim fmt</code>" =>
     %w[Indentation Tab TrailingWhitespace EmptyLines TrailingBlankLines ControlStatementSpacing RedundantDiv],
   "Template hygiene — from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
@@ -60,14 +60,14 @@ RULES_BY_GROUP = {
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaRole AriaAttribute ButtonType]
 }.freeze
 
-rule_names = SlimX::Linter::Rules.constants.map(&:name) - ["Rule"]
+rule_names = SuperSlim::Linter::Rules.constants.map(&:name) - ["Rule"]
 undocumented = rule_names - EXAMPLE_BY_RULE.keys
 abort "Rules without an example: #{undocumented.join(", ")}" if undocumented.any?
 ungrouped = EXAMPLE_BY_RULE.keys - RULES_BY_GROUP.values.flatten
 abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
 
-off_by_default = rule_names.reject { SlimX::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
-linter = SlimX::Linter.new(
+off_by_default = rule_names.reject { SuperSlim::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
+linter = SuperSlim::Linter.new(
   off_by_default.to_h { [_1, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
 )
 message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|

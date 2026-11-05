@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 # Replays the 70 examples of Slim's literate specification (test/literate/TESTS.md) as a differential test:
-# each renders through Slim (HTML5, no sorting) and SlimX, with the options its section declares. The file turns
+# each renders through Slim (HTML5, no sorting) and SuperSlim, with the options its section declares. The file turns
 # on pretty mode only to make its expected HTML readable: both engines render without it.
 require "minitest/autorun"
 require "slim"
-require "slimx/tilt"
+require_relative "../support/tilt"
 
 class LiterateTest < Minitest::Test
   SPECIFICATION_PATH = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/literate/TESTS.md")
   REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
-  UNSUPPORTED_OPTIONS = %i[disable_escape].freeze
-  DROPPED_FEATURES = ["IE conditional comment"].freeze
+  UNSUPPORTED_OPTIONS = %i[disable_escape shortcut].freeze
+  DROPPED_FEATURES = ["IE conditional comment", "Doctype tags"].freeze
 
   Example = Data.define(:title, :slim, :options)
 
@@ -49,19 +49,18 @@ class LiterateTest < Minitest::Test
   def check(example)
     unsupported = UNSUPPORTED_OPTIONS.select { example.options[_1] }
     skip "Unsupported options #{unsupported.inspect}" if unsupported.any?
-    skip "Dropped from SlimX" if DROPPED_FEATURES.any? { example.title.include?(_1) }
+    skip "Dropped from SuperSlim" if DROPPED_FEATURES.any? { example.title.include?(_1) }
 
-    assert_equal render_with_slim(example), render_with_slimx(example), "SlimX differs from Slim on:\n#{example.slim}"
+    assert_equal render_with_slim(example), render_with_super_slim(example), "SuperSlim differs from Slim on:\n#{example.slim}"
   end
 
   def render_with_slim(example)
     outcome { Slim::Template.new(REFERENCE_OPTIONS.merge(example.options, pretty: false)) { example.slim }.render(Object.new) { "block" } }
   end
 
-  def render_with_slimx(example)
+  def render_with_super_slim(example)
     options = example.options.slice(:format)
-    options[:shortcuts] = example.options[:shortcut] if example.options.key?(:shortcut)
-    outcome { SlimX::Template.new(options) { example.slim }.render(Object.new) { "block" } }
+    outcome { SuperSlim::Template.new(options) { example.slim }.render(Object.new) { "block" } }
   end
 
   def outcome

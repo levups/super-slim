@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX Guide</title>
-<meta name="description" content="Install SlimX in Rails or with Tilt, configure it, use Tailwind class names, and migrate from Slim.">
-<link rel="canonical" href="https://next-gen-gems.github.io/slimx/guide.html">
-<meta property="og:title" content="SlimX Guide">
-<meta property="og:description" content="Install SlimX in Rails or with Tilt, configure it, use Tailwind class names, and migrate from Slim.">
+<title>SuperSlim Guide</title>
+<meta name="description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and migrate from Slim.">
+<link rel="canonical" href="https://levups.github.io/super-slim/guide.html">
+<meta property="og:title" content="SuperSlim Guide">
+<meta property="og:description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and migrate from Slim.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://next-gen-gems.github.io/slimx/guide.html">
+<meta property="og:url" content="https://levups.github.io/super-slim/guide.html">
 <meta property="og:site_name" content="Next Gen Gems">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
@@ -23,26 +23,26 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="page">
   <nav class="site-nav" aria-label="Site">
-    <a class="brand" href="./">SlimX</a>
+    <a class="brand" href="./">SuperSlim</a>
     <a href="guide.html" aria-current="page">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
     <a href="testing.html">Testing</a>
-    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+    <a href="https://github.com/levups/super-slim">GitHub</a>
   </nav>
 
   <main id="content">
   <header>
     <h1 class="page-title">Guide</h1>
-    <p class="lede">SlimX reads the Slim 5 grammar and renders the HTML Slim renders. Installing it is swapping a gem; this page covers the rest.</p>
+    <p class="lede">SuperSlim reads the Slim 5 grammar and renders the HTML Slim renders. Installing it is swapping a gem; this page covers the rest.</p>
     <ul class="toc">
       <li><a href="#rails">Rails</a></li>
-      <li><a href="#tilt">Tilt and plain Ruby</a></li>
+      <li><a href="#ruby">Plain Ruby</a></li>
       <li><a href="#options">Options</a></li>
       <li><a href="#tailwind">Tailwind class names</a></li>
       <li><a href="#embedded">Embedded engines</a></li>
       <li><a href="#migrating">Migrating from Slim</a></li>
-      <li><a href="#left-out">What SlimX leaves out</a></li>
+      <li><a href="#left-out">What SuperSlim leaves out</a></li>
     </ul>
   </header>
 
@@ -50,7 +50,7 @@
     <h2 id="rails-title">Rails</h2>
     <div class="prose">
 <pre><code class="language-ruby"><span class="c1"># Gemfile</span>
-<span class="n">gem</span> <span class="s2">"slimx"</span> <span class="c1"># instead of slim-rails</span></code></pre>
+<span class="n">gem</span> <span class="s2">"super_slim"</span> <span class="c1"># instead of slim-rails</span></code></pre>
       <p>A railtie registers the <code>.slim</code> handler with Action View. Nothing else to configure:</p>
       <ul>
         <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
@@ -62,43 +62,29 @@
     </div>
   </section>
 
-  <section id="tilt" aria-labelledby="tilt-title">
-    <h2 id="tilt-title">Tilt and plain Ruby</h2>
-    <div class="split">
-      <div>
-        <p class="code-label">Sinatra, Hanami, Roda — anything on Tilt</p>
-<pre><code class="language-ruby"><span class="nb">require</span> <span class="s2">"slimx/tilt"</span>
-
-<span class="no">Tilt</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"page.slim"</span><span class="p">).</span><span class="nf">render</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="ss">title: </span><span class="s2">"Hi"</span><span class="p">)</span>
-<span class="no">SlimX</span><span class="o">::</span><span class="no">Template</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="s2">"page.slim"</span><span class="p">,</span> <span class="ss">tailwind_classes: </span><span class="kp">true</span><span class="p">)</span></code></pre>
-      </div>
-      <div>
-        <p class="code-label">Plain Ruby</p>
-<pre><code class="language-ruby"><span class="nb">require</span> <span class="s2">"slimx"</span>
-
-<span class="n">code</span> <span class="o">=</span> <span class="no">SlimX</span><span class="p">.</span><span class="nf">compile</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="ss">file: </span><span class="s2">"page.slim"</span><span class="p">)</span>
-<span class="c1"># Ruby that builds the HTML in _buf and returns it</span></code></pre>
-      </div>
-    </div>
+  <section id="ruby" aria-labelledby="ruby-title">
+    <h2 id="ruby-title">Plain Ruby</h2>
     <div class="prose">
-      <p>Tilt passes its options through to <code>SlimX.compile</code>. Registering SlimX takes the <code>slim</code> extension, so require <code>slimx/tilt</code> instead of <code>slim</code>, not both.</p>
+<pre><code class="language-ruby"><span class="nb">require</span> <span class="s2">"super_slim"</span>
+
+<span class="n">code</span> <span class="o">=</span> <span class="no">SuperSlim</span><span class="p">.</span><span class="nf">compile</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="ss">file: </span><span class="s2">"page.slim"</span><span class="p">)</span>
+<span class="c1"># Ruby that builds the HTML in _buf and returns it</span></code></pre>
     </div>
   </section>
 
   <section id="options" aria-labelledby="options-title">
     <h2 id="options-title">Options</h2>
     <div class="prose">
-      <p>Two settings apply everywhere, typically in <code>config/initializers/slimx.rb</code>:</p>
+      <p>One setting applies everywhere, typically in <code>config/initializers/super_slim.rb</code>:</p>
     </div>
     <table class="options">
       <thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
       <tbody>
-        <tr><td><code>SlimX.strict = true</code></td><td>off</td><td>Refuse to compile a template <code>slimx fmt</code> would change. <a href="tools.html#strict">Strict mode</a></td></tr>
-        <tr><td><code>SlimX.tailwind_classes = true</code></td><td>off</td><td>Let class shortcuts read Tailwind class names. <a href="#tailwind">Tailwind</a></td></tr>
+        <tr><td><code>SuperSlim.tailwind_classes = true</code></td><td>off</td><td>Let class shortcuts read Tailwind class names. <a href="#tailwind">Tailwind</a></td></tr>
       </tbody>
     </table>
     <div class="prose">
-      <p>Each one can be overridden per compile, alongside the options of <code>SlimX.compile</code> and <code>SlimX::Template</code>:</p>
+      <p>It can be overridden per compile, alongside the options of <code>SuperSlim.compile</code>:</p>
     </div>
     <table class="options">
       <thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Effect</th></tr></thead>
@@ -106,9 +92,7 @@
         <tr><td><code>file:</code></td><td><code>nil</code></td><td>The path shown in syntax errors and backtraces.</td></tr>
         <tr><td><code>format:</code></td><td><code>:html</code></td><td><code>:xml</code> closes void tags (<code>&lt;br /&gt;</code>) and allows <code>doctype xml</code>.</td></tr>
         <tr><td><code>html_safe:</code></td><td>when <code>String#html_safe?</code> exists</td><td>Leave <code>html_safe</code> strings unescaped, the way Rails expects.</td></tr>
-        <tr><td><code>shortcuts:</code></td><td><code>#</code> → id, <code>.</code> → class</td><td>Slim’s shortcut definitions, such as <code>{"@" =&gt; {attr: "role"}, "&amp;" =&gt; {tag: "input", attr: "type"}}</code>.</td></tr>
-        <tr><td><code>strict:</code></td><td><code>SlimX.strict</code></td><td>Strict mode for this template.</td></tr>
-        <tr><td><code>tailwind_classes:</code></td><td><code>SlimX.tailwind_classes</code></td><td>Tailwind class names for this template.</td></tr>
+        <tr><td><code>tailwind_classes:</code></td><td><code>SuperSlim.tailwind_classes</code></td><td>Tailwind class names for this template.</td></tr>
       </tbody>
     </table>
   </section>
@@ -126,8 +110,8 @@
 <span class="nt">ul</span><span class="nc">.</span>*:p-2</code></pre>
       </div>
       <div>
-        <p class="code-label">config/initializers/slimx.rb, and .slimx.yml for the CLI</p>
-<pre><code class="language-ruby"><span class="no">SlimX</span><span class="p">.</span><span class="nf">tailwind_classes</span> <span class="o">=</span> <span class="kp">true</span></code></pre>
+        <p class="code-label">config/initializers/super_slim.rb, and .super-slim.yml for the CLI</p>
+<pre><code class="language-ruby"><span class="no">SuperSlim</span><span class="p">.</span><span class="nf">tailwind_classes</span> <span class="o">=</span> <span class="kp">true</span></code></pre>
 <pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span></code></pre>
       </div>
     </div>
@@ -140,30 +124,29 @@
   <section id="embedded" aria-labelledby="embedded-title">
     <h2 id="embedded-title">Embedded engines</h2>
     <div class="prose">
-      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SlimX itself depends on no gem.</p>
+      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SuperSlim itself depends on no gem.</p>
     </div>
   </section>
 
   <section id="migrating" aria-labelledby="migrating-title">
     <h2 id="migrating-title">Migrating from Slim</h2>
     <ol class="steps">
-      <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SlimX renders.</li>
-      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "slimx"</code>.</li>
-      <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call, and move custom shortcuts to the <code>shortcuts:</code> option.</li>
-      <li>Run <code>slimx fmt</code> once and review the diff, then add <code>slimx lint</code> and <code>slimx fmt --check</code> to CI.</li>
-      <li>Optionally, turn on <code>SlimX.strict</code> in development and test.</li>
+      <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SuperSlim renders.</li>
+      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "super_slim"</code>.</li>
+      <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call. Custom shortcuts are gone: write the attribute instead.</li>
+      <li>Run <code>super-slim fmt</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim fmt --check</code> to CI.</li>
     </ol>
   </section>
 
   <section id="left-out" aria-labelledby="left-out-title">
-    <h2 id="left-out-title">What SlimX leaves out</h2>
+    <h2 id="left-out-title">What SuperSlim leaves out</h2>
     <div class="prose">
       <p>Each fails at compile time with a clear error instead of being silently ignored:</p>
     </div>
     <ul class="left-out">
-      <li>the XHTML format, <code>sort_attrs</code>, <code>attr_quote</code>, <code>pretty</code>, <code>js_wrapper</code> and every Temple option;</li>
+      <li>the XHTML format, the HTML 4 and XHTML doctypes (<code>doctype 5</code>, <code>html</code> and <code>xml</code> remain), <code>sort_attrs</code>, <code>attr_quote</code>, <code>pretty</code>, <code>js_wrapper</code> and every Temple option;</li>
       <li>the <code>coffee:</code>, <code>sass:</code>, <code>scss:</code>, <code>less:</code>, <code>erb:</code>, <code>builder:</code>, <code>textile:</code>, <code>rdoc:</code>, <code>asciidoc:</code> and wiki engines, and <code>/[if IE]</code> conditional comments;</li>
-      <li>the <code>logic_less</code>, <code>translator</code>, <code>include</code> and <code>smart</code> plugins, and lambda shortcuts.</li>
+      <li>the <code>logic_less</code>, <code>translator</code>, <code>include</code> and <code>smart</code> plugins, and custom shortcuts (only <code>#id</code> and <code>.class</code>).</li>
     </ul>
     <div class="prose">
       <p>They can come back if people ask, as long as they cost nothing at render time.</p>
@@ -176,13 +159,13 @@
     <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
     <nav aria-label="Next Gen Gems">
       <ul>
-        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://levups.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
         <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
         <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
         <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
       </ul>
     </nav>
-    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
+    <p><a href="https://github.com/levups/super-slim">Source on GitHub</a></p>
   </footer>
 </div>
 </body>

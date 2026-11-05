@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   class Linter
     module Rules
       # In the order of this file, which orders the offenses of one line: Module#constants has no order of its own.
@@ -67,7 +67,7 @@ module SlimX
         end
       end
 
-      # Layout: everything `slimx fmt` rewrites.
+      # Layout: everything `super-slim fmt` rewrites.
 
       class Indentation < Rule
         def offenses(document, _source)

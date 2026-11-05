@@ -1,8 +1,8 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <script>var title = "Posts &amp; comments";
 console.log(title);</script><style>.a { color: red; }
 .b::before { content: "primary"; }</style><p>Hello one</p><script></script>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 _buf << "<script>var title = \"".freeze; _buf << ::ERB::Escape.html_escape((title))
 
@@ -15,7 +15,7 @@ name = items.first
 _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("#{greeting} #{name}"))
 
 _buf << "</p><script></script>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 @output_buffer.safe_concat("<script>var title = \"".freeze); @output_buffer << (title)
 
@@ -28,7 +28,7 @@ name = items.first
 @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("#{greeting} #{name}")
 
 @output_buffer.safe_concat("</p><script></script>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 javascript:
   var title = "#{title}";
   console.log(title);
@@ -40,5 +40,5 @@ ruby:
   name = items.first
 p = "#{greeting} #{name}"
 javascript:
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

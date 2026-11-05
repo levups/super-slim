@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX Benchmarks</title>
-<meta name="description" content="SlimX against Slim, Haml, Erubi and Herb: compile and render speed, allocations, whole-app compile time, and lint time against slim-lint.">
-<link rel="canonical" href="https://next-gen-gems.github.io/slimx/benchmarks.html">
-<meta property="og:title" content="SlimX Benchmarks">
-<meta property="og:description" content="SlimX against Slim, Haml, Erubi and Herb: compile and render speed, allocations, whole-app compile time, and lint time against slim-lint.">
+<title>SuperSlim Benchmarks</title>
+<meta name="description" content="SuperSlim against Slim, Haml, Erubi and Herb: compile and render speed, allocations, whole-app compile time, and lint time against slim-lint.">
+<link rel="canonical" href="https://levups.github.io/super-slim/benchmarks.html">
+<meta property="og:title" content="SuperSlim Benchmarks">
+<meta property="og:description" content="SuperSlim against Slim, Haml, Erubi and Herb: compile and render speed, allocations, whole-app compile time, and lint time against slim-lint.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://next-gen-gems.github.io/slimx/benchmarks.html">
+<meta property="og:url" content="https://levups.github.io/super-slim/benchmarks.html">
 <meta property="og:site_name" content="Next Gen Gems">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
@@ -23,12 +23,12 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="page">
   <nav class="site-nav" aria-label="Site">
-    <a class="brand" href="./">SlimX</a>
+    <a class="brand" href="./">SuperSlim</a>
     <a href="guide.html">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html" aria-current="page">Benchmarks</a>
     <a href="testing.html">Testing</a>
-    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+    <a href="https://github.com/levups/super-slim">GitHub</a>
   </nav>
 
   <main id="content">
@@ -68,8 +68,8 @@
   <section id="why" aria-labelledby="why-title">
     <h2 id="why-title">Why it is faster</h2>
     <div class="prose">
-      <p><strong>Compiling.</strong> Slim parses a template into an S-expression, then runs it through about twenty Temple filters, each rebuilding the tree. SlimX parses each line once with a single <code>StringScanner</code> into a small tree, and one compiler walks it and writes Ruby.</p>
-      <p><strong>Rendering.</strong> The Ruby SlimX writes appends frozen strings to one buffer, escapes with <code>ERB::Escape</code>, the C function Rails itself uses, and inlines dynamic attributes as a <code>case</code> on their value, so a <code>true</code>, <code>false</code> or <code>nil</code> attribute costs no method call. Static attributes, classes and ids are merged at compile time.</p>
+      <p><strong>Compiling.</strong> Slim parses a template into an S-expression, then runs it through about twenty Temple filters, each rebuilding the tree. SuperSlim parses each line once with a single <code>StringScanner</code> into a small tree, and one compiler walks it and writes Ruby.</p>
+      <p><strong>Rendering.</strong> The Ruby SuperSlim writes appends frozen strings to one buffer, escapes with <code>ERB::Escape</code>, the C function Rails itself uses, and inlines dynamic attributes as a <code>case</code> on their value, so a <code>true</code>, <code>false</code> or <code>nil</code> attribute costs no method call. Static attributes, classes and ids are merged at compile time.</p>
       <p><strong>Allocating.</strong> Each parsed node is a <code>Struct</code> rather than a <code>Data</code> (two fewer objects, 2.8 times faster to build), and the parser never slices a line it can scan in place.</p>
     </div>
   </section>
@@ -78,7 +78,7 @@
     <h2 id="reproduce-title">Reproduce</h2>
     <div class="prose">
 <pre><code class="language-sh">bundle <span class="nb">exec </span>rake corpus:fetch                       <span class="c"># the open-source corpus, .slim files only</span>
-<span class="nv">SLIMX_CORPUS</span><span class="o">=</span>path/to/app/views bundle <span class="nb">exec </span>rake bench  <span class="c"># adds your own app</span></code></pre>
+<span class="nv">SUPER_SLIM_CORPUS</span><span class="o">=</span>path/to/app/views bundle <span class="nb">exec </span>rake bench  <span class="c"># adds your own app</span></code></pre>
       <p><code>bench/compare.rb</code> renders the same blog page from <code>bench/compare/</code> in Slim, Haml and ERB, fails if any engine renders different HTML, measures with <code>benchmark-ips</code> under YJIT, and writes <code>docs/benchmarks.json</code>, which every page of this site reads.</p>
     </div>
   </section>
@@ -89,13 +89,13 @@
     <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
     <nav aria-label="Next Gen Gems">
       <ul>
-        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://levups.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
         <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
         <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
         <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
       </ul>
     </nav>
-    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
+    <p><a href="https://github.com/levups/super-slim">Source on GitHub</a></p>
   </footer>
 </div>
 <script src="site.js"></script>

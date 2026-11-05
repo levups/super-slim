@@ -2,7 +2,7 @@
 
 require "strscan"
 
-module SlimX
+module SuperSlim
   # Reads each line with one StringScanner that moves forward: no MatchData, and no copy of the rest of the
   # line after each token, so parsing allocates little more than the nodes it builds.
   class Parser
@@ -12,7 +12,7 @@ module SlimX
     TAB = /\G((?: {#{TAB_SIZE}})*) {0,#{TAB_SIZE - 1}}\t/
     DELIMITERS = {"(" => ")", "[" => "]", "{" => "}"}.freeze
     SUPPORTED_ENGINES = %w[javascript css ruby markdown].freeze
-    # Engines Slim ships that SlimX deliberately refuses, so they fail loudly instead of parsing as a tag.
+    # Engines Slim ships that SuperSlim deliberately refuses, so they fail loudly instead of parsing as a tag.
     UNSUPPORTED_ENGINES = %w[asciidoc textile rdoc coffee sass scss less erb builder creole wiki org].freeze
     ENGINE = /(#{Regexp.union(SUPPORTED_ENGINES + UNSUPPORTED_ENGINES)})(?:\s*(?:(.*)))?:(\s*)/
     DOCTYPE = /doctype\b/
@@ -55,10 +55,9 @@ module SlimX
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
 
-    def initialize(shortcuts: Shortcuts::DEFAULT, file: nil, outline: false, tailwind_classes: SlimX.tailwind_classes)
+    def initialize(file: nil, outline: false, tailwind_classes: SuperSlim.tailwind_classes)
       @file = file
-      @shortcuts = Shortcuts.for(shortcuts, tailwind_classes: !!tailwind_classes)
-      @tag = @shortcuts.tag_pattern
+      @attribute_shortcut = tailwind_classes ? Shortcuts::TAILWIND_ATTRIBUTE_PATTERN : Shortcuts::ATTRIBUTE_PATTERN
       @record_outline = outline
     end
 
@@ -270,7 +269,7 @@ module SlimX
 
     # A tag name is consumed with its match; a shortcut is left for parse_tag to read as an attribute.
     def scan_tag
-      tag = @scanner.check(@tag) or return
+      tag = @scanner.check(Shortcuts::TAG_PATTERN) or return
       @scanner.pos += tag.bytesize if @scanner[1]
       tag
     end
@@ -369,22 +368,18 @@ module SlimX
 
     def parse_tag(tag)
       tag_lineno = @lineno
-      if (shortcut_tag = @shortcuts.tag_by_shortcut[tag])
-        @scanner.pos += tag.bytesize unless @shortcuts.attributes_by_shortcut[tag]
-        tag = shortcut_tag
-      end
+      tag = Shortcuts::DEFAULT_TAG if Shortcuts::ATTRIBUTE_BY_SHORTCUT.key?(tag)
 
       attributes = []
       # Read before it is consumed, so that an illegal shortcut is reported where it starts.
-      while (shortcut_length = @scanner.match?(@shortcuts.attribute_pattern))
+      while (shortcut_length = @scanner.match?(@attribute_shortcut))
         shortcut = @scanner[1]
         value = @scanner[2]
-        syntax_error!("Illegal shortcut") unless (names = @shortcuts.attributes_by_shortcut[shortcut])
+        syntax_error!("Illegal shortcut") unless (name = Shortcuts::ATTRIBUTE_BY_SHORTCUT[shortcut])
 
         # Tailwind arbitrary values may hold quotes and ampersands, which Slim names never do.
         value = ERB::Escape.html_escape(value) if value.match?(SHORTCUT_VALUE_TO_ESCAPE)
-        names.each { |name| attributes << StaticAttribute.new(name, value) }
-        @shortcuts.additional_attributes_by_shortcut[shortcut]&.each { |name, value| attributes << StaticAttribute.new(name.to_s, value) }
+        attributes << StaticAttribute.new(name, value)
         @scanner.pos += shortcut_length
       end
 

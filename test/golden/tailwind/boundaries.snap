@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <li class="item"><a class="underline" href="/">Nested tag after a colon and a space</a></li><img class="w-[3px] h-auto"><a class="btn" href="/">Attribute list in parentheses</a><a class="btn" href="/">Attribute list in braces</a><a class="btn" href="/">Brackets after a space stay an attribute list</a><div id="main" class="p-[2px]">Id then class</div><div class="p-2">Posts &amp; comments</div><div class="p-[2px]"><span>Nested after arbitrary value</span></div><a class="btn" href="/">Brackets glued to a class name stay an attribute list</a><th class="text-nowrap" colspan="6">Posts &amp; comments</th>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
@@ -12,7 +12,7 @@ _buf << "<li class=\"item\"><a class=\"underline\" href=\"/\">Nested tag after a
 
 _buf << "</div><div class=\"p-[2px]\"><span>Nested after arbitrary value</span></div><a class=\"btn\" href=\"/\">Brackets glued to a class name stay an attribute list</a><th class=\"text-nowrap\" colspan=\"6\">".freeze; _buf << ::ERB::Escape.html_escape((title))
 _buf << "</th>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
@@ -24,7 +24,7 @@ _buf << "</th>".freeze; _buf
 
 @output_buffer.safe_concat("</div><div class=\"p-[2px]\"><span>Nested after arbitrary value</span></div><a class=\"btn\" href=\"/\">Brackets glued to a class name stay an attribute list</a><th class=\"text-nowrap\" colspan=\"6\">".freeze); @output_buffer << (title)
 @output_buffer.safe_concat("</th>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 li.item: a.underline href="/" Nested tag after a colon and a space
 img.w-[3px].h-auto/
 a.btn(href="/") Attribute list in parentheses
@@ -35,5 +35,5 @@ a.btn [href="/"] Brackets after a space stay an attribute list
 .p-[2px]: span Nested after arbitrary value
 a.btn[href="/"] Brackets glued to a class name stay an attribute list
 th.text-nowrap[colspan="6"] = title
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 2: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`

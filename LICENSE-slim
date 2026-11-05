@@ -1,4 +1,4 @@
-SlimX's parser follows the grammar and the parsing algorithm of Slim
+SuperSlim's parser follows the grammar and the parsing algorithm of Slim
 (https://github.com/slim-template/slim), released under the MIT License:
 
 Copyright (c) 2010 - 2026 Slim Team

@@ -25,10 +25,10 @@ function columnChart({ title, better, rows, format = formatNumber }) {
   const maximum = Math.max(...rows.map((row) => row.value));
   const columns = element("div", { class: "columns", style: { "--count": rows.length }, role: "img", "aria-label": `${title}: ${rows.map((row) => `${row.name} ${format(row.value)}`).join(", ")}` });
   for (const row of rows) {
-    const slimx = row.name.startsWith("SlimX") || row.name.startsWith("slimx") ? " slimx" : "";
-    columns.append(element("div", { class: `column${slimx}`, title: `${row.label || row.name}: ${format(row.value)}` },
+    const superSlim = row.name.startsWith("SuperSlim") || row.name.startsWith("super_slim") ? " super_slim" : "";
+    columns.append(element("div", { class: `column${superSlim}`, title: `${row.label || row.name}: ${format(row.value)}` },
       element("span", { class: "column-value" }, format(row.value)),
-      element("div", { class: `column-bar${slimx}`, style: { height: `${(row.value / maximum) * 100}%` } }),
+      element("div", { class: `column-bar${superSlim}`, style: { height: `${(row.value / maximum) * 100}%` } }),
       element("span", { class: "column-name" }, row.name)));
   }
   const table = element("table", {},
@@ -43,17 +43,17 @@ function columnChart({ title, better, rows, format = formatNumber }) {
 }
 
 function speedups(benchmarks) {
-  const compile = benchmarks.corpora.map((corpus) => named(corpus.engines, "Slim").milliseconds / named(corpus.engines, "SlimX").milliseconds);
-  const slimx = named(benchmarks.engines, "SlimX");
+  const compile = benchmarks.corpora.map((corpus) => named(corpus.engines, "Slim").milliseconds / named(corpus.engines, "SuperSlim").milliseconds);
+  const superSlim = named(benchmarks.engines, "SuperSlim");
   const slim = named(benchmarks.engines, "Slim");
   const slimLint = benchmarks.tools?.commands.find((command) => command.name.startsWith("slim-lint"));
   return {
     // The smaller of the corpora ratios: the headline never picks the flattering one.
-    compile: compile.length ? Math.min(...compile) : slimx.compiles_per_second / slim.compiles_per_second,
-    render: slimx.renders_per_second / slim.renders_per_second,
-    renderAllocations: slim.render_allocations / slimx.render_allocations,
-    // CPU time, not wall time: slimx spreads over every core, slim-lint uses one, so wall time depends on the machine.
-    lint: slimLint && slimLint.cpu_milliseconds / named(benchmarks.tools.commands, "slimx lint").cpu_milliseconds
+    compile: compile.length ? Math.min(...compile) : superSlim.compiles_per_second / slim.compiles_per_second,
+    render: superSlim.renders_per_second / slim.renders_per_second,
+    renderAllocations: slim.render_allocations / superSlim.render_allocations,
+    // CPU time, not wall time: super_slim spreads over every core, slim-lint uses one, so wall time depends on the machine.
+    lint: slimLint && slimLint.cpu_milliseconds / named(benchmarks.tools.commands, "super-slim lint").cpu_milliseconds
   };
 }
 
@@ -66,7 +66,7 @@ function renderHome(benchmarks) {
   const ratio = speedups(benchmarks);
   fill("#byline-speed", `Slim templates, compiled ${formatRatio(ratio.compile)} faster.`);
   fill("[data-sha='Slim']", benchmarks.html_sha256.Slim);
-  fill("[data-sha='SlimX']", benchmarks.html_sha256["SlimX"]);
+  fill("[data-sha='SuperSlim']", benchmarks.html_sha256["SuperSlim"]);
   fill("[data-version='Slim']", `Slim ${named(benchmarks.engines, "Slim").version}`);
 
   const tiles = document.getElementById("tiles");
@@ -75,13 +75,13 @@ function renderHome(benchmarks) {
   const tile = (value, label, detail) => element("div", { class: "tile" },
     element("span", { class: "tile-value" }, value), element("span", { class: "tile-label" }, label), element("span", { class: "tile-detail" }, detail));
   tiles.append(
-    tile(formatRatio(ratio.compile), "faster compilation", `${formatNumber(largest.templates)} real templates: ${formatSeconds(named(largest.engines, "SlimX").milliseconds)} instead of ${formatSeconds(named(largest.engines, "Slim").milliseconds)}`),
-    tile(formatRatio(ratio.render), "faster rendering", `${formatNumber(named(benchmarks.engines, "SlimX").renders_per_second)} pages a second; plain ERB with Erubi: ${formatNumber(named(benchmarks.engines, "Erubi").renders_per_second)}`),
-    tile(formatRatio(ratio.renderAllocations), "fewer allocations per render", `${named(benchmarks.engines, "SlimX").render_allocations} objects instead of ${named(benchmarks.engines, "Slim").render_allocations}`));
+    tile(formatRatio(ratio.compile), "faster compilation", `${formatNumber(largest.templates)} real templates: ${formatSeconds(named(largest.engines, "SuperSlim").milliseconds)} instead of ${formatSeconds(named(largest.engines, "Slim").milliseconds)}`),
+    tile(formatRatio(ratio.render), "faster rendering", `${formatNumber(named(benchmarks.engines, "SuperSlim").renders_per_second)} pages a second; plain ERB with Erubi: ${formatNumber(named(benchmarks.engines, "Erubi").renders_per_second)}`),
+    tile(formatRatio(ratio.renderAllocations), "fewer allocations per render", `${named(benchmarks.engines, "SuperSlim").render_allocations} objects instead of ${named(benchmarks.engines, "Slim").render_allocations}`));
   if (ratio.lint) {
     const slimLint = benchmarks.tools.commands.find((command) => command.name.startsWith("slim-lint"));
     tiles.append(tile(formatRatio(ratio.lint), "less CPU than slim-lint",
-      `${formatNumber(benchmarks.tools.templates)} templates: ${formatSeconds(named(benchmarks.tools.commands, "slimx lint").milliseconds)} on ${benchmarks.tools.processors} cores, ${formatSeconds(slimLint.milliseconds)} for slim-lint on one`));
+      `${formatNumber(benchmarks.tools.templates)} templates: ${formatSeconds(named(benchmarks.tools.commands, "super-slim lint").milliseconds)} on ${benchmarks.tools.processors} cores, ${formatSeconds(slimLint.milliseconds)} for slim-lint on one`));
   }
   fill("#tiles-note", `${measuredOn(benchmarks)} Compilation is the slower of the two corpora on the benchmarks page.`);
 }
@@ -112,7 +112,7 @@ function renderBenchmarks(benchmarks) {
     element("div", { class: "charts" },
       columnChart({ title: "Wall time", better: "lower", rows: rowsFor("milliseconds"), format: formatSeconds }),
       columnChart({ title: "CPU time, all processes", better: "lower", rows: rowsFor("cpu_milliseconds"), format: formatSeconds })));
-  fill("#tools-note", `slimx splits the templates between ${tools.processors} processes, one per core; slim-lint uses one. CPU time adds up every process, so it compares the work itself. slim-lint runs without its RuboCop linter, which SlimX has no equivalent of. Median of 3 runs.`);
+  fill("#tools-note", `super_slim splits the templates between ${tools.processors} processes, one per core; slim-lint uses one. CPU time adds up every process, so it compares the work itself. slim-lint runs without its RuboCop linter, which SuperSlim has no equivalent of. Median of 3 runs.`);
 }
 
 fetch("benchmarks.json").then((response) => response.json()).then((benchmarks) => {

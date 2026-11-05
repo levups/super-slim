@@ -1,8 +1,8 @@
-# SlimX
+# SuperSlim
 
 A Slim 5 template engine rewritten without Temple: the HTML Slim renders with `format: :html, sort_attrs: false`,
-byte for byte, plus a formatter (`slimx fmt`), a strict mode and a linter (`slimx lint`). One parser
-(`lib/slimx/parser.rb`) feeds the compiler, the formatter and the linter. A Next Gen Gems gem, by Level UP
+byte for byte, plus a formatter (`super-slim fmt`) and a linter (`super-slim lint`). One parser
+(`lib/super_slim/parser.rb`) feeds the compiler, the formatter and the linter. A Next Gen Gems gem, by Level UP
 Solutions, and the model the organization's other gems copy.
 
 ## Compatibility
@@ -18,10 +18,10 @@ Solutions, and the model the organization's other gems copy.
 ## Commands
 
 ```sh
-bundle exec rake test                        # test:slimx, then test:slim_suite (Slim's own suites against SlimX)
+bundle exec rake test                        # test:super_slim, then test:slim_suite (Slim's own suites against SuperSlim)
 BUNDLE_GEMFILE=gemfiles/rails_8_0.gemfile bundle exec rake test
 bundle exec rubocop                          # Standard's rules and every rubocop-performance cop
-UPDATE_GOLDEN=1 bundle exec rake test:slimx  # rewrites test/golden: review the diff
+UPDATE_GOLDEN=1 bundle exec rake test:super_slim  # rewrites test/golden: review the diff
 FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 bundle exec rake corpus:fetch corpus:check   # public templates of corpus/manifest.yml
 bundle exec rake corpus:diff BASE=main       # what a change does to the corpus: compiled Ruby, format, lint
@@ -35,7 +35,7 @@ bundle exec rake docs                        # rewrites the linter rules of docs
 - Ruby 3.3: a bare `it` in a block is a method call there, write `_1`; `StringScanner#peek_byte` needs
   strscan 3.1.1 or later, hence the gemspec dependency.
 - `test:slim_suite` runs in a process of its own: Slim's test helper defines and removes `String#html_safe?`.
-- Downloaded corpus templates are never rendered, as rendering runs their Ruby: only the `SLIMX_CORPUS`
+- Downloaded corpus templates are never rendered, as rendering runs their Ruby: only the `SUPER_SLIM_CORPUS`
   directories you trust are.
 - A refactoring must leave the compiled Ruby unchanged: `bench/compiled_digests.rb` proves it on a corpus.
 - `.claude/hooks/rubocop.sh` autocorrects each Ruby file after an edit (except `Lint/UselessAssignment`) and

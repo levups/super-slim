@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require "tilt"
-require_relative "../slimx"
+require "super_slim"
 
-module SlimX
+module SuperSlim
   class Template < Tilt::Template
     def prepare
-      @code = SlimX.compile(data, file: eval_file, **options)
+      @code = SuperSlim.compile(data, file: eval_file, **options)
     end
 
     def precompiled_template(_locals)
@@ -15,4 +15,4 @@ module SlimX
   end
 end
 
-Tilt.register(SlimX::Template, "slim")
+Tilt.register(SuperSlim::Template, "slim")

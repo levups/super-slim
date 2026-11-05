@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <p>Posts &amp; comments</p><p><b class="x">&'"</b></p><p>&lt;b class=&quot;x&quot;&gt;&amp;&#39;&quot;&lt;/b&gt;</p><p></p><p>42</p><p>3.5</p><p>primary</p><p></p><i>safe</i><i>safe</i><p>ONE, TWO, THREE</p><p>Posts &amp; comments-42</p><p>Posts &amp; comments 42</p>[wrapped][Posts &amp;amp; comments]<p>multi line</p>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""; _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((title))
 _buf << "</p><p>".freeze; _buf << (markup).to_s
 _buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((markup))
@@ -16,14 +16,14 @@ _buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format("%s-%s",
 title, number)))
 _buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(([title,
 number].join(" ")))
-_buf << "</p>".freeze; _slimx1 = wrap do; _slimx2 = +""
+_buf << "</p>".freeze; _super_slim1 = wrap do; _super_slim2 = +""
 
-_slimx2 << "wrapped".freeze; _slimx2; end; _buf << ::ERB::Escape.html_escape((_slimx1)); _slimx3 = wrap do; _slimx4 = +""
-_slimx4 << ::ERB::Escape.html_escape((title))
-_slimx4; end; _buf << ::ERB::Escape.html_escape((_slimx3)); _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("multi \
+_super_slim2 << "wrapped".freeze; _super_slim2; end; _buf << ::ERB::Escape.html_escape((_super_slim1)); _super_slim3 = wrap do; _super_slim4 = +""
+_super_slim4 << ::ERB::Escape.html_escape((title))
+_super_slim4; end; _buf << ::ERB::Escape.html_escape((_super_slim3)); _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("multi \
 line"))
 _buf << "</p>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer.safe_concat("<p>".freeze); @output_buffer << (title)
 @output_buffer.safe_concat("</p><p>".freeze); @output_buffer.safe_concat((markup).to_s)
 @output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (markup)
@@ -39,14 +39,14 @@ _buf << "</p>".freeze; _buf
 title, number))
 @output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ([title,
 number].join(" "))
-@output_buffer.safe_concat("</p>".freeze); _slimx1 = wrap do
+@output_buffer.safe_concat("</p>".freeze); _super_slim1 = wrap do
 
-@output_buffer.safe_concat("wrapped".freeze); end; @output_buffer << (_slimx1); _slimx2 = wrap do
+@output_buffer.safe_concat("wrapped".freeze); end; @output_buffer << (_super_slim1); _super_slim2 = wrap do
 @output_buffer << (title)
-end; @output_buffer << (_slimx2); @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("multi \
+end; @output_buffer << (_super_slim2); @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("multi \
 line")
 @output_buffer.safe_concat("</p>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 p = title
 p == markup
 p = markup
@@ -68,5 +68,5 @@ p = [title,
   = title
 p = "multi \
   line"
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

@@ -1,6 +1,6 @@
-~~~~~~~~ slimx: html
+~~~~~~~~ super_slim: html
 <div class="hover:underline focus-visible:outline">Variants</div><div class="!font-bold font-bold!">Important</div><div class="@container"><div class="@lg:flex">Container queries</div></div><ul class="*:p-2"><li>Child variant</li></ul><div class="dark:md:hover:bg-white/10">Stacked variants and opacity</div><div class="mx-0.5 py-1.5 w-1/2">Decimals and fractions</div>
-~~~~~~~~ slimx: tilt
+~~~~~~~~ super_slim: tilt
 _buf = +""
 
 
@@ -10,7 +10,7 @@ _buf = +""
 
 
 _buf << "<div class=\"hover:underline focus-visible:outline\">Variants</div><div class=\"!font-bold font-bold!\">Important</div><div class=\"@container\"><div class=\"@lg:flex\">Container queries</div></div><ul class=\"*:p-2\"><li>Child variant</li></ul><div class=\"dark:md:hover:bg-white/10\">Stacked variants and opacity</div><div class=\"mx-0.5 py-1.5 w-1/2\">Decimals and fractions</div>".freeze; _buf
-~~~~~~~~ slimx: rails
+~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new
 
 
@@ -20,7 +20,7 @@ _buf << "<div class=\"hover:underline focus-visible:outline\">Variants</div><div
 
 
 @output_buffer.safe_concat("<div class=\"hover:underline focus-visible:outline\">Variants</div><div class=\"!font-bold font-bold!\">Important</div><div class=\"@container\"><div class=\"@lg:flex\">Container queries</div></div><ul class=\"*:p-2\"><li>Child variant</li></ul><div class=\"dark:md:hover:bg-white/10\">Stacked variants and opacity</div><div class=\"mx-0.5 py-1.5 w-1/2\">Decimals and fractions</div>".freeze); @output_buffer
-~~~~~~~~ slimx: fmt
+~~~~~~~~ super_slim: fmt
 .hover:underline.focus-visible:outline Variants
 .!font-bold.font-bold! Important
 .@container
@@ -29,5 +29,5 @@ ul.*:p-2
   li Child variant
 .dark:md:hover:bg-white/10 Stacked variants and opacity
 .mx-0.5.py-1.5.w-1/2 Decimals and fractions
-~~~~~~~~ slimx: lint
+~~~~~~~~ super_slim: lint
 

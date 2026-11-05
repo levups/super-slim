@@ -2,10 +2,10 @@
 
 require "minitest/autorun"
 require "slim"
-require "slimx/parallel"
-require "slimx/tilt"
+require "super_slim/parallel"
+require_relative "support/tilt"
 
-# Renders thousands of seeded random templates through Slim and SlimX: outputs, or error messages, must match.
+# Renders thousands of seeded random templates through Slim and SuperSlim: outputs, or error messages, must match.
 class FuzzTest < Minitest::Test
   CASE_COUNT = Integer(ENV.fetch("FUZZ_CASES", 3000))
   SEED = Integer(ENV.fetch("FUZZ_SEED", 20261030))
@@ -121,12 +121,12 @@ class FuzzTest < Minitest::Test
     end
   end
 
-  def test_slim_and_slimx_render_the_same
+  def test_slim_and_super_slim_render_the_same
     generator = Generator.new(Random.new(SEED))
     sources = Array.new(CASE_COUNT) { generator.template }
-    renderings = SlimX::Parallel.map(sources, minimum_per_process: 500) { |source| [render(:slim, source), render(:slimx, source)] }
-    sources.zip(renderings).each_with_index do |(source, (slim_html, slimx_html)), index|
-      assert_equal slim_html, slimx_html, "Case #{index} (seed #{SEED}):\n#{source}"
+    renderings = SuperSlim::Parallel.map(sources, minimum_per_process: 500) { |source| [render(:slim, source), render(:super_slim, source)] }
+    sources.zip(renderings).each_with_index do |(source, (slim_html, super_slim_html)), index|
+      assert_equal slim_html, super_slim_html, "Case #{index} (seed #{SEED}):\n#{source}"
     end
   end
 
@@ -138,10 +138,10 @@ class FuzzTest < Minitest::Test
       indent_width = 1 + random.rand(4)
       generator.template.gsub(/^( +)/) { " " * ($1.size / 2 * indent_width) }.gsub(/^( *)([-=]+) /, '\1\2')
     end
-    formattings = SlimX::Parallel.map(sources, minimum_per_process: 500) do |source|
-      formatted = SlimX::Formatter.call(source)
-      [formatted, SlimX::Formatter.call(formatted)]
-    rescue SlimX::SyntaxError
+    formattings = SuperSlim::Parallel.map(sources, minimum_per_process: 500) do |source|
+      formatted = SuperSlim::Formatter.call(source)
+      [formatted, SuperSlim::Formatter.call(formatted)]
+    rescue SuperSlim::SyntaxError
       nil
     end
     sources.zip(formattings).each_with_index do |(source, (formatted, reformatted)), index|
@@ -155,7 +155,7 @@ class FuzzTest < Minitest::Test
     template = if engine == :slim
       Slim::Template.new(format: :html, sort_attrs: false, pretty: false) { source }
     else
-      SlimX::Template.new { source }
+      SuperSlim::Template.new { source }
     end
     template.render(Scope.new)
   rescue ::SyntaxError

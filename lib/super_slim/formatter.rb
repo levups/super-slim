@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module SlimX
+module SuperSlim
   # Rewrites a template in its canonical layout. Text blocks shift as a whole, so the whitespace they render is
   # kept; and the formatted template must compile to the same Ruby as the original, or nothing is rewritten.
   class Formatter
@@ -14,8 +14,7 @@ module SlimX
       new(**).call(source)
     end
 
-    def initialize(shortcuts: Shortcuts::DEFAULT, tailwind_classes: SlimX.tailwind_classes)
-      @shortcuts = shortcuts
+    def initialize(tailwind_classes: SuperSlim.tailwind_classes)
       @tailwind_classes = tailwind_classes
     end
 
@@ -26,9 +25,10 @@ module SlimX
       raise UnsafeFormattingError, "Formatting would change how this template renders"
     end
 
-    # The canonical layout, without checking it renders the same: what strict mode compares templates against.
+    private
+
     def layout(source)
-      parser = Parser.new(shortcuts: @shortcuts, outline: true, tailwind_classes: @tailwind_classes)
+      parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
       parser.call(source)
       lines = source.delete_prefix("﻿").split(/\r?\n/)
 
@@ -52,8 +52,6 @@ module SlimX
       formatted.pop while formatted.last&.empty?
       formatted.empty? ? "" : "#{formatted.join("\n")}\n"
     end
-
-    private
 
     def structure(line, info)
       content = with_output_spacing(line, info).lstrip
@@ -91,7 +89,7 @@ module SlimX
     end
 
     def compiled(source)
-      SlimX.compile(source, shortcuts: @shortcuts, tailwind_classes: @tailwind_classes, strict: false, format: :xml).gsub(/(?:\s*[;\n]\s*)+/, ";")
+      SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml).gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
     end

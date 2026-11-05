@@ -1,24 +1,24 @@
 # frozen_string_literal: true
 
-# Checks SlimX against every .slim file of real projects.
+# Checks SuperSlim against every .slim file of real projects.
 #   ruby -Ilib script/corpus_check.rb [--render] [--report report.json] DIRECTORY...
 #
 # For each template:
-# - Slim and SlimX both compile it, or both refuse it;
-# - SlimX's Ruby parses, and every `-` and `=` sits on its template line, for backtraces;
-# - slimx fmt is idempotent, and refuses to write a template whose Ruby would change;
+# - Slim and SuperSlim both compile it, or both refuse it;
+# - SuperSlim's Ruby parses, and every `-` and `=` sits on its template line, for backtraces;
+# - super-slim fmt is idempotent, and refuses to write a template whose Ruby would change;
 # - the linter runs; its offenses go to the report, so two versions can be compared.
 #
-# --render also renders each template through Slim 5 and SlimX against a stub that answers every helper, local
+# --render also renders each template through Slim 5 and SuperSlim against a stub that answers every helper, local
 # and constant, and requires the same HTML, before and after formatting. Rendering runs the template's Ruby:
 # pass it only for directories you trust, such as your own app, never for downloaded projects.
 require "active_support/all"
 require "json"
 require "prism"
 require "slim"
-require "slimx"
-require "slimx/linter"
-require "slimx/parallel"
+require "super_slim"
+require "super_slim/linter"
+require "super_slim/parallel"
 
 require_relative "corpus_support"
 
@@ -28,38 +28,38 @@ report_path = ARGV.delete_at(ARGV.index("--report") + 1).tap { ARGV.delete("--re
 paths = ARGV.flat_map { Dir[File.join(File.expand_path(_1), "**/*.slim")] }.sort
 abort "No .slim file under #{ARGV.join(", ")}" if paths.empty?
 
-linter = SlimX::Linter.new
+linter = SuperSlim::Linter.new
 CHECKS = %i[compile prism lines render format idempotence format_render lint].freeze
 
 # Everything one template tells, built in a worker process: failures as [check, message] pairs.
-results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
+results = SuperSlim::Parallel.map(paths, minimum_per_process: 200) do |path|
   source = File.read(path)
   failures = []
   result = {path:, failures:, slim_unavailable: false, dropped_feature: false, rendered: false, render_error: nil}
 
   slim_code = Corpus.compile_error_or { Slim::Engine.new(format: Corpus.format_of(path), sort_attrs: false).call(source) }
-  slimx_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format: Corpus.format_of(path), strict: false) }
+  super_slim_code = Corpus.compile_error_or { SuperSlim.compile(source, file: path, format: Corpus.format_of(path)) }
   slim_compiles = !slim_code.start_with?("error:")
-  slimx_compiles = !slimx_code.start_with?("error:")
-  # Slim may lack an optional gem here (pandoc-ruby for markdown:), and SlimX refuses what it dropped on purpose.
+  super_slim_compiles = !super_slim_code.start_with?("error:")
+  # Slim may lack an optional gem here (pandoc-ruby for markdown:), and SuperSlim refuses what it dropped on purpose.
   if !slim_compiles && slim_code.include?("LoadError")
     result[:slim_unavailable] = true
-  elsif slim_compiles && slimx_code.include?("not supported")
+  elsif slim_compiles && super_slim_code.include?("not supported")
     result[:dropped_feature] = true
-  elsif slim_compiles != slimx_compiles
-    failures << [:compile, "#{path}: #{slim_compiles ? "Slim compiles" : "Slim #{slim_code}"}; #{slimx_compiles ? "SlimX compiles" : "SlimX #{slimx_code}"}"]
+  elsif slim_compiles != super_slim_compiles
+    failures << [:compile, "#{path}: #{slim_compiles ? "Slim compiles" : "Slim #{slim_code}"}; #{super_slim_compiles ? "SuperSlim compiles" : "SuperSlim #{super_slim_code}"}"]
   end
 
-  if slimx_compiles
-    parse_errors = Prism.parse("def template\n#{slimx_code}\nend").errors
+  if super_slim_compiles
+    parse_errors = Prism.parse("def template\n#{super_slim_code}\nend").errors
     slim_parses = slim_compiles && Prism.parse("def template\n#{slim_code}\nend").errors.empty?
     failures << [:prism, "#{path}: #{parse_errors.first.message}"] if parse_errors.any? && slim_parses
 
-    parser = SlimX::Parser.new(file: path, outline: true)
+    parser = SuperSlim::Parser.new(file: path, outline: true)
     parser.call(source)
-    generated_lines = slimx_code.lines
+    generated_lines = super_slim_code.lines
     misplaced = parser.line_by_node.find do |node, lineno|
-      next false unless node.is_a?(SlimX::AST::Control) || node.is_a?(SlimX::AST::Output)
+      next false unless node.is_a?(SuperSlim::AST::Control) || node.is_a?(SuperSlim::AST::Output)
 
       first_code_line = node.code.lines.first.to_s.strip
       !first_code_line.empty? && !generated_lines[lineno - 1].to_s.include?(first_code_line)
@@ -68,19 +68,19 @@ results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
 
     if render
       slim_html = Corpus.render_with_slim(source, path)
-      slimx_html = Corpus.render_with_slimx(source, path)
-      failures << [:render, "#{path}: Slim #{slim_html[0, 80]} / SlimX #{slimx_html[0, 80]}"] if slim_html != slimx_html
-      result[:rendered] = !slimx_html.start_with?("error:")
-      result[:render_error] = slimx_html if slimx_html.start_with?("error:")
+      super_slim_html = Corpus.render_with_super_slim(source, path)
+      failures << [:render, "#{path}: Slim #{slim_html[0, 80]} / SuperSlim #{super_slim_html[0, 80]}"] if slim_html != super_slim_html
+      result[:rendered] = !super_slim_html.start_with?("error:")
+      result[:render_error] = super_slim_html if super_slim_html.start_with?("error:")
     end
   end
 
-  formatted = Corpus.outcome { SlimX::Formatter.new.call(source) }
+  formatted = Corpus.outcome { SuperSlim::Formatter.new.call(source) }
   if formatted.start_with?("error:")
-    failures << [:format, "#{path}: #{formatted}"] if slimx_compiles
+    failures << [:format, "#{path}: #{formatted}"] if super_slim_compiles
   else
-    failures << [:idempotence, path] unless SlimX::Formatter.new.call(formatted) == formatted
-    failures << [:format_render, path] if render && slimx_compiles && Corpus.render_with_slimx(formatted, path) != slimx_html
+    failures << [:idempotence, path] unless SuperSlim::Formatter.new.call(formatted) == formatted
+    failures << [:format_render, path] if render && super_slim_compiles && Corpus.render_with_super_slim(formatted, path) != super_slim_html
   end
 
   offenses = Corpus.outcome { linter.call(path, source) }
@@ -89,7 +89,7 @@ results = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
     offenses = []
   end
   result.merge(
-    compiles: slimx_compiles,
+    compiles: super_slim_compiles,
     reformatted: !formatted.start_with?("error:") && formatted != source,
     offenses: offenses.map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" },
     offense_rules: offenses.map(&:rule)
@@ -102,8 +102,8 @@ render_error_count_by_class = results.filter_map { _1[:render_error] }.tally
 
 puts "#{paths.size} templates"
 puts "Rendered against the stub: #{render ? results.count { _1[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { |_, count| -count }.first(5).map { |error_class, count| "#{error_class} #{count}" }.join(", ")})"
-puts "Slim cannot compile here (missing optional gem): #{results.count { _1[:slim_unavailable] }}; refused by SlimX on purpose: #{results.count { _1[:dropped_feature] }}"
-puts "Reformatted by slimx fmt: #{results.count { _1[:reformatted] }}"
+puts "Slim cannot compile here (missing optional gem): #{results.count { _1[:slim_unavailable] }}; refused by SuperSlim on purpose: #{results.count { _1[:dropped_feature] }}"
+puts "Reformatted by super-slim fmt: #{results.count { _1[:reformatted] }}"
 puts "Lint offenses: #{offense_count_by_rule.sort_by { |_, count| -count }.map { |rule, count| "#{rule} #{count}" }.join(", ")}"
 CHECKS.each do |check|
   messages = messages_by_check.fetch(check, [])

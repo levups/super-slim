@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SlimX Testing</title>
-<meta name="description" content="How SlimX proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
-<link rel="canonical" href="https://next-gen-gems.github.io/slimx/testing.html">
-<meta property="og:title" content="SlimX Testing">
-<meta property="og:description" content="How SlimX proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
+<title>SuperSlim Testing</title>
+<meta name="description" content="How SuperSlim proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
+<link rel="canonical" href="https://levups.github.io/super-slim/testing.html">
+<meta property="og:title" content="SuperSlim Testing">
+<meta property="og:description" content="How SuperSlim proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://next-gen-gems.github.io/slimx/testing.html">
+<meta property="og:url" content="https://levups.github.io/super-slim/testing.html">
 <meta property="og:site_name" content="Next Gen Gems">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#2340e8">
@@ -23,12 +23,12 @@
 <a class="skip-link" href="#content">Skip to content</a>
 <div class="page">
   <nav class="site-nav" aria-label="Site">
-    <a class="brand" href="./">SlimX</a>
+    <a class="brand" href="./">SuperSlim</a>
     <a href="guide.html">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
     <a href="testing.html" aria-current="page">Testing</a>
-    <a href="https://github.com/next-gen-gems/slimx">GitHub</a>
+    <a href="https://github.com/levups/super-slim">GitHub</a>
   </nav>
 
   <main id="content">
@@ -47,14 +47,14 @@
   <section id="slim-suites" aria-labelledby="slim-suites-title">
     <h2 id="slim-suites-title">Slim’s own suites</h2>
     <div class="prose">
-      <p>Slim’s test suite and its literate specification, <code>TESTS.md</code>, run against SlimX unchanged: 295 tests pass. The others test what SlimX <a href="guide.html#left-out">leaves out</a> on purpose, or Markdown output that depends on which library Tilt picks — and one pins a Slim bug, a <code>=</code> reported one line too low after a <code>ruby:</code> block.</p>
+      <p>Slim’s test suite and its literate specification, <code>TESTS.md</code>, run against SuperSlim unchanged: 295 tests pass. The others test what SuperSlim <a href="guide.html#left-out">leaves out</a> on purpose, or Markdown output that depends on which library Tilt picks — and one pins a Slim bug, a <code>=</code> reported one line too low after a <code>ruby:</code> block.</p>
     </div>
   </section>
 
   <section id="fuzzer" aria-labelledby="fuzzer-title">
     <h2 id="fuzzer-title">Fuzzer</h2>
     <div class="prose">
-      <p>A seeded generator writes random templates from the grammar — nested tags, shortcuts, every attribute form, splats, control flow, blocks, comments, embedded engines, whitespace markers — and renders each through Slim and SlimX. The HTML must match, or both must fail with the same error. A second pass formats each template and requires the same HTML and an idempotent result.</p>
+      <p>A seeded generator writes random templates from the grammar — nested tags, shortcuts, every attribute form, splats, control flow, blocks, comments, embedded engines, whitespace markers — and renders each through Slim and SuperSlim. The HTML must match, or both must fail with the same error. A second pass formats each template and requires the same HTML and an idempotent result.</p>
       <p>The suite runs a fixed seed; CI adds 10,000 templates from a new seed on every run, and prints it when they disagree.</p>
     </div>
   </section>
@@ -67,7 +67,7 @@
         <li>render the HTML Slim renders, with and without <code>html_safe</code>, or fail with Slim’s message;</li>
         <li>render the same through Rails and through Tilt;</li>
         <li>compile to Ruby that parses, with every <code>-</code> and <code>=</code> on its template line;</li>
-        <li>format idempotently, to the same HTML, passing strict mode.</li>
+        <li>format idempotently, to the same HTML, passing the layout rules.</li>
       </ul>
     </div>
   </section>
@@ -77,9 +77,9 @@
     <div class="prose">
       <p>6,094 templates from 30 open-source projects, pinned to a commit in <code>corpus/manifest.yml</code>. <code>rake corpus:fetch</code> downloads only their <code>.slim</code> files; they are never copied into the repository. For each one:</p>
       <ul>
-        <li>Slim and SlimX both compile it, or both refuse it;</li>
-        <li>SlimX’s Ruby parses, with every line where it belongs;</li>
-        <li><code>slimx fmt</code> is idempotent, and refuses any change to the compiled Ruby;</li>
+        <li>Slim and SuperSlim both compile it, or both refuse it;</li>
+        <li>SuperSlim’s Ruby parses, with every line where it belongs;</li>
+        <li><code>super-slim fmt</code> is idempotent, and refuses any change to the compiled Ruby;</li>
         <li>the linter runs, and its offenses go to a report.</li>
       </ul>
       <p>Downloaded templates are never rendered: rendering runs their Ruby. A production Rails app of about 1,400 templates, whose code we trust, is rendered through both engines against a stub that answers every helper, before and after formatting, with identical HTML.</p>
@@ -135,13 +135,13 @@ bundle <span class="nb">exec </span>rake corpus:fetch corpus:check</code></pre>
     <p><a href="https://github.com/next-gen-gems">Next Gen Gems</a>, by Level UP Solutions</p>
     <nav aria-label="Next Gen Gems">
       <ul>
-        <li><a href="https://next-gen-gems.github.io/slimx/" aria-current="page">SlimX</a></li>
+        <li><a href="https://levups.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
         <li><a href="https://next-gen-gems.github.io/browserx/">BrowserX</a></li>
         <li><a href="https://next-gen-gems.github.io/prawnx/">PrawnX</a></li>
         <li><a href="https://next-gen-gems.github.io/gretelx/">GretelX</a></li>
       </ul>
     </nav>
-    <p><a href="https://github.com/next-gen-gems/slimx">Source on GitHub</a></p>
+    <p><a href="https://github.com/levups/super-slim">Source on GitHub</a></p>
   </footer>
 </div>
 </body>

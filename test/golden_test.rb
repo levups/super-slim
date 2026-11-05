@@ -9,7 +9,7 @@
 # - Slim 5 renders the same HTML (or fails with the same message), with and without html_safe;
 # - Rails renders what Tilt renders with html_safe;
 # - the compiled Ruby parses;
-# - formatting is idempotent, renders the same HTML, and passes strict mode and the layout rules.
+# - formatting is idempotent, renders the same HTML, and passes the layout rules.
 #
 # Templates under corpus/ come from real projects and call helpers we do not have: they are compiled, formatted
 # and linted, not rendered.
@@ -19,16 +19,16 @@ require "action_view"
 require "active_support/core_ext/string/output_safety"
 require "prism"
 require "slim"
-require "slimx"
-require "slimx/linter"
-require "slimx/rails_handler"
-require "slimx/tilt"
+require "super_slim"
+require "super_slim/linter"
+require "super_slim/rails_handler"
+require_relative "support/tilt"
 require_relative "golden/scope"
 
 class GoldenTest < Minitest::Test
   GOLDEN_DIRECTORY = File.join(__dir__, "golden")
   UPDATE = ENV["UPDATE_GOLDEN"] == "1"
-  SECTION_MARKER = "~~~~~~~~ slimx:"
+  SECTION_MARKER = "~~~~~~~~ super_slim:"
   XML_EXTENSIONS = %w[.xml.slim .rss.slim .atom.slim].freeze
   LAYOUT_RULES = %w[Indentation Tab TrailingWhitespace EmptyLines TrailingBlankLines ControlStatementSpacing RedundantDiv].freeze
 
@@ -46,7 +46,7 @@ class GoldenTest < Minitest::Test
   Case = Data.define(:path, :name, :source) do
     def corpus? = name.start_with?("corpus/")
     def tailwind_classes? = name.start_with?("tailwind/")
-    def slim_comparable? = !tailwind_classes? && !name.start_with?("slimx_only/")
+    def slim_comparable? = !tailwind_classes? && !name.start_with?("super_slim_only/")
     def format = (XML_EXTENSIONS.any? { path.end_with?(_1) }) ? :xml : :html
     def snapshot_path = path.delete_suffix(".slim") + ".snap"
   end
@@ -63,16 +63,16 @@ class GoldenTest < Minitest::Test
 
   private
 
-  # Templates under tailwind/ run with SlimX.tailwind_classes on: compiler, formatter, linter and Rails alike.
+  # Templates under tailwind/ run with SuperSlim.tailwind_classes on: compiler, formatter, linter and Rails alike.
   def check(golden_case)
-    SlimX.tailwind_classes = golden_case.tailwind_classes?
+    SuperSlim.tailwind_classes = golden_case.tailwind_classes?
     check_with_current_options(golden_case)
   ensure
-    SlimX.tailwind_classes = nil
+    SuperSlim.tailwind_classes = nil
   end
 
   def check_with_current_options(golden_case)
-    formatted = attempt { SlimX::Formatter.new.call(golden_case.source) }
+    formatted = attempt { SuperSlim::Formatter.new.call(golden_case.source) }
     sections = {
       "tilt" => attempt { compile(golden_case, html_safe: false) },
       "rails" => attempt { compile(golden_case, rails: true, html_safe: true) },
@@ -92,7 +92,7 @@ class GoldenTest < Minitest::Test
   end
 
   def compile(golden_case, **options)
-    SlimX.compile(golden_case.source, file: golden_case.name, format: golden_case.format, strict: false, **options)
+    SuperSlim.compile(golden_case.source, file: golden_case.name, format: golden_case.format, **options)
   end
 
   def attempt
@@ -103,7 +103,7 @@ class GoldenTest < Minitest::Test
 
   def render_tilt(golden_case, source, html_safe:)
     attempt do
-      SlimX::Template.new(golden_case.name, format: golden_case.format, html_safe:, strict: false) { source }.render(TiltScope.new)
+      SuperSlim::Template.new(golden_case.name, format: golden_case.format, html_safe:) { source }.render(TiltScope.new)
     end
   end
 
@@ -116,7 +116,7 @@ class GoldenTest < Minitest::Test
   end
 
   def render_rails(golden_case)
-    handler = SlimX::RailsHandler.new
+    handler = SuperSlim::RailsHandler.new
     format = (golden_case.format == :xml) ? :xml : :html
     template = ActionView::Template.new(golden_case.source, golden_case.name, handler, locals: [], format:)
     attempt { template.render(RailsView.new(ActionView::LookupContext.new([]), {}, nil), {}).to_s }
@@ -127,7 +127,7 @@ class GoldenTest < Minitest::Test
     [true, false].each do |html_safe|
       expected = render_slim(golden_case, html_safe:).sub(/\Aerror: \w+: /, "error: ")
       actual = render_tilt(golden_case, golden_case.source, html_safe:).sub(/\Aerror: \w+: /, "error: ")
-      assert_equal expected, actual, "#{golden_case.name}: SlimX differs from Slim (html_safe: #{html_safe})"
+      assert_equal expected, actual, "#{golden_case.name}: SuperSlim differs from Slim (html_safe: #{html_safe})"
     end
   end
 
@@ -142,11 +142,11 @@ class GoldenTest < Minitest::Test
 
   # Backtraces point at the template line only if each `-` and `=` lands on its own line in the Ruby.
   def assert_code_keeps_its_line(golden_case, code)
-    parser = SlimX::Parser.new(file: golden_case.name, outline: true)
+    parser = SuperSlim::Parser.new(file: golden_case.name, outline: true)
     parser.call(golden_case.source)
     generated_lines = code.lines
     parser.line_by_node.each do |node, lineno|
-      next unless node.is_a?(SlimX::AST::Control) || node.is_a?(SlimX::AST::Output)
+      next unless node.is_a?(SuperSlim::AST::Control) || node.is_a?(SuperSlim::AST::Output)
 
       first_code_line = node.code.lines.first.to_s.strip
       next if first_code_line.empty?
@@ -157,23 +157,19 @@ class GoldenTest < Minitest::Test
   end
 
   def assert_formatting_holds(golden_case, formatted, html)
-    assert_equal formatted, SlimX::Formatter.new.call(formatted), "#{golden_case.name}: formatting is not idempotent"
+    assert_equal formatted, SuperSlim::Formatter.new.call(formatted), "#{golden_case.name}: formatting is not idempotent"
     assert_equal html, render_tilt(golden_case, formatted, html_safe: true), "#{golden_case.name}: formatting changes the HTML" if html
-    lenient, strict = [false, true].map do |strict|
-      attempt { SlimX.compile(formatted, file: golden_case.name, format: golden_case.format, strict:) }
-    end
-    assert_equal lenient, strict, "#{golden_case.name}: strict mode refuses the formatted source"
     layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{_1}]") } }
     assert_empty layout_offenses, "#{golden_case.name}: the formatted source breaks layout rules"
   end
 
   def lint(golden_case, source)
-    linter = SlimX::Linter.new(ENABLE_EVERY_RULE)
+    linter = SuperSlim::Linter.new(ENABLE_EVERY_RULE)
     linter.call(golden_case.name, source).map { |offense| "#{offense.lineno}: [#{offense.rule}] #{offense.message}" }.join("\n")
   end
 
-  ENABLE_EVERY_RULE = SlimX::Linter::Rules.constants.filter_map do |name|
-    rule = SlimX::Linter::Rules.const_get(name)
+  ENABLE_EVERY_RULE = SuperSlim::Linter::Rules.constants.filter_map do |name|
+    rule = SuperSlim::Linter::Rules.const_get(name)
     [name.name, {"enabled" => true}] if rule.is_a?(Class) && name != :Rule
   end.to_h.freeze
 

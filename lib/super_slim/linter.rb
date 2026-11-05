@@ -2,7 +2,7 @@
 
 require "yaml"
 
-module SlimX
+module SuperSlim
   class Linter
     Offense = Data.define(:path, :lineno, :rule, :message)
 
@@ -42,7 +42,7 @@ module SlimX
       end
     end
 
-    CONFIG_FILE = ".slimx.yml"
+    CONFIG_FILE = ".super-slim.yml"
 
     def self.load(directory = Dir.pwd)
       new(configuration(directory).fetch("linters", {}))

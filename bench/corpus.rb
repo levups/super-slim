@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-# Compiles every .slim file under the given directory with Slim (configured like a Rails app) and SlimX,
-# checks SlimX's Ruby is valid, and reports compile time and allocations.
+# Compiles every .slim file under the given directory with Slim (configured like a Rails app) and SuperSlim,
+# checks SuperSlim's Ruby is valid, and reports compile time and allocations.
 #   ruby -Ilib bench/corpus.rb path/to/app
 require "prism"
 require "slim"
-require "slimx"
+require "super_slim"
 
 directory = ARGV.fetch(0)
 templates = Dir[File.join(directory, "**/*.slim")].sort.to_h { |path| [path, File.read(path)] }
@@ -19,10 +19,10 @@ slim_engine_by_format = %i[html xml].to_h do |format|
     disable_capture: true, use_html_safe: true)]
 end
 compile_with_slim = ->(path, source) { slim_engine_by_format.fetch(format_by_path[path]).call(source) }
-compile_with_slimx = ->(path, source) { SlimX.compile(source, file: path, format: format_by_path[path], rails: true, html_safe: true) }
+compile_with_super_slim = ->(path, source) { SuperSlim.compile(source, file: path, format: format_by_path[path], rails: true, html_safe: true) }
 
 failures = templates.filter_map do |path, source|
-  code = compile_with_slimx.call(path, source)
+  code = compile_with_super_slim.call(path, source)
   errors = Prism.parse("def template\n#{code}\nend").errors
   "#{path}: #{errors.first.message}" if errors.any?
 rescue => exception
@@ -33,7 +33,7 @@ puts failures.first(20), "#{failures.size} failures / #{templates.size} template
 # Both engines time the same templates: the ones each compiles (Slim needs gems for some embedded engines).
 compiled_by_both = templates.select do |path, source|
   compile_with_slim.call(path, source)
-  compile_with_slimx.call(path, source)
+  compile_with_super_slim.call(path, source)
 rescue StandardError, LoadError
   false
 end
@@ -50,4 +50,4 @@ def measure(label, templates, compiler)
 end
 
 measure("Slim", compiled_by_both, compile_with_slim)
-measure("SlimX", compiled_by_both, compile_with_slimx)
+measure("SuperSlim", compiled_by_both, compile_with_super_slim)

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-# Compiles and renders the same blog page with SlimX, Slim, Haml, Erubi and Herb, checks they all render
+# Compiles and renders the same blog page with SuperSlim, Slim, Haml, Erubi and Herb, checks they all render
 # the same HTML, and writes the numbers the site shows to docs/benchmarks.json.
 #   rake bench                                    # what to run before each release
-#   SLIMX_CORPUS=~/app/views rake bench           # adds the compile time of a whole app's .slim templates
-# With corpus/cache fetched (rake corpus:fetch), it also times the public corpus, and slimx lint and fmt there
+#   SUPER_SLIM_CORPUS=~/app/views rake bench           # adds the compile time of a whole app's .slim templates
+# With corpus/cache fetched (rake corpus:fetch), it also times the public corpus, and super-slim lint and fmt there
 # against slim-lint when slim-lint is installed.
 require "benchmark/ips"
 require "digest"
@@ -15,7 +15,7 @@ require "herb/engine"
 require "etc"
 require "json"
 require "slim"
-require "slimx"
+require "super_slim"
 
 SOURCE_DIRECTORY = File.join(__dir__, "compare")
 OUTPUT_PATH = File.expand_path("../docs/benchmarks.json", __dir__)
@@ -23,7 +23,7 @@ BENCHMARK_SECONDS = Integer(ENV.fetch("BENCHMARK_SECONDS", 5))
 
 Engine = Data.define(:name, :version, :source_file, :compiler)
 ENGINES = [
-  Engine.new("SlimX", SlimX::VERSION, "page.slim", ->(source) { SlimX.compile(source, file: "page.slim") }),
+  Engine.new("SuperSlim", SuperSlim::VERSION, "page.slim", ->(source) { SuperSlim.compile(source, file: "page.slim") }),
   Engine.new("Slim", Slim::VERSION, "page.slim", ->(source) { Slim::Engine.new(format: :html, sort_attrs: false).call(source) }),
   Engine.new("Haml", Haml::VERSION, "page.haml", ->(source) { Haml::Engine.new.call(source) }),
   Engine.new("Erubi", Erubi::VERSION, "page.html.erb", ->(source) { Erubi::Engine.new(source, escape: true).src }),
@@ -60,7 +60,7 @@ html_by_engine.each do |engine, html|
   next if html == reference_html
 
   offset = [(0...html.size).find { |index| html[index] != reference_html[index] } - 60, 0].max
-  raise "#{engine.name} renders different HTML than SlimX:\n  #{reference_html[offset, 120]}\n  #{html[offset, 120]}"
+  raise "#{engine.name} renders different HTML than SuperSlim:\n  #{reference_html[offset, 120]}\n  #{html[offset, 120]}"
 end
 
 def allocations_per_call(times = 100, &block)
@@ -99,7 +99,7 @@ results = {
 }
 
 results[:html_sha256] = {"Slim" => Digest::SHA256.hexdigest(page.public_send(render_method_by_engine[ENGINES[1]])),
-                          "SlimX" => Digest::SHA256.hexdigest(page.public_send(render_method_by_engine[ENGINES[0]]))}
+                          "SuperSlim" => Digest::SHA256.hexdigest(page.public_send(render_method_by_engine[ENGINES[0]]))}
 
 def median_seconds(runs, &block)
   timings = Array.new(runs) do
@@ -113,12 +113,12 @@ end
 def compile_timings(directory)
   slim_engine = Slim::Engine.new(format: :html, sort_attrs: false)
   templates = Dir[File.join(directory, "**/*.slim")].map { File.read(_1) }.select do |source|
-    SlimX.compile(source, file: "corpus.slim") && slim_engine.call(source)
+    SuperSlim.compile(source, file: "corpus.slim") && slim_engine.call(source)
   rescue StandardError, ScriptError
     false
   end
   compile_corpus = {
-    "SlimX" => -> { templates.each { SlimX.compile(_1, file: "corpus.slim") } },
+    "SuperSlim" => -> { templates.each { SuperSlim.compile(_1, file: "corpus.slim") } },
     "Slim" => -> { templates.each { slim_engine.call(_1) } }
   }
   {
@@ -132,14 +132,14 @@ end
 
 PUBLIC_CORPUS_DIRECTORY = File.expand_path("../corpus/cache", __dir__)
 corpora = []
-corpora << {label: "A production Rails app", **compile_timings(File.expand_path(ENV["SLIMX_CORPUS"]))} if ENV["SLIMX_CORPUS"]
+corpora << {label: "A production Rails app", **compile_timings(File.expand_path(ENV["SUPER_SLIM_CORPUS"]))} if ENV["SUPER_SLIM_CORPUS"]
 if File.directory?(PUBLIC_CORPUS_DIRECTORY)
   application_count = Dir.children(PUBLIC_CORPUS_DIRECTORY).count { File.directory?(File.join(PUBLIC_CORPUS_DIRECTORY, _1)) }
   corpora << {label: "#{application_count} open-source projects", **compile_timings(PUBLIC_CORPUS_DIRECTORY)}
 end
 results[:corpora] = corpora
 
-# Wall time, and CPU time across processes: slimx spreads templates over every core, slim-lint uses one.
+# Wall time, and CPU time across processes: super_slim spreads templates over every core, slim-lint uses one.
 def command_timing(name, *command)
   system(*command, out: File::NULL, err: File::NULL)
   cpu_before = Process.times
@@ -151,10 +151,10 @@ end
 
 slim_lint = Bundler.with_unbundled_env { `command -v slim-lint`.strip } if defined?(Bundler)
 if File.directory?(PUBLIC_CORPUS_DIRECTORY)
-  slimx = [RbConfig.ruby, "--yjit", File.expand_path("../exe/slimx", __dir__)]
+  super_slim = [RbConfig.ruby, "--yjit", File.expand_path("../exe/super-slim", __dir__)]
   tools = [
-    command_timing("slimx lint", *slimx, "lint", PUBLIC_CORPUS_DIRECTORY),
-    command_timing("slimx fmt --check", *slimx, "fmt", "--check", PUBLIC_CORPUS_DIRECTORY)
+    command_timing("super-slim lint", *super_slim, "lint", PUBLIC_CORPUS_DIRECTORY),
+    command_timing("super-slim fmt --check", *super_slim, "fmt", "--check", PUBLIC_CORPUS_DIRECTORY)
   ]
   if slim_lint && !slim_lint.empty?
     version = Bundler.with_unbundled_env { `slim-lint --version`[/[\d.]+/] }
