@@ -6,7 +6,7 @@
 # For each template:
 # - Slim and SuperSlim both compile it, or both refuse it;
 # - SuperSlim's Ruby parses, and every `-` and `=` sits on its template line, for backtraces;
-# - super-slim fmt is idempotent, and refuses to write a template whose Ruby would change;
+# - super-slim format is idempotent, and refuses to write a template whose Ruby would change;
 # - the linter runs; its offenses go to the report, so two versions can be compared.
 #
 # --render also renders each template through Slim 5 and SuperSlim against a stub that answers every helper, local
@@ -103,7 +103,7 @@ render_error_count_by_class = results.filter_map { _1[:render_error] }.tally
 puts "#{paths.size} templates"
 puts "Rendered against the stub: #{render ? results.count { _1[:rendered] } : "skipped, --render runs the templates"} (#{render_error_count_by_class.sort_by { |_, count| -count }.first(5).map { |error_class, count| "#{error_class} #{count}" }.join(", ")})"
 puts "Slim cannot compile here (missing optional gem): #{results.count { _1[:slim_unavailable] }}; refused by SuperSlim on purpose: #{results.count { _1[:dropped_feature] }}"
-puts "Reformatted by super-slim fmt: #{results.count { _1[:reformatted] }}"
+puts "Reformatted by super-slim format: #{results.count { _1[:reformatted] }}"
 puts "Lint offenses: #{offense_count_by_rule.sort_by { |_, count| -count }.map { |rule, count| "#{rule} #{count}" }.join(", ")}"
 CHECKS.each do |check|
   messages = messages_by_check.fetch(check, [])

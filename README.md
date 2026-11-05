@@ -46,7 +46,7 @@ SuperSlim.tailwind_classes = true # config/initializers/super_slim.rb, or tailwi
 ```
 
 ```yaml
-# .super-slim.yml, for super-slim lint and super-slim fmt
+# .super-slim.yml, for super-slim lint and super-slim format
 tailwind_classes: true
 ```
 
@@ -81,12 +81,12 @@ to `format: :html, sort_attrs: false` and check your test suite: that is the out
 
 One parser serves the compiler, the formatter and the linter, so all three read templates the same way.
 
-`super-slim fmt [--check] [PATH…]` rewrites templates in their canonical layout: two spaces per level, `- code`,
+`super-slim format [--check] [PATH…]` (or `fmt`) rewrites templates in their canonical layout: two spaces per level, `- code`,
 `= output` and `p = output` spacing, no redundant `div`, no trailing whitespace, single blank lines, one final
 newline. Text blocks move as a whole, so the whitespace they render stays put — and before writing anything,
 the formatter compiles both versions and refuses if the Ruby differs. Formatting cannot change a page.
 
-With `fmt: max_line_length: 120` in `.super-slim.yml`, `fmt` also wraps longer lines: a tag's attributes one
+With `format: max_line_length: 120` in `.super-slim.yml`, `format` also wraps longer lines: a tag's attributes one
 per line inside `attribute_delimiters` (`"()"` by default, `"[]"` or `"{}"`), then the arguments of its Ruby code after each comma, four spaces deep when the line opens a block. It keeps a wrap only
 when the compiled Ruby differs by whitespace alone, and leaves lines already spread over several lines alone.
 
@@ -94,7 +94,7 @@ when the compiled Ruby differs by whitespace alone, and leaves lines already spr
 
 | Rule | From | Default |
 |---|---|---|
-| Indentation, Tab, TrailingWhitespace, EmptyLines, TrailingBlankLines, ControlStatementSpacing, RedundantDiv | slim-lint, fixed by `super-slim fmt` | on |
+| Indentation, Tab, TrailingWhitespace, EmptyLines, TrailingBlankLines, ControlStatementSpacing, RedundantDiv | slim-lint, fixed by `super-slim format` | on |
 | LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
 | InstanceVariables (in partials) | haml-lint, Rails conventions | on |
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
@@ -177,7 +177,7 @@ SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench   # adds the compile 
 BENCH_LOCK=path/to/.bench.lock bundle exec rake bench   # waits for other benchmarks holding that lock
 ```
 
-With `corpus/cache` fetched, it also times the open-source corpus, and `super-slim lint` and `fmt` there against
+With `corpus/cache` fetched, it also times the open-source corpus, and `super-slim lint` and `format` there against
 slim-lint when it is installed. `bundle exec rake docs` rewrites the linter rules on the website
 (`docs/tools.html`), after checking every example against the linter.
 

@@ -26,7 +26,7 @@ class CLITest < Minitest::Test
 
   def test_fmt_check_lists_templates_to_reformat_without_writing_them
     in_templates("ul\n   li Home\n") do |directory|
-      status, output = run_cli("fmt", "--check", ".")
+      status, output = run_cli("format", "--check", ".")
 
       assert_equal 1, status
       assert_equal TEMPLATE_COUNT, output.lines.size
@@ -36,18 +36,27 @@ class CLITest < Minitest::Test
 
   def test_fmt_rewrites_templates_then_finds_nothing_left
     in_templates("ul\n   li Home\n") do |directory|
-      assert_equal 0, run_cli("fmt", ".").first
+      assert_equal 0, run_cli("format", ".").first
       assert_equal "ul\n  li Home\n", File.read(File.join(directory, template_name(TEMPLATE_COUNT)))
-      assert_equal [0, ""], run_cli("fmt", "--check", ".")
+      assert_equal [0, ""], run_cli("format", "--check", ".")
     end
   end
 
   def test_fmt_wraps_lines_longer_than_the_configured_length
     in_templates(%(a.btn href="/posts/1" data-turbo="false" Edit\n)) do |directory|
-      File.write(".super-slim.yml", "fmt:\n  max_line_length: 30\n  attribute_delimiters: \"{}\"\n")
+      File.write(".super-slim.yml", "format:\n  max_line_length: 30\n  attribute_delimiters: \"{}\"\n")
+
+      assert_equal 0, run_cli("format", ".").first
+      assert_equal %(a.btn {\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
+    end
+  end
+
+  def test_fmt_and_its_configuration_key_still_format
+    in_templates(%(a.btn href="/posts/1" data-turbo="false" Edit\n)) do |directory|
+      File.write(".super-slim.yml", "fmt:\n  max_line_length: 30\n")
 
       assert_equal 0, run_cli("fmt", ".").first
-      assert_equal %(a.btn {\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
+      assert_equal %(a.btn(\n  href="/posts/1"\n  data-turbo="false"\n) Edit\n), File.read(File.join(directory, template_name(1)))
     end
   end
 
@@ -59,7 +68,7 @@ class CLITest < Minitest::Test
 
   def test_unknown_options_fail_with_the_usage
     assert_output("", "Unknown option --chek\n#{SuperSlim::CLI::USAGE}") do
-      assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["fmt", "--chek", "."])
+      assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["format", "--chek", "."])
     end
     assert_output("", /Unknown option --check/) { SuperSlim::CLI.new.call(["lint", "--check"]) }
   end

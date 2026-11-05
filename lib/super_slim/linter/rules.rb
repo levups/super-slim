@@ -83,7 +83,7 @@ module SuperSlim
         end
       end
 
-      # Layout: everything `super-slim fmt` rewrites.
+      # Layout: everything `super-slim format` rewrites.
 
       class Indentation < Rule
         def offenses(document, _source)
