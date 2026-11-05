@@ -2,21 +2,17 @@
 
 module SuperSlim
   class Formatter
-    # Breaks the lines of a formatted template longer than max_line_length: a tag's attributes one per line
-    # inside attribute_delimiters, then the arguments of its Ruby code after each comma, as Slim reads a line ending
-    # with a comma as continued on the next one. Lines already spread over several lines are left as they are.
+    # Gives each line one layout, whatever its author chose: Ruby code spread over several lines is joined back
+    # when it fits in max_line_length, and a longer line is broken: a tag's attributes one per line inside
+    # attribute_delimiters, then its Ruby code by CodeWrapper.
     class LineWrapper
       CODE_LINE = /\A *(?:-|==?[<>]*) /
       TAG_OUTPUT = /\G\s*==?['<>]*\s*/
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
-      DO_KEYWORDS = %i[KEYWORD_DO KEYWORD_DO_BLOCK KEYWORD_DO_LAMBDA KEYWORD_DO_LOOP].freeze
-      MODIFIERS = %i[KEYWORD_IF_MODIFIER KEYWORD_UNLESS_MODIFIER KEYWORD_WHILE_MODIFIER KEYWORD_UNTIL_MODIFIER KEYWORD_RESCUE_MODIFIER].freeze
-      # Prism 2 splits some tokens by role (BRACE_LEFT_HASH, PARENTHESIS_LEFT_GROUPING): older ones never emit them.
-      OPENING_BRACKETS = %i[
-        PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES PARENTHESIS_LEFT_GROUPING BRACKET_LEFT BRACKET_LEFT_ARRAY
-        BRACE_LEFT BRACE_LEFT_HASH BRACE_LEFT_ARGUMENT LAMBDA_BEGIN EMBEXPR_BEGIN
-      ].freeze
-      CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
+      CONTINUED_LINE = /[,\\(\[{]$/
+      OPENING_BRACKET_AT_END = /[(\[{]\z/
+      CLOSING_BRACKET_AT_START = /\A[)\]}]/
+      NEW_WITHOUT_PARENTHESES = /\.new [^\s=]/
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
       OPENING_BY_ATTRIBUTE_DELIMITERS = {"()" => "(", "[]" => "[", "{}" => " {"}.freeze
@@ -33,23 +29,64 @@ module SuperSlim
 
       def call(source)
         lines = source.split("\n")
-        return source if lines.none? { _1.size > @max_line_length }
+        return source unless source.match?(CONTINUED_LINE) || source.match?(NEW_WITHOUT_PARENTHESES) || lines.any? { _1.size > @max_line_length }
 
         parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
         parser.call(source)
-        wrapped = lines.each.with_index(1).flat_map do |line, lineno|
-          info = parser.outline[lineno]
-          next [line] unless line.size > @max_line_length && info.kind == :structure && one_line?(parser.outline[lineno + 1], lineno)
-
-          wrap(line, info, children?(parser.outline, lineno))
+        outline = parser.outline
+        wrapped = []
+        lineno = 1
+        while lineno <= lines.size
+          info = outline[lineno]
+          last_lineno = lineno
+          last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
+          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info, outline, lineno))
+          lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
       end
 
       private
 
-      def one_line?(next_info, lineno)
-        next_info.nil? || next_info.owner != lineno || !CONTINUATION_KINDS.include?(next_info.kind)
+      def layout(lines, info, outline, lineno)
+        return lines unless info.kind == :structure
+
+        line = (lines.size > 1) ? joined_code(lines, info) : lines.first
+        return lines unless line
+
+        line = with_new_parenthesized(line, info)
+        return [line] if line.size <= @max_line_length
+
+        broken = wrap(line, info, children?(outline, lineno))
+        return ((lines.size > 1) ? lines : broken) if broken == [line]
+
+        # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
+        rejoined = joined_code(broken, info)
+        (rejoined && rejoined.size <= @max_line_length) ? [rejoined] : broken
+      end
+
+      def with_new_parenthesized(line, info)
+        return line unless line.match?(NEW_WITHOUT_PARENTHESES) && (start = code_start(line, info.output_column))
+
+        line[0...start] + CodeWrapper.parenthesize_new(line[start..])
+      end
+
+      # The code of a line continued after a comma, a backslash or an opening bracket, on one line; nil when the
+      # continuation lines hold anything else, such as attributes or text.
+      def joined_code(lines, info)
+        return unless code_start(lines.first, info.output_column) && lines.drop(1).all? { |line| info.text.nil? && !line.strip.empty? }
+
+        lines.drop(1).reduce(lines.first.rstrip) do |joined, line|
+          piece = line.strip
+          joined = joined.delete_suffix("\\").rstrip
+          if piece.match?(CLOSING_BRACKET_AT_START)
+            joined.delete_suffix(",") + piece
+          elsif joined.match?(OPENING_BRACKET_AT_END)
+            joined + piece
+          else
+            "#{joined} #{piece}"
+          end
+        end
       end
 
       def children?(outline, lineno)
@@ -68,9 +105,11 @@ module SuperSlim
           end
         return lines unless code_start && lines.last.size > @max_line_length
 
-        # Arguments go two levels deeper than the line when it opens a block, so they stand apart from its children.
-        argument_indent = indent + (" " * (children ? 2 * INDENT_WIDTH : INDENT_WIDTH))
-        lines[0...-1] + wrap_arguments(lines.last, code_start, argument_indent)
+        last_indent = lines.last[/\A */]
+        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, block: children)
+        return lines unless code_lines
+
+        lines[0...-1] + [lines.last[0...code_start] + code_lines.first, *code_lines.drop(1)]
       end
 
       # A dynamic tag, `*{tag: name}` or `li: *{tag: name}`, has no name for its attribute list to follow.
@@ -92,40 +131,6 @@ module SuperSlim
         elsif (match = CODE_LINE.match(line))
           match.end(0)
         end
-      end
-
-      def wrap_arguments(line, code_start, argument_indent)
-        code = line[code_start..]
-        offsets = argument_breaks(code)
-        return [line] if offsets.empty?
-
-        first = 0
-        first_piece, *pieces = [*offsets, code.bytesize].map do |last|
-          piece = code.byteslice(first...last).strip
-          first = last
-          piece
-        end
-        [line[0...code_start] + first_piece, *pieces.map { argument_indent + _1 }]
-      end
-
-      # Byte offsets right after each comma that separates the arguments of the outermost call, up to its block.
-      def argument_breaks(code)
-        depth = 0
-        offsets = []
-        Prism.lex(code).value.each do |(token, _state)|
-          case token.type
-          when :COMMA then offsets << token.location.end_offset if depth.zero?
-          when :HEREDOC_START then return []
-          # `a, b = …` assigns several variables: its commas separate no arguments.
-          when :EQUAL then return [] if depth.zero? && !offsets.empty?
-          when *DO_KEYWORDS then break
-          # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
-          when *MODIFIERS then return [] if depth.zero?
-          when *OPENING_BRACKETS then depth += 1
-          when *CLOSING_BRACKETS then depth -= 1
-          end
-        end
-        offsets
       end
     end
   end

@@ -57,19 +57,42 @@ class FormatterTest < Minitest::Test
     source = %(td = link_to post.title, post_path(post) if post.published?\n)
 
     assert_equal source, SuperSlim::Formatter.new(max_line_length: 30).call(source)
-    assert_wraps %(= link_to post.title,\n  (post_path(post) if post.published?)\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
+    assert_wraps %(= link_to(\n    post.title,\n    (post_path(post) if post.published?),\n  )\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
   end
 
-  def test_wraps_arguments_after_each_comma_up_to_the_block
-    assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
-    assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
+  def test_spreads_the_arguments_of_a_call_one_per_line_between_parentheses
+    assert_wraps %(= link_to(\n    "Edit, now",\n    edit_post_path(post, x: 1),\n    class: "btn",\n  )\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
+    assert_wraps %(- links = [\n    root_path,\n    posts_path,\n  ]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
+  end
+
+  def test_spreads_the_only_argument_when_it_is_a_call
+    assert_wraps %(= render Card.new(\n    title: post.title,\n    body: post.body,\n  )\n), %(= render Card.new(title: post.title, body: post.body)\n)
+  end
+
+  def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
+    assert_wraps %(= form_with(\n      model: post,\n      url: posts_path,\n    ) do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
-    assert_wraps %(= render layout: "card",\n    locals: {post:}\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
+    assert_wraps %(= render(\n      layout: "card",\n      locals: {post:},\n    )\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes
-    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date post.created_at,\n  :long\n),
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n),
       %(p class=classes title="A long title" = format_date post.created_at, :long\n)
+  end
+
+  def test_joins_code_spread_over_lines_when_it_fits
+    assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title,\n      post_path(post)\n), max_line_length: 40
+    assert_wraps %(= link_to(post.title, post_path(post))\n), %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), max_line_length: 40
+    assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title, \\\n  post_path(post)\n), max_line_length: 40
+  end
+
+  def test_respreads_code_spread_by_hand
+    assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(= link_to post.title,\n        post_path(post)\n)
+  end
+
+  def test_puts_the_arguments_of_new_in_parentheses
+    assert_wraps %(= render Card.new(title: post.title)\n), %(= render Card.new title: post.title\n)
+    assert_wraps %(= render Card.new(title: post.title) do\n  p Hello\n), %(= render Card.new title: post.title do\n  p Hello\n)
   end
 
   def test_leaves_alone_what_wrapping_would_change
@@ -77,7 +100,8 @@ class FormatterTest < Minitest::Test
       %(- first, second = values_of_a_long_list, and_another_one\n),
       %(p.card title="A long title here" Some text\n  continued on the next line\n),
       %(*{tag: tag_name, class: "card", id: "dynamic-identifier"} Dynamic\n),
-      %(= render({partial: "a/partial", locals: {post: post}})\n)
+      %(= link_to post.title, post_path(post) # the post\n),
+      %(- if post.published? && post.commentable? && current_user\n  p Hello\n)
     ].each { assert_wraps _1, _1, max_line_length: 20 }
   end
 
@@ -117,11 +141,11 @@ class FormatterTest < Minitest::Test
   end
 
   def test_wraps_a_template_that_yields
-    assert_wraps %(= render "card",\n  body: yield(post)\n), %(= render "card", body: yield(post)\n)
+    assert_wraps %(= render(\n    "card",\n    body: yield(post),\n  )\n), %(= render "card", body: yield(post)\n)
   end
 
   def test_wraps_an_argument_that_is_an_if_expression
-    assert_wraps %(= submit_button :save,\n  if post.persisted? then "Save" else "Add" end\n),
+    assert_wraps %(= submit_button(\n    :save,\n    if post.persisted? then "Save" else "Add" end,\n  )\n),
       %(= submit_button :save, if post.persisted? then "Save" else "Add" end\n)
   end
 

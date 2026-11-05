@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "prism"
+require_relative "formatter/code_wrapper"
 require_relative "formatter/line_wrapper"
 
 module SuperSlim
