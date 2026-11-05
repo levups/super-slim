@@ -37,7 +37,7 @@ module SuperSlim
 
     def format(arguments, options)
       check = arguments.delete("--check")
-      formatter = Formatter.new(max_line_length: options["max_line_length"])
+      formatter = Formatter.new(max_line_length: options["max_line_length"], attribute_delimiters: options.fetch("attribute_delimiters", "()"))
       outcomes = Parallel.map(templates(arguments)) do |path|
         source = File.read(path)
         formatted = formatter.call(source)

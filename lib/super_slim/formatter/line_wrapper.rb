@@ -5,7 +5,7 @@ require "ripper"
 module SuperSlim
   class Formatter
     # Breaks the lines of a formatted template longer than max_line_length: a tag's attributes one per line
-    # inside their delimiters, then the arguments of its Ruby code after each comma, as Slim reads a line ending
+    # inside attribute_delimiters, then the arguments of its Ruby code after each comma, as Slim reads a line ending
     # with a comma as continued on the next one. Lines already spread over several lines are left as they are.
     class LineWrapper
       CODE_LINE = /\A *(?:-|==?[<>]*) /
@@ -14,9 +14,16 @@ module SuperSlim
       CLOSINGS = %i[on_rparen on_rbracket on_rbrace on_embexpr_end].freeze
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
 
-      def initialize(max_line_length, tailwind_classes:)
+      ATTRIBUTE_DELIMITERS = %w[() [] {}].freeze
+
+      def initialize(max_line_length, tailwind_classes:, attribute_delimiters: "()")
+        unless ATTRIBUTE_DELIMITERS.include?(attribute_delimiters)
+          raise ArgumentError, "Invalid attribute_delimiters #{attribute_delimiters.inspect}: one of #{ATTRIBUTE_DELIMITERS.join(", ")}"
+        end
+
         @max_line_length = max_line_length
         @tailwind_classes = tailwind_classes
+        @opening, @closing = attribute_delimiters.chars
       end
 
       def call(source)
@@ -60,12 +67,11 @@ module SuperSlim
       end
 
       # Returns the lines and where the Ruby code of the last one starts, if it outputs some.
-      def wrap_attributes(line, (first, last, delimited, spans), indent, output_column)
-        opening, closing = delimited ? [line[first], line[last - 1]] : %w[( )]
+      def wrap_attributes(line, (first, last, spans), indent, output_column)
         attribute_indent = indent + (" " * INDENT_WIDTH)
-        closing_line = indent + closing + line[last..]
-        lines = [line[0...first].rstrip + opening, *spans.map { |span_first, span_last| attribute_indent + line[span_first...span_last] }, closing_line]
-        [lines, output_column && code_start(closing_line, output_column - last + indent.size + closing.size)]
+        closing_line = indent + @closing + line[last..]
+        lines = [line[0...first].rstrip + @opening, *spans.map { |span_first, span_last| attribute_indent + line[span_first...span_last] }, closing_line]
+        [lines, output_column && code_start(closing_line, output_column - last + indent.size + @closing.size)]
       end
 
       def code_start(line, output_column)

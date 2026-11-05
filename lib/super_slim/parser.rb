@@ -50,7 +50,7 @@ module SuperSlim
     CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /[\s#{Regexp.escape(closing.to_s)}]/] }.freeze
 
     # What the formatter and the linter need to know about each source line, indexed by line number. A tag's
-    # attribute list on one line is [first, last, delimited, [[first, last], …]], in columns of that line.
+    # attribute list on one line is [first, last, [[first, last], …]], in columns of that line.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists)
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
@@ -486,7 +486,7 @@ module SuperSlim
       end
       if outline && lineno == @lineno && !spans.empty?
         list_first = spans.first.first unless closing
-        (@outline[lineno].attribute_lists ||= []) << [list_first, column, !closing.nil?, spans]
+        (@outline[lineno].attribute_lists ||= []) << [list_first, column, spans]
       end
       attributes
     end

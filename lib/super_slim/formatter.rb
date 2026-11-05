@@ -17,9 +17,9 @@ module SuperSlim
       new(**).call(source)
     end
 
-    def initialize(tailwind_classes: SuperSlim.tailwind_classes, max_line_length: nil)
+    def initialize(tailwind_classes: SuperSlim.tailwind_classes, max_line_length: nil, attribute_delimiters: "()")
       @tailwind_classes = tailwind_classes
-      @line_wrapper = LineWrapper.new(max_line_length, tailwind_classes:) if max_line_length
+      @line_wrapper = LineWrapper.new(max_line_length, tailwind_classes:, attribute_delimiters:) if max_line_length
     end
 
     def call(source)

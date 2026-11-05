@@ -38,7 +38,19 @@ class FormatterTest < Minitest::Test
 
   def test_wraps_attributes_one_per_line_inside_delimiters
     assert_wraps %(a.btn(\n  href="/posts/1"\n  data-turbo="false"\n) Edit\n), %(a.btn href="/posts/1" data-turbo="false" Edit\n)
-    assert_wraps %(li: a{\n  href=url\n  disabled\n} = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
+    assert_wraps %(li: a(\n  href=url\n  disabled\n) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
+  end
+
+  def test_wraps_attributes_inside_the_configured_delimiters
+    expected = %(a.btn{\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n)
+
+    assert_wraps expected, %(a.btn href="/posts/1" data-turbo="false" Edit\n), attribute_delimiters: "{}"
+    assert_wraps expected, %(a.btn(href="/posts/1" data-turbo="false") Edit\n), attribute_delimiters: "{}"
+    assert_wraps %(p[\n  class=classes\n  title="A long title"\n]\n), %(p class=classes title="A long title"\n), attribute_delimiters: "[]"
+  end
+
+  def test_refuses_unknown_attribute_delimiters
+    assert_raises(ArgumentError) { SuperSlim::Formatter.new(max_line_length: 80, attribute_delimiters: "<>") }
   end
 
   def test_wraps_arguments_after_each_comma_up_to_the_block
@@ -74,8 +86,8 @@ class FormatterTest < Minitest::Test
     assert_equal expected, SuperSlim::Formatter.call(source)
   end
 
-  def assert_wraps(expected, source, max_line_length: 30)
-    formatter = SuperSlim::Formatter.new(max_line_length:)
+  def assert_wraps(expected, source, max_line_length: 30, attribute_delimiters: "()")
+    formatter = SuperSlim::Formatter.new(max_line_length:, attribute_delimiters:)
 
     assert_equal expected, formatter.call(source)
     assert_equal expected, formatter.call(expected)
