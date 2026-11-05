@@ -1,0 +1,99 @@
+~~~~~~~~ super_slim: html
+<p>alice, bob</p><p>alice bob</p><p>badge alice</p><p>alice and bob</p>alice, bob<ul><li>ALICE</li><li>BOB</li></ul><p>(alice</p>
+~~~~~~~~ super_slim: tilt
+_buf = +""; names = [
+"alice",
+"bob",
+]
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((names.join(", ")))
+_buf << "</p>".freeze; words = %w[
+alice
+bob
+]
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((words.join(" ")))
+_buf << "</p>".freeze; options = {
+class: "badge",
+title: "alice",
+}
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((options.values.join(" ")))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format(
+"%s and %s",
+"alice",
+"bob",
+)))
+_buf << "</p>".freeze; _buf << ::ERB::Escape.html_escape((format(
+"%s, %s",
+*names,
+)))
+
+_buf << "<ul>".freeze; names.map(
+&:upcase
+).each do |name|
+_buf << "<li>".freeze; _buf << ::ERB::Escape.html_escape((name))
+_buf << "</li>".freeze; end; _buf << "</ul><p>".freeze; _buf << ::ERB::Escape.html_escape((format("(%s", "alice")))
+_buf << "</p>".freeze; _buf
+~~~~~~~~ super_slim: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; names = [
+"alice",
+"bob",
+]
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (names.join(", "))
+@output_buffer.safe_concat("</p>".freeze); words = %w[
+alice
+bob
+]
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (words.join(" "))
+@output_buffer.safe_concat("</p>".freeze); options = {
+class: "badge",
+title: "alice",
+}
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (options.values.join(" "))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (format(
+"%s and %s",
+"alice",
+"bob",
+))
+@output_buffer.safe_concat("</p>".freeze); @output_buffer << (format(
+"%s, %s",
+*names,
+))
+
+@output_buffer.safe_concat("<ul>".freeze); names.map(
+&:upcase
+).each do |name|
+@output_buffer.safe_concat("<li>".freeze); @output_buffer << (name)
+@output_buffer.safe_concat("</li>".freeze); end; @output_buffer.safe_concat("</ul><p>".freeze); @output_buffer << (format("(%s", "alice"))
+@output_buffer.safe_concat("</p>".freeze); @output_buffer
+~~~~~~~~ super_slim: fmt
+- names = [
+    "alice",
+    "bob",
+  ]
+p = names.join(", ")
+- words = %w[
+    alice
+    bob
+  ]
+p = words.join(" ")
+- options = {
+    class: "badge",
+    title: "alice",
+  }
+p = options.values.join(" ")
+p = format(
+    "%s and %s",
+    "alice",
+    "bob",
+  )
+= format(
+    "%s, %s",
+    *names,
+  )
+ul
+  - names.map(
+        &:upcase
+      ).each do |name|
+    li = name
+p = format("(%s", "alice")
+~~~~~~~~ super_slim: lint
+

@@ -30,6 +30,26 @@ markers, `|` and `'` text, inline HTML, `/` and `/!` comments, `-` control code,
 templates), and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
 [Markly](https://github.com/ioquatix/markly)) embedded engines.
 
+## Ruby code over several lines
+
+Slim continues a line of Ruby code after a comma or a backslash. SuperSlim also continues it after a `(`, `[` or `{`
+that ends the line, until that bracket closes, so calls, arrays and hashes can open on one line and close on their
+own:
+
+```slim
+= render ProductCardComponent.new(
+    product:,
+    variant: :compact,
+  )
+- columns = %w[
+    name
+    price
+  ]
+```
+
+Slim refuses these lines, so no template that works with Slim changes. A bracket opened mid-line, as in
+`- items.each { |item|`, still leaves the lines below it as children.
+
 ## Tailwind class names
 
 Slim cuts `.rounded-b-[3px]` at the bracket, and refuses `.lg:[&:nth-child(3)]:hover:underline`. Turn on
