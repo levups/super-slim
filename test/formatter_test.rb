@@ -42,7 +42,7 @@ class FormatterTest < Minitest::Test
   end
 
   def test_wraps_attributes_inside_the_configured_delimiters
-    expected = %(a.btn{\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n)
+    expected = %(a.btn {\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n)
 
     assert_wraps expected, %(a.btn href="/posts/1" data-turbo="false" Edit\n), attribute_delimiters: "{}"
     assert_wraps expected, %(a.btn(href="/posts/1" data-turbo="false") Edit\n), attribute_delimiters: "{}"
