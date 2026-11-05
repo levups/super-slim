@@ -2,6 +2,7 @@
 
 require "minitest/autorun"
 require "stringio"
+require "fileutils"
 require "tmpdir"
 require "super_slim/cli"
 
@@ -38,6 +39,37 @@ class CLITest < Minitest::Test
       assert_equal 0, run_cli("fmt", ".").first
       assert_equal "ul\n  li Home\n", File.read(File.join(directory, template_name(TEMPLATE_COUNT)))
       assert_equal [0, ""], run_cli("fmt", "--check", ".")
+    end
+  end
+
+  def test_help_prints_the_usage_instead_of_reading_a_template
+    status, output = run_cli("lint", "--help")
+
+    assert_equal 0, status
+    assert_equal SuperSlim::CLI::USAGE, output
+  end
+
+  def test_unknown_option_is_a_usage_error
+    _, stderr = capture_io { assert_equal [SuperSlim::CLI::EX_USAGE, ""], run_cli("lint", "--fix") }
+    assert_match(/\AUnknown option: --fix\n/, stderr)
+  end
+
+  def test_include_and_exclude_globs_match_paths_from_the_configuration_directory
+    in_templates("p style=\"color: red\" Hello\n") do |directory|
+      FileUtils.mkdir_p(File.join(directory, "mailers"))
+      File.write(File.join(directory, "mailers", "welcome.html.slim"), "p style=\"color: red\" Hello\n")
+      File.write(File.join(directory, ".super-slim.yml"), <<~YAML)
+        linters:
+          InlineStyles:
+            enabled: true
+            include: ["**/*.slim"]
+            exclude: ["mailers/**/*"]
+      YAML
+      status, output = run_cli("lint", ".")
+
+      assert_equal 1, status
+      assert_equal TEMPLATE_COUNT, output.lines.size
+      refute_includes output, "mailers"
     end
   end
 

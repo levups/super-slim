@@ -33,6 +33,11 @@ EXAMPLE_BY_RULE = {
   "UnnecessaryInterpolation" => Example.new("p \#{post.title}\n", "p = post.title\n"),
   "UnnecessaryStringOutput" => Example.new("p\n  = \"Hello\"\n", "p\n  | Hello\n"),
   "DeprecatedClasses" => Example.new("p.text-muted Text\n", "p.text-body-secondary Text\n"),
+  "DeprecatedAttributes" => Example.new("button data-toggle=\"modal\" type=\"button\" Open\n",
+    "button data-bs-toggle=\"modal\" type=\"button\" Open\n"),
+  "UnescapedOutput" => Example.new("p == post.intro\n", "p = t(\".intro_html\")\n"),
+  "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
+  "HardcodedText" => Example.new("h1 Welcome\n", "h1 = t(\".welcome\")\n", "shop/show.html.slim"),
   "InlineStyles" => Example.new("p style=\"color: red\" Text\n", "p.text-danger Text\n"),
   "InstanceVariables" => Example.new("p = @post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
   "StrictLocals" => Example.new("p = post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
@@ -54,7 +59,8 @@ RULES_BY_GROUP = {
   "Template hygiene — from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
   "Ruby in templates — from haml-lint and erb_lint" =>
-    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses InlineStyles],
+    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles UnescapedOutput
+      EmbeddedEngines HardcodedText],
   "Rails conventions" => %w[InstanceVariables StrictLocals],
   "HTML and accessibility — from Herb and jsx-a11y" =>
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaRole AriaAttribute ButtonType]
@@ -68,7 +74,12 @@ abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
 
 off_by_default = rule_names.reject { SuperSlim::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
 linter = SuperSlim::Linter.new(
-  off_by_default.to_h { [_1, {"enabled" => true}] }.merge("DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}})
+  off_by_default.to_h { [_1, {"enabled" => true}] }.merge(
+    "DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}},
+    "DeprecatedAttributes" => {"attributes" => {"data-toggle" => "data-bs-toggle"}},
+    "EmbeddedEngines" => {"enabled" => true, "forbidden_engines" => ["javascript"]},
+    "HardcodedText" => {"enabled" => true, "include" => ["shop/*"]}
+  )
 )
 message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|
   flagged = linter.call(example.path, example.flagged).find { _1.rule == rule }

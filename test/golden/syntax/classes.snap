@@ -42,4 +42,15 @@ p class="#{symbol} static" Interpolated
 p.a.b.c#id class="d" Many shortcuts
 p class=markup Escaped class
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `Static merge` instead of writing it in the template
+2: [HardcodedText] Translate `Shortcut and dynamic` instead of writing it in the template
+3: [HardcodedText] Translate `Array` instead of writing it in the template
+4: [HardcodedText] Translate `Nil class` instead of writing it in the template
+5: [HardcodedText] Translate `Empty class` instead of writing it in the template
+6: [HardcodedText] Translate `Shortcut and nil` instead of writing it in the template
+7: [HardcodedText] Translate `Two class attributes` instead of writing it in the template
+8: [HardcodedText] Translate `Empty array` instead of writing it in the template
+9: [HardcodedText] Translate `Conditional` instead of writing it in the template
+10: [HardcodedText] Translate `Interpolated` instead of writing it in the template
+11: [HardcodedText] Translate `Many shortcuts` instead of writing it in the template
+12: [HardcodedText] Translate `Escaped class` instead of writing it in the template

@@ -27,4 +27,10 @@ _buf << "<div class=\"p-1 rounded-b-[3px]\">Arbitrary length</div><div class=\"l
 .bg-(--brand).text-(length:--size) CSS variables
 .bg-[#0f172a].text-[color:var(--ink)] Colors
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `Arbitrary length` instead of writing it in the template
+2: [HardcodedText] Translate `Arbitrary variant` instead of writing it in the template
+3: [HardcodedText] Translate `Quoted value` instead of writing it in the template
+4: [HardcodedText] Translate `Nested brackets` instead of writing it in the template
+5: [HardcodedText] Translate `Underscores and functions` instead of writing it in the template
+6: [HardcodedText] Translate `CSS variables` instead of writing it in the template
+7: [HardcodedText] Translate `Colors` instead of writing it in the template

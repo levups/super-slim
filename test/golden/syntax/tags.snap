@@ -69,4 +69,6 @@ html lang="en"
       path d="M0 0L10 10"
     p
 ~~~~~~~~ super_slim: lint
-
+9: [HardcodedText] Translate `Home` instead of writing it in the template
+10: [HardcodedText] Translate `About` instead of writing it in the template
+13: [HardcodedText] Translate `Lead paragraph` instead of writing it in the template

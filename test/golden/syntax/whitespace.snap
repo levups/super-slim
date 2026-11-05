@@ -51,4 +51,12 @@ p
 p<
   | inner
 ~~~~~~~~ super_slim: lint
-
+2: [HardcodedText] Translate `after` instead of writing it in the template
+3: [HardcodedText] Translate `before` instead of writing it in the template
+4: [HardcodedText] Translate `both` instead of writing it in the template
+5: [HardcodedText] Translate `apostrophe` instead of writing it in the template
+6: [HardcodedText] Translate `text` instead of writing it in the template
+7: [HardcodedText] Translate `trailing space text` instead of writing it in the template
+8: [HardcodedText] Translate `no space` instead of writing it in the template
+9: [HardcodedText] Translate `leading space` instead of writing it in the template
+15: [HardcodedText] Translate `inner` instead of writing it in the template

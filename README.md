@@ -95,7 +95,10 @@ the formatter compiles both versions and refuses if the Ruby differs. Formatting
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
 | DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
 | ButtonType, InlineStyles | eslint-plugin-react, haml-lint | off |
-| DeprecatedClasses (`classes: {old: new}`) | erb_lint | on, empty |
+| DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`) | erb_lint | on, empty |
+| UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
+| EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
+| HardcodedText (text to translate) | erb_lint | off |
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
 | Zwsp (invisible characters) | slim-lint | on |
 
@@ -109,7 +112,17 @@ linters:
   DeprecatedClasses:
     classes:
       text-muted: text-body-secondary
+      ml-*: ms-*
+  InlineStyles:
+    enabled: true
+    exclude: ["app/views/*_mailer/**/*"]
+  HardcodedText:
+    enabled: true
+    include: ["app/views/shop/**/*.slim"]
 ```
+
+Every rule takes `include:` and `exclude:`, lists of globs matched against paths relative to `.super-slim.yml`
+(`**/` spans directories).
 
 The Ruby inside templates is RuboCop's job: SuperSlim ships a RuboCop plugin that hands it each `-` and `=` line,
 code attribute, splat, `#{}` interpolation and `ruby:` block, read by SuperSlim's own parser. Offenses point at their

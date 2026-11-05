@@ -69,4 +69,6 @@ p = [title,
 p = "multi \
   line"
 ~~~~~~~~ super_slim: lint
-
+2: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+10: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+17: [HardcodedText] Translate `wrapped` instead of writing it in the template

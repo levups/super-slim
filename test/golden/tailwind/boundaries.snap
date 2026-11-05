@@ -36,4 +36,11 @@ a.btn [href="/"] Brackets after a space stay an attribute list
 a.btn[href="/"] Brackets glued to a class name stay an attribute list
 th.text-nowrap[colspan="6"] = title
 ~~~~~~~~ super_slim: lint
+1: [HardcodedText] Translate `Nested tag after a colon and a space` instead of writing it in the template
 2: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`
+3: [HardcodedText] Translate `Attribute list in parentheses` instead of writing it in the template
+4: [HardcodedText] Translate `Attribute list in braces` instead of writing it in the template
+5: [HardcodedText] Translate `Brackets after a space stay an attribute…` instead of writing it in the template
+6: [HardcodedText] Translate `Id then class` instead of writing it in the template
+8: [HardcodedText] Translate `Nested after arbitrary value` instead of writing it in the template
+9: [HardcodedText] Translate `Brackets glued to a class name stay an a…` instead of writing it in the template

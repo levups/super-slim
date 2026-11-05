@@ -57,4 +57,5 @@ main.blog
               li class="tag tag-#{tag}" = tag
         button.btn data-action="click->post#save" disabled=post.draft type="button" Save
 ~~~~~~~~ super_slim: lint
-
+12: [HardcodedText] Translate `comments` instead of writing it in the template
+17: [HardcodedText] Translate `Save` instead of writing it in the template

@@ -45,7 +45,7 @@ module SuperSlim
     CONFIG_FILE = ".super-slim.yml"
 
     def self.load(directory = Dir.pwd)
-      new(configuration(directory).fetch("linters", {}))
+      new(configuration(directory).fetch("linters", {}), directory)
     end
 
     def self.configuration(directory = Dir.pwd)
@@ -53,7 +53,9 @@ module SuperSlim
       File.exist?(path) ? YAML.safe_load_file(path) || {} : {}
     end
 
-    def initialize(options_by_rule_name = {})
+    # include: and exclude: globs match paths relative to `root`, the directory of .super-slim.yml.
+    def initialize(options_by_rule_name = {}, root = Dir.pwd)
+      @root = File.join(File.expand_path(root), "")
       @rules = Rules.all.filter_map do |rule_class|
         options = rule_class::DEFAULTS.merge(options_by_rule_name.fetch(rule_class.rule_name, {}).transform_keys(&:to_sym))
         rule_class.new(options) if options[:enabled]
@@ -66,7 +68,8 @@ module SuperSlim
       visits = Document.visits_of(nodes)
       document = Document.new(path:, lines: source.split(/\r?\n/), nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
         visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
-      offenses = @rules.flat_map { _1.offenses(document, source) }
+      relative_path = File.expand_path(path).delete_prefix(@root)
+      offenses = @rules.select { _1.applies_to?(relative_path) }.flat_map { _1.offenses(document, source) }
       # sort_by is not stable: the index keeps offenses of one line in rule order.
       offenses.each_with_index.sort_by { |offense, index| [offense.lineno, index] }.map(&:first)
     rescue SyntaxError => exception
