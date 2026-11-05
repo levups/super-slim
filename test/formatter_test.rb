@@ -36,9 +36,61 @@ class FormatterTest < Minitest::Test
     assert_equal formatted, SuperSlim::Formatter.call(formatted)
   end
 
+  def test_wraps_attributes_one_per_line_inside_delimiters
+    assert_wraps %(a.btn(\n  href="/posts/1"\n  data-turbo="false"\n) Edit\n), %(a.btn href="/posts/1" data-turbo="false" Edit\n)
+    assert_wraps %(li: a(\n  href=url\n  disabled\n) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
+  end
+
+  def test_wraps_attributes_inside_the_configured_delimiters
+    expected = %(a.btn{\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n)
+
+    assert_wraps expected, %(a.btn href="/posts/1" data-turbo="false" Edit\n), attribute_delimiters: "{}"
+    assert_wraps expected, %(a.btn(href="/posts/1" data-turbo="false") Edit\n), attribute_delimiters: "{}"
+    assert_wraps %(p[\n  class=classes\n  title="A long title"\n]\n), %(p class=classes title="A long title"\n), attribute_delimiters: "[]"
+  end
+
+  def test_refuses_unknown_attribute_delimiters
+    assert_raises(ArgumentError) { SuperSlim::Formatter.new(max_line_length: 80, attribute_delimiters: "<>") }
+  end
+
+  def test_wraps_arguments_after_each_comma_up_to_the_block
+    assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
+    assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
+      %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
+    assert_wraps %(= render layout: "card",\n    locals: {post:}\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
+  end
+
+  def test_wraps_the_output_of_a_tag_after_its_attributes
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date post.created_at,\n  :long\n),
+      %(p class=classes title="A long title" = format_date post.created_at, :long\n)
+  end
+
+  def test_leaves_alone_what_wrapping_would_change
+    [
+      %(- first, second = values_of_a_long_list, and_another_one\n),
+      %(p.card title="A long title here" Some text\n  continued on the next line\n),
+      %(*{tag: tag_name, class: "card", id: "dynamic-identifier"} Dynamic\n),
+      %(= render({partial: "a/partial", locals: {post: post}})\n)
+    ].each { assert_wraps _1, _1, max_line_length: 20 }
+  end
+
+  def test_keeps_the_layout_when_a_wrap_would_change_the_ruby
+    formatter = SuperSlim::Formatter.new(max_line_length: 10)
+    formatter.instance_variable_set(:@line_wrapper, ->(_source) { "p Hello,\n  world\n" })
+
+    assert_equal "p Hello, world\n", formatter.call("p Hello, world\n")
+  end
+
   private
 
   def assert_formats(expected, source)
     assert_equal expected, SuperSlim::Formatter.call(source)
+  end
+
+  def assert_wraps(expected, source, max_line_length: 30, attribute_delimiters: "()")
+    formatter = SuperSlim::Formatter.new(max_line_length:, attribute_delimiters:)
+
+    assert_equal expected, formatter.call(source)
+    assert_equal expected, formatter.call(expected)
   end
 end

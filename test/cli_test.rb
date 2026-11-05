@@ -41,6 +41,15 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_fmt_wraps_lines_longer_than_the_configured_length
+    in_templates(%(a.btn href="/posts/1" data-turbo="false" Edit\n)) do |directory|
+      File.write(".super-slim.yml", "fmt:\n  max_line_length: 30\n  attribute_delimiters: \"{}\"\n")
+
+      assert_equal 0, run_cli("fmt", ".").first
+      assert_equal %(a.btn{\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
+    end
+  end
+
   private
 
   def template_name(number) = format("template_%03d.html.slim", number)

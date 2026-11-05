@@ -20,7 +20,7 @@ module SuperSlim
       SuperSlim.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
       case command
       when "lint" then lint(arguments, configuration)
-      when "fmt" then format(arguments)
+      when "fmt" then format(arguments, configuration.fetch("fmt", {}))
       when "version", "--version" then puts(VERSION) || 0
       else warn(USAGE) || EX_USAGE
       end
@@ -35,11 +35,12 @@ module SuperSlim
       offenses.empty? ? 0 : 1
     end
 
-    def format(arguments)
+    def format(arguments, options)
       check = arguments.delete("--check")
+      formatter = Formatter.new(max_line_length: options["max_line_length"], attribute_delimiters: options.fetch("attribute_delimiters", "()"))
       outcomes = Parallel.map(templates(arguments)) do |path|
         source = File.read(path)
-        formatted = Formatter.call(source)
+        formatted = formatter.call(source)
         next if formatted == source
 
         File.write(path, formatted) unless check

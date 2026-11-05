@@ -85,6 +85,10 @@ One parser serves the compiler, the formatter and the linter, so all three read 
 newline. Text blocks move as a whole, so the whitespace they render stays put — and before writing anything,
 the formatter compiles both versions and refuses if the Ruby differs. Formatting cannot change a page.
 
+With `fmt: max_line_length: 120` in `.super-slim.yml`, `fmt` also wraps longer lines: a tag's attributes one
+per line inside `attribute_delimiters` (`"()"` by default, `"[]"` or `"{}"`), then the arguments of its Ruby code after each comma, four spaces deep when the line opens a block. It keeps a wrap only
+when the compiled Ruby differs by whitespace alone, and leaves lines already spread over several lines alone.
+
 `super-slim lint [PATH…]` reads `.super-slim.yml` and checks, with about a third of the CPU time slim-lint takes:
 
 | Rule | From | Default |
