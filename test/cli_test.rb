@@ -46,7 +46,7 @@ class CLITest < Minitest::Test
       File.write(".super-slim.yml", "fmt:\n  max_line_length: 30\n  attribute_delimiters: \"{}\"\n")
 
       assert_equal 0, run_cli("fmt", ".").first
-      assert_equal %(a.btn{\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
+      assert_equal %(a.btn {\n  href="/posts/1"\n  data-turbo="false"\n} Edit\n), File.read(File.join(directory, template_name(1)))
     end
   end
 
