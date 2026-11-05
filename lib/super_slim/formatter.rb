@@ -5,13 +5,15 @@ require_relative "formatter/line_wrapper"
 module SuperSlim
   # Rewrites a template in its canonical layout. Text blocks shift as a whole, so the whitespace they render is
   # kept; and the formatted template must compile to the same Ruby as the original, or nothing is rewritten.
-  # With max_line_length, longer lines are then wrapped, but only if the Ruby differs by nothing but whitespace.
+  # With max_line_length, longer lines are then wrapped, but only if Prism reads the same Ruby, positions aside.
   class Formatter
     INDENT_WIDTH = 2
     CONTROL = /\A-\s*/
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
     REDUNDANT_DIV = /\Adiv(?=[.#][\p{Word}-])/
+    NEWLINE_FLAG = defined?(Prism::NodeFlags::NEWLINE) ? Prism::NodeFlags::NEWLINE : 0
+    FIELDS_BY_NODE_CLASS = {}
 
     def self.call(source, **)
       new(**).call(source)
@@ -24,7 +26,8 @@ module SuperSlim
 
     def call(source)
       formatted = layout(source)
-      unless formatted == source || compiled(formatted) == compiled(source)
+      formatted_ruby = compiled_ruby(formatted) unless formatted == source
+      if formatted_ruby && !same_ruby?(compiled_ruby(source), formatted_ruby)
         raise UnsafeFormattingError, "Formatting would change how this template renders"
       end
       return formatted unless @line_wrapper
@@ -32,8 +35,7 @@ module SuperSlim
       wrapped = @line_wrapper.call(formatted)
       return formatted if wrapped == formatted
 
-      wrapped_tokens = ruby_tokens(wrapped)
-      (wrapped_tokens && wrapped_tokens == ruby_tokens(formatted)) ? wrapped : formatted
+      same_ruby?(formatted_ruby || compiled_ruby(formatted), compiled_ruby(wrapped)) ? wrapped : formatted
     end
 
     private
@@ -99,27 +101,52 @@ module SuperSlim
       line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
-    def compiled(source)
-      SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml).gsub(/(?:\s*[;\n]\s*)+/, ";")
+    # Prism's tree of the compiled Ruby, or the error that stops it.
+    def compiled_ruby(source)
+      code = SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml)
+      # Rails runs a template inside a method, where `yield` is valid.
+      parsed = Prism.parse("def template\n#{code}\nend")
+      parsed.success? ? parsed : code.gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
     end
 
-    # Whitespace aside, wrapping only turns spaces into newlines that Ruby ignores after a comma, and newlines
-    # that end statements into semicolons.
-    def ruby_tokens(source)
-      code = SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml)
-      tokens = Ripper.lex(code).flat_map do |_, type, token|
-        case type
-        when :on_sp, :on_ignored_nl then []
-        when :on_nl, :on_semicolon then [";"]
-        when :on_comment then [token.strip, ";"]
-        else [token]
-        end
+    # Positions aside: line breaks, spaces, a trailing comma and the parentheses of a call change nothing, a
+    # different value or operator does.
+    def same_ruby?(ruby, other_ruby)
+      return ruby == other_ruby if ruby.is_a?(String) || other_ruby.is_a?(String)
+
+      same_node?(ruby.value, other_ruby.value) && comment_texts(ruby) == comment_texts(other_ruby)
+    end
+
+    def same_node?(node, other_node)
+      return false unless node.instance_of?(other_node.class)
+
+      field_names, flags = node_fields(node)
+      return false if flags && (node.send(:flags) & ~NEWLINE_FLAG) != (other_node.send(:flags) & ~NEWLINE_FLAG)
+
+      field_names.all? { |name| same_field?(node.public_send(name), other_node.public_send(name)) }
+    end
+
+    def same_field?(value, other_value)
+      case value
+      when Prism::Node then other_value.is_a?(Prism::Node) && same_node?(value, other_value)
+      when Array then other_value.is_a?(Array) && value.size == other_value.size && value.each_index.all? { same_field?(value[_1], other_value[_1]) }
+      else value == other_value
       end
-      tokens.chunk_while { |previous, token| previous == ";" && token == ";" }.map(&:first)
-    rescue Error
-      nil
+    end
+
+    # Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each class. Prism
+    # 1.x keeps flags out of deconstruct_keys, and counts in them whether a node starts a line.
+    def node_fields(node)
+      FIELDS_BY_NODE_CLASS[node.class] ||= [
+        node.deconstruct_keys(nil).keys.reject { |key| key == :node_id || key == :flags || key == :location || key.end_with?("_loc") },
+        node.respond_to?(:flags, true)
+      ]
+    end
+
+    def comment_texts(ruby)
+      ruby.comments.map { |comment| comment.location.slice.strip }
     end
   end
 end

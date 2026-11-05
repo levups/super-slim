@@ -104,11 +104,13 @@ One parser serves the compiler, the formatter and the linter, so all three read 
 `super-slim format [--check] [PATH…]` (or `fmt`) rewrites templates in their canonical layout: two spaces per level, `- code`,
 `= output` and `p = output` spacing, no redundant `div`, no trailing whitespace, single blank lines, one final
 newline. Text blocks move as a whole, so the whitespace they render stays put — and before writing anything,
-the formatter compiles both versions and refuses if the Ruby differs. Formatting cannot change a page.
+the formatter compiles both versions and refuses unless Prism reads the same Ruby in both, positions aside: line
+breaks, spaces, a trailing comma or the parentheses of a call may differ, nothing else. Formatting cannot change a
+page.
 
 With `format: max_line_length: 120` in `.super-slim.yml`, `format` also wraps longer lines: a tag's attributes one
 per line inside `attribute_delimiters` (`"()"` by default, `"[]"` or `"{}"`), then the arguments of its Ruby code after each comma, four spaces deep when the line opens a block. It keeps a wrap only
-when the compiled Ruby differs by whitespace alone, and leaves lines already spread over several lines alone.
+when Prism reads the same compiled Ruby, and leaves lines already spread over several lines alone.
 
 `super-slim lint [PATH…]` reads `.super-slim.yml` and checks, with about a third of the CPU time slim-lint takes:
 

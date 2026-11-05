@@ -88,10 +88,38 @@ class FormatterTest < Minitest::Test
     assert_equal "p Hello, world\n", formatter.call("p Hello, world\n")
   end
 
+  def test_keeps_a_wrap_that_only_adds_a_trailing_comma_and_parentheses
+    wrapped = "= link_to(\n    post.title,\n    post_path(post),\n  )\n"
+
+    assert_equal wrapped, with_wrapper(wrapped).call("= link_to post.title, post_path(post)\n")
+  end
+
+  def test_refuses_a_wrap_that_moves_an_argument
+    source = "= link_to(post.title) + suffix\n"
+
+    assert_equal source, with_wrapper("= link_to (post.title) + suffix\n").call(source)
+    assert_equal source, with_wrapper("= link_to(post.title) + suffix,\n  more\n").call(source)
+  end
+
+  def test_wraps_a_template_that_yields
+    assert_wraps %(= render "card",\n  body: yield(post)\n), %(= render "card", body: yield(post)\n)
+  end
+
+  def test_wraps_an_argument_that_is_an_if_expression
+    assert_wraps %(= submit_button :save,\n  if post.persisted? then "Save" else "Add" end\n),
+      %(= submit_button :save, if post.persisted? then "Save" else "Add" end\n)
+  end
+
   private
 
   def assert_formats(expected, source)
     assert_equal expected, SuperSlim::Formatter.call(source)
+  end
+
+  def with_wrapper(wrapped)
+    formatter = SuperSlim::Formatter.new(max_line_length: 10)
+    formatter.instance_variable_set(:@line_wrapper, ->(_source) { wrapped })
+    formatter
   end
 
   def assert_wraps(expected, source, max_line_length: 30, attribute_delimiters: "()")
