@@ -58,6 +58,7 @@ module SuperSlim
       @root = File.join(File.expand_path(root), "")
       @rules = Rules.all.filter_map do |rule_class|
         options = rule_class::DEFAULTS.merge(options_by_rule_name.fetch(rule_class.rule_name, {}).transform_keys(&:to_sym))
+        options = with_preset(rule_class.rule_name, options) if options[:preset]
         rule_class.new(options) if options[:enabled]
       end
     end
@@ -75,7 +76,21 @@ module SuperSlim
     rescue SyntaxError => exception
       [Offense.new(path, exception.lineno, "Syntax", exception.error)]
     end
+
+    private
+
+    # The preset's table goes under the rule's own entries, where `~` drops one of the preset.
+    def with_preset(rule_name, options)
+      preset_options = PRESETS.dig(options[:preset], rule_name)
+      unless preset_options
+        presets = PRESETS.filter_map { |preset, options_by_rule| preset if options_by_rule.key?(rule_name) }
+        raise Error, "#{rule_name}: unknown preset `#{options[:preset]}`, use one of: #{presets.join(", ")}"
+      end
+
+      options.merge(preset_options.to_h { |key, entries| [key, entries.merge(Hash(options[key])).compact] })
+    end
   end
 end
 
+require_relative "linter/presets"
 require_relative "linter/rules"

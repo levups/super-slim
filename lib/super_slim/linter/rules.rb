@@ -402,13 +402,14 @@ module SuperSlim
         # A key ending in `*` matches every class with that prefix, and carries the rest over: `ml-*: ms-*`.
         def initialize(options)
           super
-          prefixed, exact = options[:classes].partition { |deprecated,| deprecated.end_with?("*") }
+          prefixed, exact = Hash(options[:classes]).partition { |deprecated,| deprecated.end_with?("*") }
           @replacement_by_class = exact.to_h
-          @prefixed_replacements = prefixed.map { |deprecated, replacement| [deprecated.delete_suffix("*"), replacement] }
+          # The longest prefix wins: `badge-light-*` over `badge-*`.
+          @prefixed_replacements = prefixed.map { |deprecated, replacement| [deprecated.delete_suffix("*"), replacement] }.sort_by { -_1.first.size }
         end
 
         def offenses(document, _source)
-          return [] if options[:classes].empty?
+          return [] if @replacement_by_class.empty? && @prefixed_replacements.empty?
 
           enum_for(:each_tag, document).flat_map do |tag,|
             literal_attributes(tag, "class").flat_map { literal_value(_1).split }.filter_map do |css_class|
@@ -432,15 +433,19 @@ module SuperSlim
       class DeprecatedAttributes < Rule
         DEFAULTS = {enabled: true, attributes: {}}.freeze
 
+        def initialize(options)
+          super
+          @replacement_by_attribute = Hash(options[:attributes])
+        end
+
         def offenses(document, _source)
-          replacement_by_attribute = options[:attributes]
-          return [] if replacement_by_attribute.empty?
+          return [] if @replacement_by_attribute.empty?
 
           enum_for(:each_tag, document).flat_map do |tag,|
             attribute_names(tag).filter_map do |name|
-              next unless replacement_by_attribute.key?(name)
+              next unless (replacement = @replacement_by_attribute[name])
 
-              offense(document, document.line_of(tag), "`#{name}` is deprecated: use `#{replacement_by_attribute[name]}`")
+              offense(document, document.line_of(tag), "`#{name}` is deprecated: use `#{replacement}`")
             end
           end
         end

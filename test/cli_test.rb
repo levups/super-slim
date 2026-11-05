@@ -73,6 +73,16 @@ class CLITest < Minitest::Test
     assert_output("", /Unknown option --check/) { SuperSlim::CLI.new.call(["lint", "--check"]) }
   end
 
+  def test_an_unknown_preset_fails_with_a_usage_error
+    in_templates("p Hello\n") do |directory|
+      File.write(File.join(directory, ".super-slim.yml"), "linters:\n  DeprecatedClasses:\n    preset: bootstrap4\n")
+
+      assert_output("", "DeprecatedClasses: unknown preset `bootstrap4`, use one of: bootstrap5\n") do
+        assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["lint", "."])
+      end
+    end
+  end
+
   def test_include_and_exclude_globs_match_paths_from_the_configuration_directory
     in_templates("p style=\"color: red\" Hello\n") do |directory|
       FileUtils.mkdir_p(File.join(directory, "mailers"))
