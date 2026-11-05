@@ -50,6 +50,19 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_help_prints_the_usage_and_succeeds
+    [["--help"], ["-h"], ["help"], ["fmt", "--help"], ["lint", "-h", "app"]].each do |arguments|
+      assert_equal [0, SuperSlim::CLI::USAGE], run_cli(*arguments), arguments.join(" ")
+    end
+  end
+
+  def test_unknown_options_fail_with_the_usage
+    assert_output("", "Unknown option --chek\n#{SuperSlim::CLI::USAGE}") do
+      assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["fmt", "--chek", "."])
+    end
+    assert_output("", /Unknown option --check/) { SuperSlim::CLI.new.call(["lint", "--check"]) }
+  end
+
   private
 
   def template_name(number) = format("template_%03d.html.slim", number)
