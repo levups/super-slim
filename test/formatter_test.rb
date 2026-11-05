@@ -55,8 +55,9 @@ class FormatterTest < Minitest::Test
 
   def test_wraps_arguments_after_each_comma_up_to_the_block
     assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
-    assert_wraps %(= form_with model: post,\n  url: posts_path do |form, options|\n  = form.text_field :title\n),
+    assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
+    assert_wraps %(= render layout: "card",\n    locals: {post:}\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes

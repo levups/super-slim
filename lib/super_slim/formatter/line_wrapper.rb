@@ -36,7 +36,7 @@ module SuperSlim
           info = parser.outline[lineno]
           next [line] unless line.size > @max_line_length && info.kind == :structure && one_line?(parser.outline[lineno + 1], lineno)
 
-          wrap(line, info)
+          wrap(line, info, children?(parser.outline, lineno))
         end
         "#{wrapped.join("\n")}\n"
       end
@@ -47,7 +47,12 @@ module SuperSlim
         next_info.nil? || next_info.owner != lineno || !CONTINUATION_KINDS.include?(next_info.kind)
       end
 
-      def wrap(line, info)
+      def children?(outline, lineno)
+        next_structure = outline[(lineno + 1)..].find { _1.kind == :structure }
+        next_structure && next_structure.depth > outline[lineno].depth
+      end
+
+      def wrap(line, info, children)
         indent = line[/\A */]
         lists = info.attribute_lists
         lines, code_start =
@@ -58,7 +63,9 @@ module SuperSlim
           end
         return lines unless code_start && lines.last.size > @max_line_length
 
-        lines[0...-1] + wrap_arguments(lines.last, code_start, indent)
+        # Arguments go two levels deeper than the line when it opens a block, so they stand apart from its children.
+        argument_indent = indent + (" " * (children ? 2 * INDENT_WIDTH : INDENT_WIDTH))
+        lines[0...-1] + wrap_arguments(lines.last, code_start, argument_indent)
       end
 
       # A dynamic tag, `*{tag: name}` or `li: *{tag: name}`, has no name for its attribute list to follow.
@@ -82,7 +89,7 @@ module SuperSlim
         end
       end
 
-      def wrap_arguments(line, code_start, indent)
+      def wrap_arguments(line, code_start, argument_indent)
         code = line[code_start..]
         offsets = argument_breaks(code)
         return [line] if offsets.empty?
@@ -93,7 +100,6 @@ module SuperSlim
           first = last
           piece
         end
-        argument_indent = indent + (" " * INDENT_WIDTH)
         [line[0...code_start] + first_piece, *pieces.map { argument_indent + _1 }]
       end
 
