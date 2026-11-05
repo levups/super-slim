@@ -32,7 +32,7 @@ pre .gd { color: var(--flagged); }
 
 .hero { display: grid; grid-template-columns: 1fr; gap: 1.5rem 3rem; align-items: start; border-bottom: 1px solid var(--rail); padding-bottom: 2.5rem; }
 @media (min-width: 52rem) { .hero { grid-template-columns: 1fr 1fr; } .hero .wordmark { grid-column: 1 / -1; } }
-/* The name is the brief: one line across the page. Big Shoulders sets "SuperSlim" about 3.5 em wide, so 24vw fits a phone and 19rem the 70rem page; the bottom margin clears the descender of the p. */
+/* The name is the brief: one line across the page, the tagline and the install block side by side below it. Big Shoulders sets a name of up to 9 letters within 3.5 em, so 24vw fits a phone and 19rem the 70rem page; the bottom margin clears the descenders. */
 .wordmark { font: 800 clamp(4.5rem, 24vw, 19rem)/0.8 "Big Shoulders Display", sans-serif; letter-spacing: -0.02em; margin: 0 0 0.12em; color: var(--accent); }
 .byline { font-size: clamp(1.4rem, 2.6vw, 2rem); line-height: 1.2; font-weight: 600; margin: 0; }
 .byline span { display: block; }
