@@ -53,6 +53,13 @@ class FormatterTest < Minitest::Test
     assert_raises(ArgumentError) { SuperSlim::Formatter.new(max_line_length: 80, attribute_delimiters: "<>") }
   end
 
+  def test_keeps_a_line_that_ends_with_a_modifier_whole
+    source = %(td = link_to post.title, post_path(post) if post.published?\n)
+
+    assert_equal source, SuperSlim::Formatter.new(max_line_length: 30).call(source)
+    assert_wraps %(= link_to post.title,\n  (post_path(post) if post.published?)\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
+  end
+
   def test_wraps_arguments_after_each_comma_up_to_the_block
     assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
     assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
