@@ -13,6 +13,7 @@ module SuperSlim
       OPENINGS = %i[on_lparen on_lbracket on_lbrace on_tlambeg on_embexpr_beg].freeze
       CLOSINGS = %i[on_rparen on_rbracket on_rbrace on_embexpr_end].freeze
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
+      MODIFIERS = %w[if unless while until rescue].freeze
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
       OPENING_BY_ATTRIBUTE_DELIMITERS = {"()" => "(", "[]" => "[", "{}" => " {"}.freeze
@@ -111,7 +112,10 @@ module SuperSlim
         Ripper.lex(code).each do |(_, column), type, token|
           case type
           when :on_heredoc_beg then return []
-          when :on_kw then break if token == "do"
+          when :on_kw
+            break if token == "do"
+            # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
+            return [] if depth.zero? && MODIFIERS.include?(token)
           when :on_op
             # `a, b = …` assigns several variables: its commas separate no arguments.
             return [] if depth.zero? && token == "=" && !offsets.empty?
