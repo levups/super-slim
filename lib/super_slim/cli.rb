@@ -36,7 +36,11 @@ module SuperSlim
     private
 
     def lint(paths, configuration)
-      linter = Linter.new(configuration.fetch("linters", {}))
+      begin
+        linter = Linter.new(configuration.fetch("linters", {}))
+      rescue Error => exception
+        return warn(exception.message) || EX_USAGE
+      end
       offenses = Parallel.map(templates(paths)) { |path| linter.call(path, File.read(path)) }.flatten
       offenses.each { |offense| puts "#{offense.path}:#{offense.lineno}: [#{offense.rule}] #{offense.message}" }
       offenses.empty? ? 0 : 1

@@ -129,6 +129,10 @@ linters:
     include: ["app/views/shop/**/*.slim"]
 ```
 
+`preset: bootstrap5` lists the Bootstrap 4 classes and data attributes Bootstrap 5.3 renamed, breakpoints included
+(`text-md-right`). Its data attributes are plain names like `data-target` or `data-content`: if your own JavaScript
+reads one, drop it with `~`.
+
 Every rule takes `include:` and `exclude:`, lists of globs matched against paths relative to `.super-slim.yml`
 (`**/` spans directories).
 

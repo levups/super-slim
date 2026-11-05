@@ -90,20 +90,22 @@ class LinterTest < Minitest::Test
   end
 
   def test_bootstrap5_preset_under_the_entries_of_the_configuration
-    linter = SuperSlim::Linter.new("DeprecatedClasses" => {"preset" => "bootstrap5", "classes" => {"media" => nil, "text-muted" => "text-secondary"}},
-      "DeprecatedAttributes" => {"preset" => "bootstrap5"})
-    source = "span.ml-2.media.text-muted.badge-pill.badge-info\nbutton{\n  type=\"button\"\n  data-toggle=\"modal\"\n} Open\n"
+    linter = SuperSlim::Linter.new("DeprecatedClasses" => {"preset" => "bootstrap5",
+                                                           "classes" => {"media" => nil, "text-muted" => "text-secondary", "badge-promo-*" => "promo-*"}},
+      "DeprecatedAttributes" => {"preset" => "bootstrap5", "attributes" => nil})
+    source = "span.ml-2.media.text-muted.badge-pill.badge-info.badge-promo-red.text-md-right\nbutton{\n  type=\"button\"\n  data-toggle=\"modal\"\n} Open\n"
 
     assert_equal ["`ml-2` is deprecated: use `ms-2`", "`text-muted` is deprecated: use `text-secondary`",
       "`badge-pill` is deprecated: use `rounded-pill`", "`badge-info` is deprecated: use `text-bg-info`",
+      "`badge-promo-red` is deprecated: use `promo-red`", "`text-md-right` is deprecated: use `text-md-end`",
       "`data-toggle` is deprecated: use `data-bs-toggle`"],
       linter.call("show.html.slim", source).map(&:message)
   end
 
   def test_unknown_preset
-    error = assert_raises(ArgumentError) { SuperSlim::Linter.new("DeprecatedClasses" => {"preset" => "bootstrap4"}) }
+    error = assert_raises(SuperSlim::Error) { SuperSlim::Linter.new("DeprecatedClasses" => {"preset" => "bootstrap4"}) }
 
-    assert_equal "DeprecatedClasses: unknown preset `bootstrap4`, use one of bootstrap5", error.message
+    assert_equal "DeprecatedClasses: unknown preset `bootstrap4`, use one of: bootstrap5", error.message
   end
 
   def test_unescaped_output

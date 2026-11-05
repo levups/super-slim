@@ -33,14 +33,6 @@ module SuperSlim
 
         attr_reader :options
 
-        # The rule's `preset:` table, then its own entries over it: `~` drops a preset entry.
-        def replacements(key)
-          preset = options[:preset] && PRESETS.fetch(options[:preset]) do
-            raise ArgumentError, "#{self.class.rule_name}: unknown preset `#{options[:preset]}`, use one of #{PRESETS.keys.join(", ")}"
-          end
-          (preset ? preset.fetch(self.class.rule_name) : {}).merge(options[key]).compact
-        end
-
         def offense(document, lineno, message)
           Offense.new(document.path, lineno, self.class.rule_name, message)
         end
@@ -410,9 +402,10 @@ module SuperSlim
         # A key ending in `*` matches every class with that prefix, and carries the rest over: `ml-*: ms-*`.
         def initialize(options)
           super
-          prefixed, exact = replacements(:classes).partition { |deprecated,| deprecated.end_with?("*") }
+          prefixed, exact = Hash(options[:classes]).partition { |deprecated,| deprecated.end_with?("*") }
           @replacement_by_class = exact.to_h
-          @prefixed_replacements = prefixed.map { |deprecated, replacement| [deprecated.delete_suffix("*"), replacement] }
+          # The longest prefix wins: `badge-light-*` over `badge-*`.
+          @prefixed_replacements = prefixed.map { |deprecated, replacement| [deprecated.delete_suffix("*"), replacement] }.sort_by { -_1.first.size }
         end
 
         def offenses(document, _source)
@@ -442,7 +435,7 @@ module SuperSlim
 
         def initialize(options)
           super
-          @replacement_by_attribute = replacements(:attributes)
+          @replacement_by_attribute = Hash(options[:attributes])
         end
 
         def offenses(document, _source)
