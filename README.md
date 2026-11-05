@@ -213,5 +213,5 @@ with the version's notes and the `.gem`.
 
 ## License
 
-MIT, by Level UP Solutions, part of [Next Gen Gems](https://github.com/next-gen-gems). The parser follows the
+MIT, by [Level UP Solutions](https://github.com/levups). The parser follows the
 grammar and parsing algorithm of [Slim](https://github.com/slim-template/slim), by the Slim Team (MIT).

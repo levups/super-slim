@@ -49,14 +49,14 @@ Two fixes to `super-slim`: braces around wrapped attributes, and `--help`.
 
 ## [2.0.0] — 2026-11-05
 
-SlimX becomes SuperSlim, sheds what a Rails app doesn't need, and `super-slim fmt` wraps long lines.
+The gem takes the name SuperSlim, sheds what a Rails app doesn't need, and `super-slim fmt` wraps long lines.
 
 **Breaking**
 - The gem is renamed: `super_slim` in the Gemfile, the `SuperSlim` module, the `super-slim lint|fmt` command,
   `.super-slim.yml` and `plugins: [super_slim]` for RuboCop. Compiled templates name their variables
-  `_super_slim1` instead of `_slimx1`.
-- No more Tilt adapter: `require "slimx/tilt"` has no replacement. Rails and `SuperSlim.compile` are unchanged.
-- No more strict mode (`SlimX.strict`, `strict: true`): run `super-slim fmt --check` in CI instead.
+  `_super_slim1`, after the new name.
+- No more Tilt adapter: its `require` has no replacement. Rails and `SuperSlim.compile` are unchanged.
+- No more strict mode (`strict: true`): run `super-slim fmt --check` in CI instead.
 - No more custom shortcuts: only `#id` and `.class`.
 - Only `doctype 5`, `doctype html` and `doctype xml` remain; HTML 4 and XHTML doctypes, such as
   `doctype transitional`, raise `Invalid doctype`.
@@ -69,10 +69,10 @@ SlimX becomes SuperSlim, sheds what a Rails app doesn't need, and `super-slim fm
 
 ## [1.1.0] — 2026-11-04
 
-A RuboCop plugin that lints the Ruby inside templates with SlimX's own parser, and templates compiled up to 10% faster.
+A RuboCop plugin that lints the Ruby inside templates with SuperSlim's own parser, and templates compiled up to 10% faster.
 
 **New**
-- A RuboCop plugin (`plugins: [slimx]`) lints the Ruby of templates: `-` and `=` lines, code attributes, splats,
+- A RuboCop plugin (`plugins: [super-slim]`) lints the Ruby of templates: `-` and `=` lines, code attributes, splats,
   `#{}` interpolations and `ruby:` blocks. Offenses point at their line and column in the `.slim` file, and
   autocorrection writes back into it. It replaces rubocop-slim, and with it slimi and Temple; unlike slimi, it
   also reads the output of a tag with whitespace markers and attributes (`span> title="x" = name`).
@@ -82,7 +82,7 @@ A RuboCop plugin that lints the Ruby inside templates with SlimX's own parser, a
   public templates, Ruby 3.3 and 4.0). Rendering is unchanged.
 
 **Fixed**
-- `slimx lint` reports the offenses of one line in the same order on every Ruby version.
+- `super-slim lint` reports the offenses of one line in the same order on every Ruby version.
 
 ## [1.0.0] — 2026-11-04
 
@@ -91,12 +91,12 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 `.atom`) render as XML.
 
 **New**
-- Rails through a railtie, Tilt through `require "slimx/tilt"`, and `SlimX.compile` for plain Ruby.
+- Rails through a railtie, Tilt through a `require`, and `SuperSlim.compile` for plain Ruby.
 - Every `-` and `=` stays on its template line, so backtraces point at the right one.
-- `slimx fmt`, which refuses any change to the compiled Ruby, and strict mode (`SlimX.strict`), which
+- `super-slim fmt`, which refuses any change to the compiled Ruby, and strict mode, which
   refuses unformatted templates at compile time.
-- `slimx lint` with 29 rules from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y,
-  configured in `.slimx.yml`.
+- `super-slim lint` with 29 rules from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y,
+  configured in `.super-slim.yml`.
 - `tailwind_classes`, off by default: class shortcuts read Tailwind class names.
 
 **Left out**
@@ -114,5 +114,5 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 [2.1.0]: https://github.com/levups/super-slim/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/levups/super-slim/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/levups/super-slim/compare/v1.1.0...v2.0.0
-[1.1.0]: https://github.com/next-gen-gems/slimx/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/next-gen-gems/slimx/releases/tag/v1.0.0
+[1.1.0]: https://github.com/levups/super-slim/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/levups/super-slim/releases/tag/v1.0.0

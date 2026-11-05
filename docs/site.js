@@ -25,7 +25,7 @@ function columnChart({ title, better, rows, format = formatNumber }) {
   const maximum = Math.max(...rows.map((row) => row.value));
   const columns = element("div", { class: "columns", style: { "--count": rows.length }, role: "img", "aria-label": `${title}: ${rows.map((row) => `${row.name} ${format(row.value)}`).join(", ")}` });
   for (const row of rows) {
-    const superSlim = row.name.startsWith("SuperSlim") || row.name.startsWith("super_slim") ? " super_slim" : "";
+    const superSlim = row.name.startsWith("SuperSlim") || row.name.startsWith("super-slim") ? " super_slim" : "";
     columns.append(element("div", { class: `column${superSlim}`, title: `${row.label || row.name}: ${format(row.value)}` },
       element("span", { class: "column-value" }, format(row.value)),
       element("div", { class: `column-bar${superSlim}`, style: { height: `${(row.value / maximum) * 100}%` } }),
@@ -52,7 +52,7 @@ function speedups(benchmarks) {
     compile: compile.length ? Math.min(...compile) : superSlim.compiles_per_second / slim.compiles_per_second,
     render: superSlim.renders_per_second / slim.renders_per_second,
     renderAllocations: slim.render_allocations / superSlim.render_allocations,
-    // CPU time, not wall time: super_slim spreads over every core, slim-lint uses one, so wall time depends on the machine.
+    // CPU time, not wall time: super-slim spreads over every core, slim-lint uses one, so wall time depends on the machine.
     lint: slimLint && slimLint.cpu_milliseconds / named(benchmarks.tools.commands, "super-slim lint").cpu_milliseconds
   };
 }
