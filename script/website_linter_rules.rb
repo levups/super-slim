@@ -54,7 +54,7 @@ EXAMPLE_BY_RULE = {
 }.freeze
 
 RULES_BY_GROUP = {
-  "Layout — fixed by <code>super-slim fmt</code>" =>
+  "Layout — fixed by <code>super-slim format</code>" =>
     %w[Indentation Tab TrailingWhitespace EmptyLines TrailingBlankLines ControlStatementSpacing RedundantDiv],
   "Template hygiene — from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],

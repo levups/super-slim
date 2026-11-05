@@ -1,12 +1,12 @@
 name: Formatter or linter
-description: super-slim fmt rewrites a template wrongly, or super-slim lint reports a false positive or misses a mistake
+description: super-slim format rewrites a template wrongly, or super-slim lint reports a false positive or misses a mistake
 labels: [bug]
 body:
   - type: dropdown
     id: command
     attributes:
       label: Command
-      options: [super-slim fmt, super-slim lint, other]
+      options: [super-slim format, super-slim lint, other]
     validations:
       required: true
   - type: textarea

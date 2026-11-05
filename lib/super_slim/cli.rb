@@ -7,14 +7,14 @@ require_relative "parallel"
 module SuperSlim
   class CLI
     USAGE = <<~TEXT
-      Usage: super-slim lint [PATH…]             report what breaks the rules of .super-slim.yml
-             super-slim fmt [--check] [PATH…]    rewrite templates in their canonical layout
+      Usage: super-slim lint [PATH…]               report what breaks the rules of .super-slim.yml
+             super-slim format [--check] [PATH…]   rewrite templates in their canonical layout (alias: fmt)
              super-slim version
     TEXT
     SKIPPED_DIRECTORIES = %r{(\A|/)(\.git|node_modules|tmp|vendor)/}
     EX_USAGE = 64
     HELP_OPTIONS = %w[--help -h].freeze
-    OPTIONS_BY_COMMAND = {"fmt" => ["--check"]}.freeze
+    OPTIONS_BY_COMMAND = {"format" => ["--check"], "fmt" => ["--check"]}.freeze
 
     def call(arguments)
       return puts(USAGE) || 0 if arguments.first == "help" || arguments.intersect?(HELP_OPTIONS)
@@ -27,7 +27,7 @@ module SuperSlim
       SuperSlim.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
       case command
       when "lint" then lint(arguments, configuration)
-      when "fmt" then format(arguments, configuration.fetch("fmt", {}))
+      when "format", "fmt" then format(arguments, configuration["format"] || configuration.fetch("fmt", {}))
       when "version", "--version" then puts(VERSION) || 0
       else warn(USAGE) || EX_USAGE
       end

@@ -79,7 +79,7 @@
       <ul>
         <li>Slim and SuperSlim both compile it, or both refuse it;</li>
         <li>SuperSlim’s Ruby parses, with every line where it belongs;</li>
-        <li><code>super-slim fmt</code> is idempotent, and refuses any change to the compiled Ruby;</li>
+        <li><code>super-slim format</code> is idempotent, and refuses any change to the compiled Ruby;</li>
         <li>the linter runs, and its offenses go to a report.</li>
       </ul>
       <p>Downloaded templates are never rendered: rendering runs their Ruby. A production Rails app of about 1,400 templates, whose code we trust, is rendered through both engines against a stub that answers every helper, before and after formatting, with identical HTML.</p>

@@ -4,7 +4,7 @@
 # the same HTML, and writes the numbers the site shows to docs/benchmarks.json.
 #   rake bench                                    # what to run before each release
 #   SUPER_SLIM_CORPUS=~/app/views rake bench           # adds the compile time of a whole app's .slim templates
-# With corpus/cache fetched (rake corpus:fetch), it also times the public corpus, and super-slim lint and fmt there
+# With corpus/cache fetched (rake corpus:fetch), it also times the public corpus, and super-slim lint and format there
 # against slim-lint when slim-lint is installed.
 require "benchmark/ips"
 require "digest"
@@ -154,7 +154,7 @@ if File.directory?(PUBLIC_CORPUS_DIRECTORY)
   super_slim = [RbConfig.ruby, "--yjit", File.expand_path("../exe/super-slim", __dir__)]
   tools = [
     command_timing("super-slim lint", *super_slim, "lint", PUBLIC_CORPUS_DIRECTORY),
-    command_timing("super-slim fmt --check", *super_slim, "fmt", "--check", PUBLIC_CORPUS_DIRECTORY)
+    command_timing("super-slim format --check", *super_slim, "format", "--check", PUBLIC_CORPUS_DIRECTORY)
   ]
   if slim_lint && !slim_lint.empty?
     version = Bundler.with_unbundled_env { `slim-lint --version`[/[\d.]+/] }

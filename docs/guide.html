@@ -134,7 +134,7 @@
       <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SuperSlim renders.</li>
       <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "super_slim"</code>.</li>
       <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call. Custom shortcuts are gone: write the attribute instead.</li>
-      <li>Run <code>super-slim fmt</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim fmt --check</code> to CI.</li>
+      <li>Run <code>super-slim format</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim format --check</code> to CI.</li>
     </ol>
   </section>
 

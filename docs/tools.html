@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SuperSlim Formatter and Linter</title>
-<meta name="description" content="super-slim fmt rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
+<meta name="description" content="super-slim format rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
 <link rel="canonical" href="https://levups.github.io/super-slim/tools.html">
 <meta property="og:title" content="SuperSlim Formatter and Linter">
-<meta property="og:description" content="super-slim fmt rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
+<meta property="og:description" content="super-slim format rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://levups.github.io/super-slim/tools.html">
 <meta property="og:site_name" content="Next Gen Gems">
@@ -48,11 +48,11 @@
   <section id="formatter" aria-labelledby="formatter-title">
     <h2 id="formatter-title">Formatter</h2>
     <div class="prose">
-<pre><code class="language-sh">super_slim <span class="nb">fmt</span> <span class="o">[</span>PATH…]           <span class="c"># rewrite templates in place</span>
-super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
+<pre><code class="language-sh">super-slim format <span class="o">[</span>PATH…]           <span class="c"># rewrite templates in place</span>
+super-slim format <span class="nt">--check</span> <span class="o">[</span>PATH…]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
-      <p>With <code>fmt: max_line_length</code> in <code>.super-slim.yml</code>, longer lines are wrapped: a tag&rsquo;s attributes one per line inside <code>attribute_delimiters</code> (<code>()</code> by default, or <code>[]</code>, <code>{}</code>), then the arguments of its Ruby code after each comma, which Slim reads as a line that goes on. When the line opens a block, its arguments go four spaces deeper, apart from the block&rsquo;s children. Lines already spread over several lines stay as they are, and a wrap is only kept when the compiled Ruby differs by whitespace alone.</p>
+      <p>With <code>format: max_line_length</code> in <code>.super-slim.yml</code>, longer lines are wrapped: a tag&rsquo;s attributes one per line inside <code>attribute_delimiters</code> (<code>()</code> by default, or <code>[]</code>, <code>{}</code>), then the arguments of its Ruby code after each comma, which Slim reads as a line that goes on. When the line opens a block, its arguments go four spaces deeper, apart from the block&rsquo;s children. Lines already spread over several lines stay as they are, and a wrap is only kept when the compiled Ruby differs by whitespace alone.</p>
 <pre><code class="language-slim"><span class="nt">a</span><span class="nc">.btn</span>(
   <span class="nt">href</span><span class="p">=</span><span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
   <span class="nt">data</span><span class="na">-turbo-frame</span><span class="p">=</span><span class="s">"modal"</span>
@@ -93,7 +93,7 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
       <p>Both commands read <code>.super-slim.yml</code> from the current directory. Every key is optional:</p>
 <pre><code class="language-yaml"><span class="na">tailwind_classes</span><span class="pi">:</span> <span class="kc">true</span>     <span class="c1"># read templates the way the app compiles them</span>
 
-<span class="na">fmt</span><span class="pi">:</span>
+<span class="na">format</span><span class="pi">:</span>
   <span class="na">max_line_length</span><span class="pi">:</span> <span class="m">120</span>     <span class="c1"># wrap longer lines, default off</span>
   <span class="na">attribute_delimiters</span><span class="pi">:</span> <span class="s2">"</span><span class="s">{}"</span> <span class="c1"># around wrapped attributes: "()", "[]" or "{}", default "()"</span>
 
@@ -129,7 +129,7 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
     <h2 id="ci-title">In CI</h2>
     <div class="prose">
 <pre><code class="language-yaml"><span class="c1"># .github/workflows/lint.yml</span>
-<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec super-slim fmt --check app</span>
+<span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec super-slim format --check app</span>
 <span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec super-slim lint app</span>
 <span class="pi">-</span> <span class="na">run</span><span class="pi">:</span> <span class="s">bundle exec rubocop -c .rubocop-slim.yml app</span></code></pre>
       <p>Both print one line per file or offense, <code>path:line: [Rule] message</code> for the linter, and exit 0 when there is nothing to report, 1 otherwise, 64 on a usage error.</p>
@@ -140,7 +140,7 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
     <h2 id="rules-title">Rules</h2>
     <p class="note">Each example below is run through the linter when the page is generated: the flagged one must be flagged, the clean one must pass.</p>
 <!-- linter-rules -->
-<section class="rule-group"><h3>Layout — fixed by <code>super-slim fmt</code></h3>
+<section class="rule-group"><h3>Layout — fixed by <code>super-slim format</code></h3>
 <details class="rule">
   <summary><span class="rule-name">Indentation</span><span class="rule-message">Indent with 2 spaces, not 3</span></summary>
   <div class="rule-examples">
