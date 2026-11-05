@@ -62,9 +62,9 @@ module SuperSlim
           }.freeze
         },
         "DeprecatedAttributes" => {
-          attributes: %w[animation autohide backdrop boundary container content delay dismiss display fallback-placement flip
-            html interval keyboard offset parent pause placement reference ride selector slide slide-to spy target template
-            toggle touch trigger wrap].to_h { ["data-#{_1}", "data-bs-#{_1}"] }.freeze
+          # Generic names Bootstrap also renamed (`data-content`, `data-delay`, `data-template`…) stay out: apps read them too.
+          attributes: %w[backdrop boundary dismiss interval keyboard parent pause placement ride slide slide-to spy target
+            toggle trigger wrap].to_h { ["data-#{_1}", "data-bs-#{_1}"] }.freeze
         }
       }.freeze
     }.freeze

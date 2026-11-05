@@ -130,8 +130,9 @@ linters:
 ```
 
 `preset: bootstrap5` lists the Bootstrap 4 classes and data attributes Bootstrap 5.3 renamed, breakpoints included
-(`text-md-right`). Its data attributes are plain names like `data-target` or `data-content`: if your own JavaScript
-reads one, drop it with `~`.
+(`text-md-right`). Its data attributes are only those of Bootstrap's components (`data-toggle`, `data-target`…):
+generic ones like `data-content` or `data-delay` go in `attributes:` if your app needs them, and `~` drops an entry of
+the preset your own JavaScript reads.
 
 Every rule takes `include:` and `exclude:`, lists of globs matched against paths relative to `.super-slim.yml`
 (`**/` spans directories).
