@@ -11,7 +11,7 @@ class LiterateTest < Minitest::Test
   SPECIFICATION_PATH = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/literate/TESTS.md")
   REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
   UNSUPPORTED_OPTIONS = %i[disable_escape shortcut].freeze
-  DROPPED_FEATURES = ["IE conditional comment", "Doctype tags"].freeze
+  DROPPED_FEATURES = ["IE conditional comment"].freeze
 
   Example = Data.define(:title, :slim, :options)
 
