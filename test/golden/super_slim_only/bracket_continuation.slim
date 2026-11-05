@@ -1,0 +1,30 @@
+- names = [
+    "alice",
+    "bob",
+  ]
+p = names.join(", ")
+- words = %w[
+    alice
+    bob
+  ]
+p = words.join(" ")
+- options = {
+    class: "badge",
+    title: "alice",
+  }
+p = options.values.join(" ")
+p = format(
+    "%s and %s",
+    "alice",
+    "bob",
+  )
+= format(
+    "%s, %s",
+    *names,
+  )
+ul
+  - names.map(
+        &:upcase
+      ).each do |name|
+    li = name
+p = format("(%s", "alice")
