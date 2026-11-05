@@ -4,7 +4,7 @@ A Slim template engine rewritten from scratch: no Temple, no filter pipeline, a 
 render-time runtime of a few methods. Templates written for [Slim](https://github.com/slim-template/slim) 5
 render byte for byte the same, faster, with fewer allocations.
 
-https://next-gen-gems.github.io/super-slim/
+https://levups.github.io/super-slim/
 
 ## Installation
 

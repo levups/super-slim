@@ -10,7 +10,7 @@ module SuperSlim
   module RuboCop
     class Plugin < LintRoller::Plugin
       def about
-        LintRoller::About.new(name: "super_slim", version: VERSION, homepage: "https://github.com/next-gen-gems/super-slim",
+        LintRoller::About.new(name: "super_slim", version: VERSION, homepage: "https://github.com/levups/super-slim",
           description: "Lints the Ruby of Slim templates, read by SuperSlim's parser")
       end
 
