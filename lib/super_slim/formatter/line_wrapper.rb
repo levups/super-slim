@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "ripper"
-
 module SuperSlim
   class Formatter
     # Breaks the lines of a formatted template longer than max_line_length: a tag's attributes one per line
@@ -10,10 +8,9 @@ module SuperSlim
     class LineWrapper
       CODE_LINE = /\A *(?:-|==?[<>]*) /
       TAG_OUTPUT = /\G\s*==?['<>]*\s*/
-      OPENINGS = %i[on_lparen on_lbracket on_lbrace on_tlambeg on_embexpr_beg].freeze
-      CLOSINGS = %i[on_rparen on_rbracket on_rbrace on_embexpr_end].freeze
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
-      MODIFIERS = %w[if unless while until rescue].freeze
+      BLOCK_OPENINGS = %i[KEYWORD_DO KEYWORD_DO_LOOP].freeze
+      MODIFIERS = %i[KEYWORD_IF_MODIFIER KEYWORD_UNLESS_MODIFIER KEYWORD_WHILE_MODIFIER KEYWORD_UNTIL_MODIFIER KEYWORD_RESCUE_MODIFIER].freeze
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
       OPENING_BY_ATTRIBUTE_DELIMITERS = {"()" => "(", "[]" => "[", "{}" => " {"}.freeze
@@ -109,19 +106,17 @@ module SuperSlim
       def argument_breaks(code)
         depth = 0
         offsets = []
-        Ripper.lex(code).each do |(_, column), type, token|
-          case type
-          when :on_heredoc_beg then return []
-          when :on_kw
-            break if token == "do"
-            # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
-            return [] if depth.zero? && MODIFIERS.include?(token)
-          when :on_op
-            # `a, b = …` assigns several variables: its commas separate no arguments.
-            return [] if depth.zero? && token == "=" && !offsets.empty?
-          when :on_comma then offsets << column + 1 if depth.zero?
-          when *OPENINGS then depth += 1
-          when *CLOSINGS then depth -= 1
+        Prism.lex(code).value.each do |(token, _state)|
+          case token.type
+          when :COMMA then offsets << token.location.end_offset if depth.zero?
+          when :HEREDOC_START then return []
+          # `a, b = …` assigns several variables: its commas separate no arguments.
+          when :EQUAL then return [] if depth.zero? && !offsets.empty?
+          when *BLOCK_OPENINGS then break
+          # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
+          when *MODIFIERS then return [] if depth.zero?
+          when *Parser::OPENING_BRACKETS then depth += 1
+          when *Parser::CLOSING_BRACKETS then depth -= 1
           end
         end
         offsets
