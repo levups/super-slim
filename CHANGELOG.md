@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-11-05
+
+SuperSlim is published as super-slim, the name of its command.
+
+**Breaking**
+- The gem is renamed `super-slim`: write `gem "super-slim"` in the Gemfile and `plugins: [super-slim]` in RuboCop's
+  configuration. The `SuperSlim` module, `require "super_slim"`, the `super-slim` command and `.super-slim.yml` are
+  unchanged.
+
 ## [2.2.0] — 2026-11-05
 
 Six linter rules and options, `super-slim format`, and a formatter that no longer wraps a line RuboCop then refuses.
@@ -99,7 +108,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/levups/super-slim/compare/v2.2.0...v3.0.0
 [2.2.0]: https://github.com/levups/super-slim/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/levups/super-slim/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/levups/super-slim/compare/v2.0.0...v2.0.1
