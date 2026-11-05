@@ -96,4 +96,19 @@ p title=(yes ? "on" : "off") Ternary
 p title=items.first Method chain
 p title=(items.size > 2 && "many") Expression
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `Static` instead of writing it in the template
+2: [HardcodedText] Translate `Dynamic` instead of writing it in the template
+3: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+3: [HardcodedText] Translate `Unescaped value` instead of writing it in the template
+4: [HardcodedText] Translate `Parentheses` instead of writing it in the template
+5: [HardcodedText] Translate `Brackets` instead of writing it in the template
+6: [HardcodedText] Translate `Braces` instead of writing it in the template
+7: [HardcodedText] Translate `Multi-line braces` instead of writing it in the template
+12: [HardcodedText] Translate `Multi-line parentheses` instead of writing it in the template
+21: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+25: [HardcodedText] Translate `Static true` instead of writing it in the template
+26: [HardcodedText] Translate `Static false` instead of writing it in the template
+27: [HardcodedText] Translate `Static nil` instead of writing it in the template
+28: [HardcodedText] Translate `Ternary` instead of writing it in the template
+29: [HardcodedText] Translate `Method chain` instead of writing it in the template
+30: [HardcodedText] Translate `Expression` instead of writing it in the template

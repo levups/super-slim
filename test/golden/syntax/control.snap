@@ -108,4 +108,12 @@ p = long
   article
     h2 = post.title
 ~~~~~~~~ super_slim: lint
-
+2: [HardcodedText] Translate `yes` instead of writing it in the template
+4: [HardcodedText] Translate `no` instead of writing it in the template
+6: [HardcodedText] Translate `else` instead of writing it in the template
+8: [HardcodedText] Translate `unless` instead of writing it in the template
+11: [HardcodedText] Translate `primary` instead of writing it in the template
+13: [HardcodedText] Translate `secondary` instead of writing it in the template
+15: [HardcodedText] Translate `other` instead of writing it in the template
+29: [HardcodedText] Translate `rescued` instead of writing it in the template
+31: [HardcodedText] Translate `never` instead of writing it in the template

@@ -18,4 +18,7 @@ _buf << "<div class=\"p-1 rounded-b-\" 3px>x</div><div class=\"w-1/2\">half</div
 .mx-0.5 dot
 p[3px] bracket
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `x` instead of writing it in the template
+2: [HardcodedText] Translate `half` instead of writing it in the template
+3: [HardcodedText] Translate `dot` instead of writing it in the template
+4: [HardcodedText] Translate `bracket` instead of writing it in the template

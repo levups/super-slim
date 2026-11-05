@@ -30,4 +30,9 @@ ul.*:p-2
 .dark:md:hover:bg-white/10 Stacked variants and opacity
 .mx-0.5.py-1.5.w-1/2 Decimals and fractions
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `Variants` instead of writing it in the template
+2: [HardcodedText] Translate `Important` instead of writing it in the template
+4: [HardcodedText] Translate `Container queries` instead of writing it in the template
+6: [HardcodedText] Translate `Child variant` instead of writing it in the template
+7: [HardcodedText] Translate `Stacked variants and opacity` instead of writing it in the template
+8: [HardcodedText] Translate `Decimals and fractions` instead of writing it in the template

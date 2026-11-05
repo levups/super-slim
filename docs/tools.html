@@ -67,7 +67,7 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATH…]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">29</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">33</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -103,10 +103,23 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
   <span class="na">ConsecutiveControlStatements</span><span class="pi">:</span>
     <span class="na">max</span><span class="pi">:</span> <span class="m">3</span>                   <span class="c1"># lines of `-` before asking for a ruby: block, default 2</span>
   <span class="na">ButtonType</span><span class="pi">:</span>
-    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># rules off by default: ButtonType, InlineStyles, StrictLocals</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, EmbeddedEngines, HardcodedText, InlineStyles, StrictLocals, UnescapedOutput</span>
   <span class="na">DeprecatedClasses</span><span class="pi">:</span>
     <span class="na">classes</span><span class="pi">:</span>
       <span class="na">text-muted</span><span class="pi">:</span> <span class="s">text-body-secondary</span>
+      <span class="na">ml-*</span><span class="pi">:</span> <span class="s">ms-*</span>             <span class="c1"># a prefix: ml-auto becomes ms-auto</span>
+  <span class="na">DeprecatedAttributes</span><span class="pi">:</span>
+    <span class="na">attributes</span><span class="pi">:</span>
+      <span class="na">data-toggle</span><span class="pi">:</span> <span class="s">data-bs-toggle</span>
+  <span class="na">EmbeddedEngines</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>
+    <span class="na">forbidden_engines</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">javascript</span><span class="pi">,</span> <span class="nv">css</span><span class="pi">]</span>
+  <span class="na">HardcodedText</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>
+    <span class="na">include</span><span class="pi">:</span> <span class="pi">[</span><span class="s2">"</span><span class="s">app/views/shop/**/*.slim"</span><span class="pi">]</span>   <span class="c1"># every rule takes include: and exclude: globs</span>
+  <span class="na">InlineStyles</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>
+    <span class="na">exclude</span><span class="pi">:</span> <span class="pi">[</span><span class="s2">"</span><span class="s">app/views/*_mailer/**/*"</span><span class="pi">]</span>   <span class="c1"># relative to .super-slim.yml</span>
   <span class="na">InstanceVariables</span><span class="pi">:</span>
     <span class="na">enabled</span><span class="pi">:</span> <span class="kc">false</span></code></pre>
     </div>
@@ -163,6 +176,7 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
   <summary><span class="rule-name">EmptyLines</span><span class="rule-message">Remove this extra empty line</span></summary>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
+
 
 <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
@@ -303,11 +317,48 @@ super_slim <span class="nb">fmt</span> <span class="nt">--check</span> <span cla
   </div>
 </details>
 <details class="rule">
+  <summary><span class="rule-name">DeprecatedAttributes</span><span class="rule-message"><code>data-toggle</code> is deprecated: use <code>data-bs-toggle</code></span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">data-toggle</span><span class="p">=</span><span class="s">"modal"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Open
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">data-bs-toggle</span><span class="p">=</span><span class="s">"modal"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Open
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
   <summary><span class="rule-name">InlineStyles</span><span class="rule-default off">off by default</span><span class="rule-message">Move inline styles to a stylesheet</span></summary>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="na">style</span><span class="p">=</span><span class="s">"color: red"</span><span class="w"> </span>Text
 </code></pre></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-danger</span><span class="w"> </span>Text
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
+  <summary><span class="rule-name">UnescapedOutput</span><span class="rule-default off">off by default</span><span class="rule-message"><code>==</code> skips HTML escaping: output with <code>=</code>, or render HTML from a translation key ending in <code>_html</code></span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span><span class="o">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">intro</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">t</span><span class="p">(</span><span class="s2">".intro_html"</span><span class="p">)</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
+  <summary><span class="rule-name">EmbeddedEngines</span><span class="rule-default off">off by default</span><span class="rule-message">The <code>javascript:</code> engine is forbidden here: move this code to a file of its own</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nd">javascript:
+</span>  <span class="nf">track</span><span class="p">(</span><span class="dl">"</span><span class="s2">view</span><span class="dl">"</span><span class="p">)</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">data-controller</span><span class="p">=</span><span class="s">"tracking"</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
+  <summary><span class="rule-name">HardcodedText</span><span class="rule-default off">off by default</span><span class="rule-message">Translate <code>Welcome</code> instead of writing it in the template</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Welcome
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span><span class="p">=</span> <span class="n">t</span><span class="p">(</span><span class="s2">".welcome"</span><span class="p">)</span>
 </code></pre></div>
   </div>
 </details>

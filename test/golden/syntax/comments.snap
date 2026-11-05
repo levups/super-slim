@@ -28,4 +28,4 @@ _buf << "--><!--Multi-line HTML comment\non two lines--><p>After comments</p>".f
   on two lines
 p After comments
 ~~~~~~~~ super_slim: lint
-
+7: [HardcodedText] Translate `After comments` instead of writing it in the template

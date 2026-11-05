@@ -39,4 +39,4 @@ rss version="2.0"
         enclosure url=post.url length="0" type="image/webp"
         guid isPermaLink=no = post.id
 ~~~~~~~~ super_slim: lint
-
+9: [HardcodedText] Translate `Fri, 30 Oct 2026 10:00:00 +0000` instead of writing it in the template

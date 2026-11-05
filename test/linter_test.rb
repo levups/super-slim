@@ -79,6 +79,76 @@ class LinterTest < Minitest::Test
     assert_equal %w[LineLength ButtonType DeprecatedClasses].sort, offenses.map(&:rule).sort
   end
 
+  def test_deprecated_classes_by_prefix_and_attributes
+    linter = SuperSlim::Linter.new("DeprecatedClasses" => {"classes" => {"ml-*" => "ms-*", "badge-*" => "text-bg-*", "close" => "btn-close"}},
+      "DeprecatedAttributes" => {"attributes" => {"data-toggle" => "data-bs-toggle"}})
+    source = "span.ml-2.ml.badge-info.close\nbutton{\n  type=\"button\"\n  data-toggle=\"modal\"\n} Open\n"
+
+    assert_equal ["`ml-2` is deprecated: use `ms-2`", "`badge-info` is deprecated: use `text-bg-info`",
+      "`close` is deprecated: use `btn-close`", "`data-toggle` is deprecated: use `data-bs-toggle`"],
+      linter.call("show.html.slim", source).map(&:message)
+  end
+
+  def test_unescaped_output
+    linter = SuperSlim::Linter.new("UnescapedOutput" => {"enabled" => true})
+    source = <<~'SLIM'
+      == post.body
+      p = raw(post.body)
+      a href==url = title
+      p = t(".intro").html_safe
+      p Hello #{{name}}
+      ruby:
+        intro = post.intro.html_safe
+      p = form.raw_value
+      p = t(".intro_html")
+    SLIM
+    offenses = linter.call("show.html.slim", source)
+
+    assert_equal ["UnescapedOutput:1", "UnescapedOutput:2", "UnescapedOutput:3", "UnescapedOutput:4", "UnescapedOutput:5",
+      "UnescapedOutput:6"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
+    assert_equal "`raw` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`", offenses[1].message
+  end
+
+  def test_embedded_engines
+    linter = SuperSlim::Linter.new("EmbeddedEngines" => {"enabled" => true, "forbidden_engines" => %w[javascript css]})
+
+    assert_equal ["EmbeddedEngines:2"], linter.call("show.html.slim", "p Hello\njavascript:\n  alert(1)\nruby:\n  x = 1\n")
+      .map { "#{_1.rule}:#{_1.lineno}" }
+  end
+
+  def test_hardcoded_text
+    linter = SuperSlim::Linter.new("HardcodedText" => {"enabled" => true})
+    source = <<~'SLIM'
+      h1 Welcome
+      p
+        | Read the
+          full story
+      p = t(".title")
+      p #{count} &mdash; 12
+      ' &nbsp;
+      / Comment
+      p #{{name}}
+      description
+        | <![CDATA[
+        = post.body
+        | ]]>
+    SLIM
+    offenses = linter.call("show.html.slim", source)
+
+    assert_equal ["HardcodedText:1", "HardcodedText:3"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
+    assert_equal "Translate `Read the full story` instead of writing it in the template", offenses.last.message
+  end
+
+  def test_include_and_exclude_globs
+    linter = SuperSlim::Linter.new({"InlineStyles" => {"enabled" => true, "include" => ["app/**/*.slim"], "exclude" => ["app/views/*_mailer/**/*"]}},
+      "/project")
+    source = "p style=\"color: red\" Hello\n"
+
+    assert_equal ["InlineStyles"], linter.call("/project/app/views/posts/show.html.slim", source).map(&:rule)
+    assert_empty linter.call("/project/app/views/user_mailer/welcome.html.slim", source)
+    assert_empty linter.call("/project/lib/templates/show.html.slim", source)
+  end
+
   def test_offenses_of_one_line_come_in_rule_order
     offenses = SuperSlim::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
     assert_equal %w[LineLength ImageAlt], offenses.map(&:rule)

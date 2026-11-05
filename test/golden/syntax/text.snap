@@ -63,4 +63,13 @@ p
     Block starting on the next line
     with two lines
 ~~~~~~~~ super_slim: lint
-
+2: [HardcodedText] Translate `First line continued on a second line an…` instead of writing it in the template
+5: [HardcodedText] Translate `Escaped \#{not interpolated}` instead of writing it in the template
+6: [UnescapedOutput] `#{{}}` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+6: [HardcodedText] Translate `Inline #{title} and #{{markup}} raw` instead of writing it in the template
+7: [HardcodedText] Translate `Unicode: #{unicode}` instead of writing it in the template
+8: [HardcodedText] Translate `Top level text with & and < and >` instead of writing it in the template
+10: [HardcodedText] Translate `inside inline html` instead of writing it in the template
+13: [HardcodedText] Translate `Text with apostrophe marker` instead of writing it in the template
+14: [HardcodedText] Translate `Final` instead of writing it in the template
+16: [HardcodedText] Translate `Block starting on the next line with two…` instead of writing it in the template

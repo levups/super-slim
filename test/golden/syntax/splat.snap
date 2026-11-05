@@ -42,4 +42,13 @@ p aria=aria Aria hash
 p data=nothing Data nil
 p data="plain" Data string
 ~~~~~~~~ super_slim: lint
-
+1: [HardcodedText] Translate `Splat` instead of writing it in the template
+2: [HardcodedText] Translate `Splat without space` instead of writing it in the template
+3: [HardcodedText] Translate `Literal splat` instead of writing it in the template
+4: [HardcodedText] Translate `Merge with splat` instead of writing it in the template
+7: [HardcodedText] Translate `Dynamic tag` instead of writing it in the template
+8: [HardcodedText] Translate `Dynamic tag with attributes` instead of writing it in the template
+9: [HardcodedText] Translate `Data hash` instead of writing it in the template
+10: [HardcodedText] Translate `Aria hash` instead of writing it in the template
+11: [HardcodedText] Translate `Data nil` instead of writing it in the template
+12: [HardcodedText] Translate `Data string` instead of writing it in the template

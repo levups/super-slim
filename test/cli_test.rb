@@ -2,6 +2,7 @@
 
 require "minitest/autorun"
 require "stringio"
+require "fileutils"
 require "tmpdir"
 require "super_slim/cli"
 
@@ -61,6 +62,25 @@ class CLITest < Minitest::Test
       assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["fmt", "--chek", "."])
     end
     assert_output("", /Unknown option --check/) { SuperSlim::CLI.new.call(["lint", "--check"]) }
+  end
+
+  def test_include_and_exclude_globs_match_paths_from_the_configuration_directory
+    in_templates("p style=\"color: red\" Hello\n") do |directory|
+      FileUtils.mkdir_p(File.join(directory, "mailers"))
+      File.write(File.join(directory, "mailers", "welcome.html.slim"), "p style=\"color: red\" Hello\n")
+      File.write(File.join(directory, ".super-slim.yml"), <<~YAML)
+        linters:
+          InlineStyles:
+            enabled: true
+            include: ["**/*.slim"]
+            exclude: ["mailers/**/*"]
+      YAML
+      status, output = run_cli("lint", ".")
+
+      assert_equal 1, status
+      assert_equal TEMPLATE_COUNT, output.lines.size
+      refute_includes output, "mailers"
+    end
   end
 
   private

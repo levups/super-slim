@@ -18,8 +18,15 @@ module SuperSlim
           name.split("::").last
         end
 
+        GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH
+
         def initialize(options)
           @options = options
+        end
+
+        def applies_to?(path)
+          included = options[:include].nil? || Array(options[:include]).any? { File.fnmatch?(_1, path, GLOB_FLAGS) }
+          included && Array(options[:exclude]).none? { File.fnmatch?(_1, path, GLOB_FLAGS) }
         end
 
         private
@@ -38,6 +45,15 @@ module SuperSlim
 
         def attribute_names(tag)
           tag.attributes.filter_map { _1.name unless _1.is_a?(AST::Splat) }
+        end
+
+        # Text nodes carry no line of their own: they take the line of the closest node that does.
+        def line_near(document, node, ancestors)
+          [node, *ancestors.reverse].each do |candidate|
+            lineno = document.line_of(candidate)
+            return lineno if lineno
+          end
+          nil
         end
 
         def each_line(document)
@@ -383,15 +399,48 @@ module SuperSlim
       class DeprecatedClasses < Rule
         DEFAULTS = {enabled: true, classes: {}}.freeze
 
+        # A key ending in `*` matches every class with that prefix, and carries the rest over: `ml-*: ms-*`.
+        def initialize(options)
+          super
+          prefixed, exact = options[:classes].partition { |deprecated,| deprecated.end_with?("*") }
+          @replacement_by_class = exact.to_h
+          @prefixed_replacements = prefixed.map { |deprecated, replacement| [deprecated.delete_suffix("*"), replacement] }
+        end
+
         def offenses(document, _source)
-          replacement_by_class = options[:classes]
-          return [] if replacement_by_class.empty?
+          return [] if options[:classes].empty?
 
           enum_for(:each_tag, document).flat_map do |tag,|
             literal_attributes(tag, "class").flat_map { literal_value(_1).split }.filter_map do |css_class|
-              next unless replacement_by_class.key?(css_class)
+              next unless (replacement = replacement_of(css_class))
 
-              offense(document, document.line_of(tag), "`#{css_class}` is deprecated: use `#{replacement_by_class[css_class]}`")
+              offense(document, document.line_of(tag), "`#{css_class}` is deprecated: use `#{replacement}`")
+            end
+          end
+        end
+
+        private
+
+        def replacement_of(css_class)
+          return @replacement_by_class[css_class] if @replacement_by_class.key?(css_class)
+
+          prefix, replacement = @prefixed_replacements.find { |prefix,| css_class.start_with?(prefix) }
+          replacement&.sub("*", css_class.delete_prefix(prefix))
+        end
+      end
+
+      class DeprecatedAttributes < Rule
+        DEFAULTS = {enabled: true, attributes: {}}.freeze
+
+        def offenses(document, _source)
+          replacement_by_attribute = options[:attributes]
+          return [] if replacement_by_attribute.empty?
+
+          enum_for(:each_tag, document).flat_map do |tag,|
+            attribute_names(tag).filter_map do |name|
+              next unless replacement_by_attribute.key?(name)
+
+              offense(document, document.line_of(tag), "`#{name}` is deprecated: use `#{replacement_by_attribute[name]}`")
             end
           end
         end
@@ -403,6 +452,77 @@ module SuperSlim
         def offenses(document, _source)
           enum_for(:each_tag, document).filter_map do |tag,|
             offense(document, document.line_of(tag), "Move inline styles to a stylesheet") if literal_attributes(tag, "style").any?
+          end
+        end
+      end
+
+      class UnescapedOutput < Rule
+        DEFAULTS = {enabled: false}.freeze
+        SKIPS_ESCAPING = /\.html_safe\b|(?<![\w.:@])raw[ (]/
+        UNESCAPED_INTERPOLATION = /#\{\{/
+        MESSAGE = "skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`"
+
+        def offenses(document, _source)
+          document.enum_for(:each_node).flat_map do |node, ancestors|
+            reasons_of(node).map { offense(document, line_near(document, node, ancestors), "#{_1} #{MESSAGE}") }
+          end
+        end
+
+        private
+
+        def reasons_of(node)
+          case node
+          when AST::Output then [*("`==`" unless node.escape), *code_reason(node.code)]
+          when AST::Control then code_reason(node.code)
+          when AST::Tag then node.attributes.flat_map { attribute_reasons(_1) }
+          when AST::Text then node.text.match?(UNESCAPED_INTERPOLATION) ? ["`\#{{}}`"] : []
+          when AST::Embedded then (node.engine == "ruby") ? code_reason(node.children.grep(AST::Text).map(&:text).join("\n")) : []
+          else []
+          end
+        end
+
+        def attribute_reasons(attribute)
+          case attribute
+          when AST::CodeAttribute then [*("`==`" unless attribute.escape), *code_reason(attribute.code)]
+          when AST::Splat then code_reason(attribute.code)
+          else []
+          end
+        end
+
+        def code_reason(code)
+          return [] unless (call = code[SKIPS_ESCAPING])
+
+          [call.start_with?(".") ? "`html_safe`" : "`raw`"]
+        end
+      end
+
+      class EmbeddedEngines < Rule
+        DEFAULTS = {enabled: false, forbidden_engines: []}.freeze
+
+        def offenses(document, _source)
+          forbidden_engines = options[:forbidden_engines]
+          document.enum_for(:each_node).filter_map do |node,|
+            next unless node.is_a?(AST::Embedded) && forbidden_engines.include?(node.engine)
+
+            offense(document, document.line_of(node), "The `#{node.engine}:` engine is forbidden here: move this code to a file of its own")
+          end
+        end
+      end
+
+      class HardcodedText < Rule
+        DEFAULTS = {enabled: false}.freeze
+        NOT_WORDS = /#\{\{?[^{}]*\}?\}|&(?:[a-z]+|#\d+|#x\h+);|<!\[CDATA\[|\]\]>|<[^<>]+>/i
+        EXCERPT_LENGTH = 40
+
+        def offenses(document, _source)
+          document.enum_for(:each_node).filter_map do |node, ancestors|
+            next unless node.is_a?(AST::TextBlock) && ancestors.none?(AST::Comment)
+
+            text = node.children.grep(AST::Text).map(&:text).join(" ").gsub(/\s+/, " ").strip
+            next unless text.gsub(NOT_WORDS, "").match?(/\p{L}/)
+
+            excerpt = (text.length > EXCERPT_LENGTH) ? "#{text[0, EXCERPT_LENGTH]}…" : text
+            offense(document, line_near(document, node, ancestors), "Translate `#{excerpt}` instead of writing it in the template")
           end
         end
       end
