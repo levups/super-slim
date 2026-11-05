@@ -13,9 +13,16 @@ module SuperSlim
     TEXT
     SKIPPED_DIRECTORIES = %r{(\A|/)(\.git|node_modules|tmp|vendor)/}
     EX_USAGE = 64
+    HELP_OPTIONS = %w[--help -h].freeze
+    OPTIONS_BY_COMMAND = {"fmt" => ["--check"]}.freeze
 
     def call(arguments)
+      return puts(USAGE) || 0 if arguments.first == "help" || arguments.intersect?(HELP_OPTIONS)
+
       command, *arguments = arguments
+      unknown_option = (arguments.grep(/\A-/) - OPTIONS_BY_COMMAND.fetch(command, [])).first
+      return warn("Unknown option #{unknown_option}", USAGE) || EX_USAGE if unknown_option
+
       configuration = Linter.configuration
       SuperSlim.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
       case command
