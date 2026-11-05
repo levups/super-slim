@@ -4,7 +4,7 @@
 # modern Rails app: HTML5, no sorting, no pretty) and through SlimX, and both outputs must match byte for byte.
 require "minitest/autorun"
 require "slim"
-require "slimx/tilt"
+require_relative "../support/tilt"
 
 SLIM_TEST_DIRECTORY = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/core")
 helper_source = File.read(File.join(SLIM_TEST_DIRECTORY, "helper.rb"))
@@ -12,7 +12,7 @@ eval(helper_source[helper_source.index("class Env")..], TOPLEVEL_BINDING, File.j
 
 class TestSlim < Minitest::Test
   REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
-  SLIMX_OPTIONS = %i[file shortcut format].freeze
+  SLIMX_OPTIONS = %i[file format].freeze
   NEUTRAL_OPTIONS = {format: :html, sort_attrs: false, pretty: false, use_html_safe: nil}.freeze
 
   def setup
@@ -39,7 +39,6 @@ class TestSlim < Minitest::Test
     locals = options.delete(:locals)
     skip_unsupported(options)
     slimx_options = options.slice(*SLIMX_OPTIONS)
-    slimx_options[:shortcuts] = slimx_options.delete(:shortcut) if slimx_options.key?(:shortcut)
     slimx_options[:html_safe] = options[:use_html_safe] if options.key?(:use_html_safe)
     SlimX::Template.new(options[:file], slimx_options) { source }.render(scope || Env.new, locals, &block)
   end

@@ -9,7 +9,7 @@
 # - Slim 5 renders the same HTML (or fails with the same message), with and without html_safe;
 # - Rails renders what Tilt renders with html_safe;
 # - the compiled Ruby parses;
-# - formatting is idempotent, renders the same HTML, and passes strict mode and the layout rules.
+# - formatting is idempotent, renders the same HTML, and passes the layout rules.
 #
 # Templates under corpus/ come from real projects and call helpers we do not have: they are compiled, formatted
 # and linted, not rendered.
@@ -22,7 +22,7 @@ require "slim"
 require "slimx"
 require "slimx/linter"
 require "slimx/rails_handler"
-require "slimx/tilt"
+require_relative "support/tilt"
 require_relative "golden/scope"
 
 class GoldenTest < Minitest::Test
@@ -92,7 +92,7 @@ class GoldenTest < Minitest::Test
   end
 
   def compile(golden_case, **options)
-    SlimX.compile(golden_case.source, file: golden_case.name, format: golden_case.format, strict: false, **options)
+    SlimX.compile(golden_case.source, file: golden_case.name, format: golden_case.format, **options)
   end
 
   def attempt
@@ -103,7 +103,7 @@ class GoldenTest < Minitest::Test
 
   def render_tilt(golden_case, source, html_safe:)
     attempt do
-      SlimX::Template.new(golden_case.name, format: golden_case.format, html_safe:, strict: false) { source }.render(TiltScope.new)
+      SlimX::Template.new(golden_case.name, format: golden_case.format, html_safe:) { source }.render(TiltScope.new)
     end
   end
 
@@ -159,10 +159,6 @@ class GoldenTest < Minitest::Test
   def assert_formatting_holds(golden_case, formatted, html)
     assert_equal formatted, SlimX::Formatter.new.call(formatted), "#{golden_case.name}: formatting is not idempotent"
     assert_equal html, render_tilt(golden_case, formatted, html_safe: true), "#{golden_case.name}: formatting changes the HTML" if html
-    lenient, strict = [false, true].map do |strict|
-      attempt { SlimX.compile(formatted, file: golden_case.name, format: golden_case.format, strict:) }
-    end
-    assert_equal lenient, strict, "#{golden_case.name}: strict mode refuses the formatted source"
     layout_offenses = lint(golden_case, formatted).lines.select { |line| LAYOUT_RULES.any? { line.include?("[#{_1}]") } }
     assert_empty layout_offenses, "#{golden_case.name}: the formatted source breaks layout rules"
   end

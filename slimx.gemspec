@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Slim templates, rewritten: faster to compile and render, with a formatter and a linter"
   spec.description = "A Slim template engine rewritten from scratch, without Temple: same HTML as Slim 5, " \
                      "faster compilation and rendering with fewer allocations, a formatter that cannot change " \
-                     "a page, a strict mode, a linter with HTML and accessibility rules, and a RuboCop plugin for the " \
+                     "a page, a linter with HTML and accessibility rules, and a RuboCop plugin for the " \
                      "Ruby inside templates."
   spec.homepage = "https://github.com/next-gen-gems/slimx"
   spec.license = "MIT"

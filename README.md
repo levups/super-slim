@@ -15,8 +15,7 @@ gem "slimx" # instead of slim-rails
 
 ## Usage
 
-Rails picks it up through its railtie. Outside Rails, `require "slimx/tilt"` registers it with Tilt
-(Sinatra, Hanami, Roda…), and `SlimX.compile(source)` returns the Ruby code.
+Rails picks it up through its railtie. Outside Rails, `SlimX.compile(source)` returns the Ruby code.
 
 ## What SlimX renders
 
@@ -24,10 +23,10 @@ HTML5, with attributes in the order you write them — what Slim renders with
 `format: :html, sort_attrs: false`. Templates whose format is XML (`.xml`, `.rss`, `.atom`) render as XML
 (`<link />`, `doctype xml`) from their format alone.
 
-The whole Slim 5 grammar is supported: tags and `#id`/`.class` shortcuts, custom shortcuts, attributes with
+The whole Slim 5 grammar is supported: tags and `#id`/`.class` shortcuts, attributes with
 any delimiter, boolean attributes, `*splat`, `data`/`aria` hashes, `class` merging, `<`/`>` whitespace
 markers, `|` and `'` text, inline HTML, `/` and `/!` comments, `-` control code, `=`/`==` output, `#{}` and
-`#{{}}` interpolation, `doctype`, and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
+`#{{}}` interpolation, `doctype 5`/`html`/`xml`, and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
 [Markly](https://github.com/ioquatix/markly)) embedded engines.
 
 ## Tailwind class names
@@ -64,10 +63,10 @@ noise), and the compiled Ruby, so the time it takes to render, is the same.
 
 Each fails at compile time with a clear error instead of being silently ignored:
 
-- the XHTML format, `sort_attrs`, `attr_quote`, `pretty`, `js_wrapper` and every Temple option;
+- the XHTML format and its doctypes, the HTML 4 doctypes, `sort_attrs`, `attr_quote`, `pretty`, `js_wrapper` and every Temple option;
 - the `coffee:`, `sass:`, `scss:`, `less:`, `erb:`, `builder:`, `textile:`, `rdoc:`, `asciidoc:` and wiki
   engines, and `/[if IE]` conditional comments;
-- the `logic_less`, `translator`, `include` and `smart` plugins, and lambda shortcuts.
+- the `logic_less`, `translator`, `include` and `smart` plugins, and custom shortcuts: only `#id` and `.class`.
 
 They can come back if people ask, as long as they cost nothing at render time.
 
@@ -77,7 +76,7 @@ Slim's defaults are `format: :xhtml` and `sort_attrs: true`. If you never change
 to `format: :html, sort_attrs: false` and check your test suite: that is the output SlimX gives. Then swap
 `slim-rails` for `slimx`, and drop any `Slim::Engine.set_options`/`with_options` call.
 
-## Formatter, strict mode and linter
+## Formatter and linter
 
 One parser serves the compiler, the formatter and the linter, so all three read templates the same way.
 
@@ -85,9 +84,6 @@ One parser serves the compiler, the formatter and the linter, so all three read 
 `= output` and `p = output` spacing, no redundant `div`, no trailing whitespace, single blank lines, one final
 newline. Text blocks move as a whole, so the whitespace they render stays put — and before writing anything,
 the formatter compiles both versions and refuses if the Ruby differs. Formatting cannot change a page.
-
-Strict mode (`SlimX.strict = true`, or `strict: true` per compile) refuses any template that `slimx fmt` would
-change, pointing at the first line and what it should be: `gofmt` discipline at compile time.
 
 `slimx lint [PATH…]` reads `.slimx.yml` and checks, with about a third of the CPU time slim-lint takes:
 

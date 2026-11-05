@@ -3,7 +3,7 @@
 require "minitest/autorun"
 require "slim"
 require "slimx/parallel"
-require "slimx/tilt"
+require_relative "support/tilt"
 
 # Renders thousands of seeded random templates through Slim and SlimX: outputs, or error messages, must match.
 class FuzzTest < Minitest::Test

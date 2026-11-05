@@ -6,26 +6,8 @@ module SlimX
 
     VOID_ELEMENTS = %w[area base br col embed hr img input keygen link menuitem meta param source track wbr].to_h { [_1, true] }.freeze
     HYPHENATED_ATTRIBUTES = %w[data aria].freeze
-    DOCTYPES = {
-      html: {
-        "5" => "<!DOCTYPE html>",
-        "html" => "<!DOCTYPE html>",
-        "strict" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">',
-        "frameset" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">',
-        "transitional" => '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">'
-      },
-      xml: {
-        "1.1" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">',
-        "5" => "<!DOCTYPE html>",
-        "html" => "<!DOCTYPE html>",
-        "strict" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">',
-        "frameset" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-frameset.dtd">',
-        "mobile" => '<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">',
-        "basic" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML Basic 1.1//EN" "http://www.w3.org/TR/xhtml-basic/xhtml-basic11.dtd">',
-        "transitional" => '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">',
-        "svg" => '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
-      }
-    }.freeze
+    FORMATS = %i[html xml].freeze
+    HTML_DOCTYPES = %w[5 html].freeze
 
     BLOCK_SELF_OPENING = /(\A(if|unless|else|elsif|when|in|begin|rescue|ensure|case)\b)|\bdo\s*(\|[^|]*\|\s*)?\z/
     BLOCK_OPENING = /\A(if|begin|unless|else|elsif|when|in|rescue|ensure)\b|\bdo\s*(\|[^|]*\|)?\s*$/
@@ -39,10 +21,9 @@ module SlimX
     INTERPOLATION_FREE_TEXT = /\A([#\\]?[^#\\]*([#\\][^\\#\{][^#\\]*)*)/ # rubocop:disable Style/RedundantRegexpEscape -- `#{` would open an interpolation
 
     def initialize(format: :html, rails: false, html_safe: String.method_defined?(:html_safe?), preamble: nil, postamble: nil)
-      raise ArgumentError, "Invalid format #{format.inspect}" unless DOCTYPES.key?(format)
+      raise ArgumentError, "Invalid format #{format.inspect}" unless FORMATS.include?(format)
 
       @xml = format == :xml
-      @format = format
       @rails = rails
       @html_safe = html_safe
       @escape_function = html_safe ? "::SlimX::Runtime.escape_html_safe" : "::ERB::Escape.html_escape"
@@ -393,8 +374,10 @@ module SlimX
         raise Error, "Invalid xml directive in html mode" unless @xml
 
         %(<?xml version="1.0" encoding="#{xml[2] || "utf-8"}" ?>)
+      elsif HTML_DOCTYPES.include?(type)
+        "<!DOCTYPE html>"
       else
-        DOCTYPES.fetch(@format)[type] || raise(Error, "Invalid doctype #{type}")
+        raise Error, "Invalid doctype #{type}"
       end
     end
 

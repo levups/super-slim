@@ -84,6 +84,6 @@ module Corpus
   end
 
   def render_with_slimx(source, path)
-    render(SlimX.compile(source, file: path, format: format_of(path), strict: false), path, source)
+    render(SlimX.compile(source, file: path, format: format_of(path)), path, source)
   end
 end

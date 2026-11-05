@@ -1,7 +1,7 @@
 # SlimX
 
 A Slim 5 template engine rewritten without Temple: the HTML Slim renders with `format: :html, sort_attrs: false`,
-byte for byte, plus a formatter (`slimx fmt`), a strict mode and a linter (`slimx lint`). One parser
+byte for byte, plus a formatter (`slimx fmt`) and a linter (`slimx lint`). One parser
 (`lib/slimx/parser.rb`) feeds the compiler, the formatter and the linter. A Next Gen Gems gem, by Level UP
 Solutions, and the model the organization's other gems copy.
 

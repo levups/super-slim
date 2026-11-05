@@ -67,19 +67,14 @@
     <h2 id="box-title">In the box</h2>
     <div class="cards">
       <div class="card">
-        <h3>An engine for Rails and Tilt</h3>
-        <p>A railtie registers <code>.slim</code> with Action View; <code>require "slimx/tilt"</code> serves Sinatra, Hanami and Roda. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
+        <h3>An engine for Rails</h3>
+        <p>A railtie registers <code>.slim</code> with Action View, and <code>SlimX.compile</code> serves plain Ruby. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
         <p><a href="guide.html">Guide</a></p>
       </div>
       <div class="card">
         <h3>A formatter that cannot change a page</h3>
         <p><code>slimx fmt</code> writes one layout, and compiles both versions before writing: if the Ruby differs, it refuses.</p>
         <p><a href="tools.html#formatter">Formatter</a></p>
-      </div>
-      <div class="card">
-        <h3>Strict mode</h3>
-        <p>An unformatted template fails to compile, pointing at the first line and what it should be. <code>gofmt</code> discipline, at compile time.</p>
-        <p><a href="tools.html#strict">Strict mode</a></p>
       </div>
       <div class="card">
         <h3>A linter with HTML and accessibility rules</h3>

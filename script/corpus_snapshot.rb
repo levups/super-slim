@@ -28,10 +28,10 @@ paths = ARGV.flat_map { Dir[File.join(File.expand_path(_1), "**/*.slim")] }.sort
 snapshot = SlimX::Parallel.map(paths, minimum_per_process: 200) do |path|
   source = File.read(path)
   format = Corpus.format_of(path)
-  tilt_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format:, strict: false) }
+  tilt_code = Corpus.compile_error_or { SlimX.compile(source, file: path, format:) }
   record = {
     "tilt" => tilt_code.start_with?("error:") ? tilt_code : Digest::SHA256.hexdigest(tilt_code),
-    "rails" => digest_or_error.call { SlimX.compile(source, file: path, format:, rails: true, strict: false) },
+    "rails" => digest_or_error.call { SlimX.compile(source, file: path, format:, rails: true) },
     "fmt" => digest_or_error.call { SlimX::Formatter.new.call(source) },
     "lint" => Corpus.outcome { linter.call(path, source).map { |offense| "#{offense.rule}:#{offense.lineno}: #{offense.message}" } }
   }

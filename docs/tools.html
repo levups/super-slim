@@ -37,7 +37,6 @@
     <p class="lede">One parser serves the compiler, the formatter and the linter, so all three read a template the same way. Both commands split the templates between every core.</p>
     <ul class="toc">
       <li><a href="#formatter">Formatter</a></li>
-      <li><a href="#strict">Strict mode</a></li>
       <li><a href="#linter">Linter</a></li>
       <li><a href="#rubocop">Ruby in templates</a></li>
       <li><a href="#configuration">Configuration</a></li>
@@ -54,25 +53,6 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
       <p>Paths default to the current directory; <code>.git</code>, <code>node_modules</code>, <code>tmp</code> and <code>vendor</code> are skipped.</p>
-    </div>
-  </section>
-
-  <section id="strict" aria-labelledby="strict-title">
-    <h2 id="strict-title">Strict mode</h2>
-    <div class="split">
-      <div>
-<pre><code class="language-ruby"><span class="c1"># config/initializers/slimx.rb</span>
-<span class="no">SlimX</span><span class="p">.</span><span class="nf">strict</span> <span class="o">=</span> <span class="no">Rails</span><span class="p">.</span><span class="nf">env</span><span class="p">.</span><span class="nf">local?</span></code></pre>
-      </div>
-      <div>
-<pre><code class="language-plaintext">Not formatted, `slimx fmt` writes: "  li Home"
-  app/views/home/show.html.slim, Line 2, Column 3
-    li Home
-    ^</code></pre>
-      </div>
-    </div>
-    <div class="prose">
-      <p>A template <code>slimx fmt</code> would change fails to compile, pointing at the first line and what it should be. Templates stay formatted without a CI step catching them late. Per template: <code>strict: true</code>.</p>
     </div>
   </section>
 
@@ -173,7 +153,6 @@ slimx <span class="nb">fmt</span> <span class="nt">--check</span> <span class="o
   <summary><span class="rule-name">EmptyLines</span><span class="rule-message">Remove this extra empty line</span></summary>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
-
 
 <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>

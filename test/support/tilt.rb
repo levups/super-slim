@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require "tilt"
-require_relative "../slimx"
+require "slimx"
 
 module SlimX
   class Template < Tilt::Template

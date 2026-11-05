@@ -36,14 +36,6 @@ class FormatterTest < Minitest::Test
     assert_equal formatted, SlimX::Formatter.call(formatted)
   end
 
-  def test_strict_mode_refuses_an_unformatted_template
-    error = assert_raises(SlimX::SyntaxError) { SlimX.compile("ul\n   li\n", strict: true) }
-
-    assert_equal 2, error.lineno
-    assert_includes error.message, %(`slimx fmt` writes: "  li")
-    assert SlimX.compile("ul\n  li\n", strict: true)
-  end
-
   private
 
   def assert_formats(expected, source)

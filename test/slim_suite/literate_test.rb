@@ -5,13 +5,13 @@
 # on pretty mode only to make its expected HTML readable: both engines render without it.
 require "minitest/autorun"
 require "slim"
-require "slimx/tilt"
+require_relative "../support/tilt"
 
 class LiterateTest < Minitest::Test
   SPECIFICATION_PATH = File.join(Gem.loaded_specs.fetch("slim").full_gem_path, "test/literate/TESTS.md")
   REFERENCE_OPTIONS = {format: :html, sort_attrs: false, pretty: false}.freeze
-  UNSUPPORTED_OPTIONS = %i[disable_escape].freeze
-  DROPPED_FEATURES = ["IE conditional comment"].freeze
+  UNSUPPORTED_OPTIONS = %i[disable_escape shortcut].freeze
+  DROPPED_FEATURES = ["IE conditional comment", "Doctype tags"].freeze
 
   Example = Data.define(:title, :slim, :options)
 
@@ -60,7 +60,6 @@ class LiterateTest < Minitest::Test
 
   def render_with_slimx(example)
     options = example.options.slice(:format)
-    options[:shortcuts] = example.options[:shortcut] if example.options.key?(:shortcut)
     outcome { SlimX::Template.new(options) { example.slim }.render(Object.new) { "block" } }
   end
 
