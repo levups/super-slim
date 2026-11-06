@@ -153,7 +153,8 @@ module SuperSlim
 
             line = document.lines[lineno - 1]
             if info.output_column
-              line[info.output_column..] =~ TAG_OUTPUT
+              next unless line[info.output_column..] =~ TAG_OUTPUT
+
               offense(document, lineno, "Put a space before and after `#{$2}`") if $1.empty? || $4.empty?
             elsif info.kind == :structure
               case line.lstrip

@@ -103,7 +103,14 @@ module SuperSlim
         source.force_encoding(Encoding::UTF_8)
         source.force_encoding(original_encoding) unless source.valid_encoding?
       end
+      invalid_encoding!(source) unless source.encoding == Encoding::UTF_8 && source.valid_encoding?
       source.delete_prefix("﻿")
+    end
+
+    def invalid_encoding!(source)
+      lines = source.b.split("\n")
+      lineno = lines.index { |line| !line.dup.force_encoding(Encoding::UTF_8).valid_encoding? } || 0
+      raise SyntaxError.new("Invalid UTF-8", @file, lines[lineno].to_s.force_encoding(Encoding::UTF_8).scrub, lineno + 1, 0)
     end
 
     def line_starts(source, byte_order_mark_size)
@@ -437,7 +444,8 @@ module SuperSlim
 
     # Returns the tag content, the block expecting indented children, and the whitespace an `=<>` output adds.
     def parse_tag_content
-      output_column = column if @outline
+      # Not `column`, which counts the spaces stripped from the end of a continuation line.
+      output_column = @scanner_column + @scanner.charpos if @outline
       if @scanner.skip(NESTED_TAG)
         return [[parse_embedded(@scanner[1], @scanner[2], @scanner.rest)]] if @scanner.skip(ENGINE)
 

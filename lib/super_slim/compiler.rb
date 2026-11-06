@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "strscan"
+
 module SuperSlim
   class Compiler
     include AST
@@ -34,7 +36,9 @@ module SuperSlim
     CAPTURED_OUTPUT = /\A(if|unless)\b|\bdo\s*(\|[^|]*\|)?\s*$/
 
     ESCAPED_INTERPOLATION = /\A\\#\{/
-    INTERPOLATION = /\A#\{((?>[^{}]|(\{(?>[^{}]|\g<1>)*\}))*)\}/
+    INTERPOLATION_START = /#\{/
+    OPENING_BRACE = "{".ord
+    CLOSING_BRACE = "}".ord
     UNESCAPED_INTERPOLATION_CODE = /\A\{.*\}\Z/
     INTERPOLATION_FREE_TEXT = /\A([#\\]?[^#\\]*([#\\][^\\#\{][^#\\]*)*)/ # rubocop:disable Style/RedundantRegexpEscape -- `#{` would open an interpolation
 
@@ -62,6 +66,21 @@ module SuperSlim
       emit_static(@postamble) if @postamble
       emit_code(@buffer.close)
       @code
+    end
+
+    # Byte offset of each `{` to that of the `}` closing it, in one pass: a regexp of balanced braces backtracks
+    # exponentially, and rescans the rest of the text from each `#{` left open.
+    def self.closing_braces(text)
+      closing_by_opening = {}
+      openings = []
+      text.each_byte.with_index do |byte, index|
+        if byte == OPENING_BRACE
+          openings << index
+        elsif byte == CLOSING_BRACE && (opening = openings.pop)
+          closing_by_opening[opening] = index
+        end
+      end
+      closing_by_opening
     end
 
     private
@@ -328,20 +347,20 @@ module SuperSlim
     def interpolation_parts(text)
       return [[:static, text]] unless text.include?('#{')
 
+      closing_by_opening = Compiler.closing_braces(text)
+      scanner = StringScanner.new(text)
       parts = []
-      loop do
-        case text
-        when ESCAPED_INTERPOLATION
+      until scanner.eos?
+        if scanner.skip(ESCAPED_INTERPOLATION)
           parts << [:static, '#{']
-        when INTERPOLATION
-          code = $1
+        elsif scanner.match?(INTERPOLATION_START) && (closing = closing_by_opening[scanner.pos + 1])
+          code = text.byteslice(scanner.pos + 2...closing)
+          scanner.pos = closing + 1
           escape = !code.match?(UNESCAPED_INTERPOLATION_CODE)
           parts << [:dynamic, escape ? code : code[1..-2], escape]
-        when INTERPOLATION_FREE_TEXT
-          parts << [:static, $&]
+        else
+          parts << [:static, scanner.scan(INTERPOLATION_FREE_TEXT)]
         end
-        text = $'
-        break if text.empty?
       end
       parts
     end

@@ -91,10 +91,9 @@ module SuperSlim
     end
 
     def with_output_spacing(line, info)
-      return line unless info.output_column
+      return line unless info.output_column && line[info.output_column..] =~ TAG_OUTPUT
 
       before = line[0...info.output_column].rstrip
-      line[info.output_column..] =~ TAG_OUTPUT
       $'.empty? ? "#{before} #{$1}#{$2}" : "#{before} #{$1}#{$2} #{$'}"
     end
 
@@ -127,6 +126,8 @@ module SuperSlim
 
     def same_node?(node, other_node)
       return false unless node.instance_of?(other_node.class)
+      # `__LINE__` holds no value in the tree: removing a blank line above it changes what it renders.
+      return node.location.start_line == other_node.location.start_line if node.is_a?(Prism::SourceLineNode)
 
       field_names, located_names, flagged = node_fields(node)
       return false if flagged && (node.send(:flags) & ~NEWLINE_FLAG) != (other_node.send(:flags) & ~NEWLINE_FLAG)
