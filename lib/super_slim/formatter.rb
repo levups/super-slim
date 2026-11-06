@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "prism"
+require_relative "formatter/attribute_arranger"
 require_relative "formatter/code_wrapper"
 require_relative "formatter/line_wrapper"
 
@@ -113,11 +114,31 @@ module SuperSlim
     # Prism's tree of the compiled Ruby; that Ruby with its separators folded when Prism can't read it; the error
     # when the template doesn't compile.
     def compiled_ruby(source)
-      code = SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml)
+      nodes = Parser.new(tailwind_classes: @tailwind_classes).call(source)
+      code = Compiler.new(format: :xml).call(with_attributes_sorted_by_name(nodes))
       parsed = Prism.parse("#{CodeWrapper::TEMPLATE_METHOD}#{code}\nend")
       parsed.success? ? parsed : code.gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
+    end
+
+    # A tag renders the same whatever the order of its attributes, and with a class shortcut named twice once: both
+    # templates get their attributes sorted by name, class values kept in order, before they are compiled. A
+    # splat merges attributes in order, so a tag holding one keeps its own.
+    def with_attributes_sorted_by_name(nodes)
+      nodes.each do |node|
+        next unless node.is_a?(Struct)
+
+        if node.is_a?(AST::Tag) && node.attributes.none?(AST::Splat)
+          attributes = node.attributes.uniq { class_shortcut?(_1) ? _1 : _1.__id__ }
+          node.attributes = attributes.sort_by.with_index { |attribute, index| [attribute.name, index] }
+        end
+        node.each { with_attributes_sorted_by_name(_1) if _1.is_a?(Array) }
+      end
+    end
+
+    def class_shortcut?(attribute)
+      attribute.is_a?(AST::StaticAttribute) && attribute.name == "class"
     end
 
     # Positions aside: line breaks, spaces, a trailing comma and the parentheses of a call change nothing, a
