@@ -136,8 +136,21 @@ format:
   attribute_delimiters: "()" # or "[]" or "{}"
 ```
 
-The formatter then puts a long tag's attributes one per line inside those delimiters, and breaks the arguments
-of long Ruby calls after their commas. Lines you already split over several lines stay as they are.
+The formatter then gives each line one layout, whatever its author chose. Ruby code spread over several lines is
+joined back when it fits. A longer line spreads the arguments of its call, or the elements of its array or hash, one
+per line between brackets that close on a line of their own, each followed by a comma:
+
+```slim
+= render Card.new(
+    title: post.title,
+    body: post.body,
+  )
+```
+
+A call whose only argument is a call spreads that one, as `Card.new` above. Arguments go four spaces deep and the
+closing bracket two, two more when the line opens a block. Code spread by hand stays as it is when this layout
+would leave a line longer than the limit, and arguments to `new` go in parentheses. A long tag's attributes go one
+per line inside the delimiters.
 
 ## Linter
 

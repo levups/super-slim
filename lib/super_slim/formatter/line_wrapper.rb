@@ -61,7 +61,11 @@ module SuperSlim
 
         # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
         rejoined = joined_code(broken, info)
-        (rejoined && rejoined.size <= @max_line_length) ? [rejoined] : broken
+        return [rejoined] if rejoined && rejoined.size <= @max_line_length
+
+        # Only the outer call is spread: a hash spread inside it by hand would come back longer than the limit.
+        longer = broken.any? { _1.size > @max_line_length } && lines.size > 1 && lines.none? { _1.size > @max_line_length }
+        longer ? lines : broken
       end
 
       def with_new_parenthesized(line, info)

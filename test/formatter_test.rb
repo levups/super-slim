@@ -102,6 +102,12 @@ class FormatterTest < Minitest::Test
     assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(= link_to post.title,\n        post_path(post)\n)
   end
 
+  def test_keeps_a_hash_spread_by_hand_that_would_pass_the_limit_joined
+    source = %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n)
+
+    assert_wraps source, source, max_line_length: 60
+  end
+
   def test_puts_the_arguments_of_new_in_parentheses
     assert_wraps %(= render Card.new(title: post.title)\n), %(= render Card.new title: post.title\n)
     assert_wraps %(= render Card.new(title: post.title) do\n  p Hello\n), %(= render Card.new title: post.title do\n  p Hello\n)
