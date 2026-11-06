@@ -1,5 +1,5 @@
 ~~~~~~~~ super_slim: html
-<p>alice, bob</p><p>alice bob</p><p>badge alice</p><p>alice and bob</p>alice, bob<ul><li>ALICE</li><li>BOB</li></ul><p>(alice</p>
+<p>alice, bob</p><p>alice bob</p><p>badge alice</p><p>alice and bob</p>alice, bob<ul><li>ALICE</li><li>BOB</li></ul><p>(alice</p><p>alice) and bob</p><p>a) b(</p><p>bob (alice</p><p>bob</p><p>alice</p>
 ~~~~~~~~ super_slim: tilt
 _buf = +""; names = [
 "alice",
@@ -31,6 +31,28 @@ _buf << "<ul>".freeze; names.map(
 ).each do |name|
 _buf << "<li>".freeze; _buf << ::ERB::Escape.html_escape((name))
 _buf << "</li>".freeze; end; _buf << "</ul><p>".freeze; _buf << ::ERB::Escape.html_escape((format("(%s", "alice")))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format(
+"%s) and %s",
+"alice",
+"bob",
+)))
+_buf << "</p>".freeze; closings = %w[
+a)
+b(
+]
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((closings.join(" ")))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format(
+"%s #{"(" + names.first}",
+# a comment (
+"bob",
+)))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((format( # alice (
+"%s",
+"bob's".sub(names.any? ? /'s/ : "", ""),
+)))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((%(
+alice
+).strip))
 _buf << "</p>".freeze; _buf
 ~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new; names = [
@@ -63,6 +85,28 @@ title: "alice",
 ).each do |name|
 @output_buffer.safe_concat("<li>".freeze); @output_buffer << (name)
 @output_buffer.safe_concat("</li>".freeze); end; @output_buffer.safe_concat("</ul><p>".freeze); @output_buffer << (format("(%s", "alice"))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (format(
+"%s) and %s",
+"alice",
+"bob",
+))
+@output_buffer.safe_concat("</p>".freeze); closings = %w[
+a)
+b(
+]
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (closings.join(" "))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (format(
+"%s #{"(" + names.first}",
+# a comment (
+"bob",
+))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (format( # alice (
+"%s",
+"bob's".sub(names.any? ? /'s/ : "", ""),
+))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (%(
+alice
+).strip)
 @output_buffer.safe_concat("</p>".freeze); @output_buffer
 ~~~~~~~~ super_slim: fmt
 - names = [
@@ -95,5 +139,27 @@ ul
       ).each do |name|
     li = name
 p = format("(%s", "alice")
+p = format(
+    "%s) and %s",
+    "alice",
+    "bob",
+  )
+- closings = %w[
+    a)
+    b(
+  ]
+p = closings.join(" ")
+p = format(
+    "%s #{"(" + names.first}",
+    # a comment (
+    "bob",
+  )
+p = format( # alice (
+    "%s",
+    "bob's".sub(names.any? ? /'s/ : "", ""),
+  )
+p = %(
+    alice
+  ).strip
 ~~~~~~~~ super_slim: lint
 
