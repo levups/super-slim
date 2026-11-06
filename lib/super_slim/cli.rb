@@ -26,7 +26,11 @@ module SuperSlim
       unknown_option = (arguments.grep(/\A-/) - OPTIONS_BY_COMMAND.fetch(command, [])).first
       return warn("Unknown option #{unknown_option}", USAGE) || EX_USAGE if unknown_option
 
-      configuration = Linter.configuration
+      begin
+        configuration = Linter.configuration
+      rescue Error, Psych::Exception => exception
+        return warn(exception.message) || EX_USAGE
+      end
       SuperSlim.tailwind_classes = configuration["tailwind_classes"] if configuration.key?("tailwind_classes")
       case command
       when "lint" then lint(arguments, configuration)

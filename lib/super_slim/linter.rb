@@ -70,6 +70,7 @@ module SuperSlim
     end
 
     CONFIG_FILE = ".super-slim.yml"
+    GLOB_OPTIONS = %w[include exclude].freeze
 
     def self.load(directory = Dir.pwd)
       new(configuration(directory).fetch("linters", {}), directory)
@@ -77,7 +78,26 @@ module SuperSlim
 
     def self.configuration(directory = Dir.pwd)
       path = File.join(directory, CONFIG_FILE)
-      File.exist?(path) ? YAML.safe_load_file(path) || {} : {}
+      configuration = File.exist?(path) ? YAML.safe_load_file(path) || {} : {}
+      check_configuration(configuration)
+      configuration
+    end
+
+    # A value of the wrong shape would fail later, inside a rule, with a NoMethodError naming none of this file.
+    def self.check_configuration(configuration)
+      raise Error, "#{CONFIG_FILE}: expected a mapping of settings" unless configuration.is_a?(Hash)
+
+      %w[linters format fmt].each do |key|
+        raise Error, "#{CONFIG_FILE}: `#{key}` must be a mapping" unless configuration.fetch(key, {}).is_a?(Hash)
+      end
+      configuration.fetch("linters", {}).each do |rule_name, options|
+        raise Error, "#{CONFIG_FILE}: `linters: #{rule_name}` must be a mapping of options" unless options.is_a?(Hash)
+
+        GLOB_OPTIONS.each do |key|
+          globs = Array(options[key])
+          raise Error, "#{CONFIG_FILE}: `#{rule_name}: #{key}` must be a list of globs" unless globs.all?(String)
+        end
+      end
     end
 
     # include: and exclude: globs match paths relative to `root`, the directory of .super-slim.yml.
