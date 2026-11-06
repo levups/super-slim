@@ -394,8 +394,8 @@ module SuperSlim
       first = source_offset + @scanner.rest[/\A\s*/].size if @outline
       broken_line = @scanner.rest
       broken_line.strip!
+      brackets = RubyBrackets.new(broken_line) if broken_line.match?(OPENING_BRACKET_AT_LINE_END)
       line = broken_line
-      brackets = RubyBrackets.new(line) if line.match?(OPENING_BRACKET_AT_LINE_END)
       while line.match?(LINE_CONTINUATION) || brackets&.open_at_line_end?
         expect_next_line
         line = @scanner.string

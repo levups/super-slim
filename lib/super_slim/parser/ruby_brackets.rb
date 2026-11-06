@@ -2,11 +2,8 @@
 
 module SuperSlim
   class Parser
-    # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
-    # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
     # Read by hand, a line at a time: Prism would cost every process that renders templates its load time and memory.
-    #
-    # Misread, as rare after a bracket that ends its line: heredocs, `?(`, `$'`, a regexp after a method name or a
+    # Misread, all rare after a bracket that ends its line: heredocs, `?(`, `$'`, a regexp after a method name or a
     # keyword (`when /'/`), `%` glued to a value (`"%d"%[a]`), interpolation in a %-literal and %-literals between
     # other delimiters (`%|a(|`).
     class RubyBrackets
