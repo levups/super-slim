@@ -32,9 +32,9 @@ class HostileTemplatesTest < Minitest::Test
     assert_equal "Tags nested more than 500 levels deep", exception.error
     assert_equal "<a>" * 499 + "<b></b>" + "</a>" * 499, render("#{"a: " * 499}b\n")
 
-    deep_code = "#{"[" * 12_000}1#{"]" * 12_000}"
-    assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("= foo(\n#{deep_code})\n") }
-    assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n= #{deep_code}  \n") }
+    # How deep Prism goes before it exhausts the stack depends on the machine.
+    with_stack_overflow_in(:lex) { assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("= foo(\n  1)\n") } }
+    with_stack_overflow_in(:parse) { assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n= 1  \n") } }
     assert_equal "p\n= #{"[" * 2_000}1#{"]" * 2_000}\n", SuperSlim::Formatter.new.call("p\n= #{"[" * 2_000}1#{"]" * 2_000}  \n")
   end
 
@@ -75,6 +75,14 @@ class HostileTemplatesTest < Minitest::Test
   end
 
   private
+
+  def with_stack_overflow_in(method_name)
+    original = Prism.method(method_name)
+    Prism.define_singleton_method(method_name) { |*| raise SystemStackError }
+    yield
+  ensure
+    Prism.define_singleton_method(method_name, original)
+  end
 
   def assert_fast
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
