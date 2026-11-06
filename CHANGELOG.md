@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-11-06
+
+A Bootstrap 5 preset for the linter, Ruby code that continues after an open bracket, and a faster formatter.
+
+**New**
+- `preset: bootstrap5` on DeprecatedClasses and DeprecatedAttributes: the Bootstrap 4 classes and component data
+  attributes Bootstrap 5.3 renamed, breakpoints included (`text-md-right`). The rule's own entries go over it, and
+  `~` drops one of the preset.
+- A `(`, `[` or `{` that ends a line of code (`-`, `=`, `tag =`) continues it until the bracket closes, one argument
+  per line; Slim refused these lines.
+
+**Faster**
+- `super-slim format` takes 3.5 s instead of 4.6 s on 7,500 templates at 120 columns.
+
+**Fixed**
+- `super-slim format` no longer refuses a trailing comma or call parentheses, and no longer takes `link_to(a) + b`
+  for `link_to (a) + b`.
+- In DeprecatedClasses, the longest prefix wins: `badge-promo-*` over `badge-*`.
+- An empty `classes:` or `attributes:` no longer crashes the linter, and an unknown preset exits 64 with its name.
+
 ## [3.0.0] — 2026-11-05
 
 SuperSlim is published as super-slim, the name of its command.
@@ -108,7 +128,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/levups/super-slim/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/levups/super-slim/compare/v2.2.0...v3.0.0
 [2.2.0]: https://github.com/levups/super-slim/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/levups/super-slim/compare/v2.0.1...v2.1.0
