@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [3.2.2] — 2026-11-06
+
+`super-slim format` no longer joins code spread by hand into lines past `max_line_length`.
+
+**Fixed**
+- With `max_line_length`, an argument that still passes the limit once its call is spread one argument per line
+  spreads its own elements or arguments in turn, an array before `.join` included, instead of coming back on one
+  long line. Code spread by hand, such as a string continued with a backslash, keeps its layout whenever the
+  formatted one would hold a longer line.
+
 ## [3.2.1] — 2026-11-06
 
 A comment after Ruby code no longer breaks the template.
@@ -183,7 +193,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.1...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.2...HEAD
+[3.2.2]: https://github.com/levups/super-slim/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/levups/super-slim/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/levups/super-slim/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/levups/super-slim/compare/v3.1.0...v3.1.1
