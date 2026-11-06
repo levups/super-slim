@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
 require "bundler/gem_tasks"
+
+# Only the Release workflow publishes, from a signed tag on main that bin/release pushes: Bundler's tasks would
+# tag and push the gem from this machine.
+Rake::Task.tasks.select { _1.name.start_with?("release") }.each(&:clear)
+desc "Release through bin/release: only the Release workflow publishes the gem"
+task(:release) { abort "Run bin/release instead: it tags main, and the Release workflow publishes the gem" }
 require "rake/testtask"
 
 Rake::TestTask.new("test:super_slim") do |task|
