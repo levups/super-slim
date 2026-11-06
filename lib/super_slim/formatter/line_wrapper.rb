@@ -9,7 +9,6 @@ module SuperSlim
       CODE_LINE = /\A *(?:-|==?[<>]*) /
       TAG_OUTPUT = /\G\s*==?['<>]*\s*/
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
-      CONTINUED_LINE = /[,\\(\[{]$/
       CLOSING_BRACKET_AT_START = /\A[)\]}]/
       NEW_WITHOUT_PARENTHESES = /\.new [^\s=]/
 
@@ -52,10 +51,8 @@ module SuperSlim
         line = (lines.size > 1) ? joined_code(lines, info) || joined_attributes(lines, info) : lines.first
         return lines unless line
 
-        if info.attribute_lists || line != lines.first || AttributeArranger.duplicate_shortcut?(line)
-          line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
-          info = arranged_info || info
-        end
+        line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
+        info = arranged_info || info
         line = with_new_parenthesized(line, info)
         return [line] if line.size <= @max_line_length
 
@@ -98,7 +95,8 @@ module SuperSlim
 
       # A tag whose attributes stand one per line inside delimiters, on one line: `p {` `title="A"` `} = text`.
       def joined_attributes(lines, info)
-        return if code_start(lines.first, info.output_column) || !lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
+        return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
+        return unless lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
         return unless lines.last.strip.match?(CLOSING_BRACKET_AT_START) && lines[1...-1].none? { _1.strip.empty? }
 
         lines.first.rstrip + lines[1...-1].map(&:strip).join(" ") + lines.last.strip
@@ -109,12 +107,13 @@ module SuperSlim
         next_structure && next_structure.depth > outline[lineno].depth
       end
 
-      def wrap(line, info, children)
+      def wrap(line, info, opens_block)
         indent = line[/\A */]
         lists = info.attribute_lists
+        head = line[0...lists.first.first].rstrip if lists&.size == 1
         lines, code_start =
           # Attributes spread over lines would not bring back under the limit a tag whose shortcuts alone pass it.
-          if lists&.size == 1 && named_tag?(line[0...lists.first.first].strip) && lists.first.first + @opening.size < @max_line_length
+          if head && named_tag?(head.strip) && head.size + @opening.size <= @max_line_length
             wrap_attributes(line, lists.first, indent, info.output_column)
           else
             [[line], code_start(line, info.output_column)]
@@ -122,7 +121,7 @@ module SuperSlim
         return lines unless code_start && lines.last.size > @max_line_length
 
         last_indent = lines.last[/\A */]
-        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, opens_block: children)
+        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, opens_block:)
         return lines unless code_lines
 
         lines[0...-1] + [lines.last[0...code_start] + code_lines.first, *code_lines.drop(1)]

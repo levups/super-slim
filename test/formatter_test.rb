@@ -192,12 +192,32 @@ class FormatterTest < Minitest::Test
     assert_wraps %(button.btn type="button" data-action="modal#close"\n), %(button.btn {\n  type="button"\n  data-action="modal#close"\n}\n), max_line_length: 120
   end
 
-  def test_keeps_in_place_what_attributes_would_change
+  def test_leaves_attributes_alone_when_their_order_or_delimiters_matter
     [
       %(input(type="checkbox" checked)\n),
       %(div *attributes class="card" id="main"\n),
-      %(*{tag: tag_name, class: "card"} Dynamic\n)
-    ].each { assert_wraps _1, _1, max_line_length: 120 }
+      %(*{tag: tag_name, class: "card"} Dynamic\n),
+      %(p(title="A") role=main\n),
+      %(p class=classes class="card"\n),
+      %(p class=" " Hello\n),
+      %(.card class="card shadow"\n)
+    ].each { assert_wraps "#{_1}.p-3\n", "#{_1}.p-3.p-3\n", max_line_length: 120 }
+  end
+
+  def test_joins_back_only_the_attributes_of_a_tag
+    [%(/ Disabled until (\n  the API ships\n  )\n), %(| Call us (\n  9am to 5pm\n  )\n)].each do
+      assert_wraps "#{_1}.p-3\n", "#{_1}.p-3.p-3\n", max_line_length: 120
+    end
+  end
+
+  def test_spreads_attributes_whose_opening_line_fits_the_limit
+    assert_wraps %(abcdefgh(\n  title="aaaaaaaaaaaaaa"\n)\n), %(abcdefgh title="aaaaaaaaaaaaaa"\n), max_line_length: 10
+  end
+
+  def test_reads_tailwind_shortcuts_whole
+    formatter = SuperSlim::Formatter.new(max_line_length: 120, tailwind_classes: true)
+
+    assert_equal ".py-1.5.py-1\n.w-1/2.w-1\n.p-3\n", formatter.call(".py-1.5.py-1\n.w-1/2.w-1\n.p-3.p-3\n")
   end
 
   def test_refuses_a_wrap_that_changes_the_order_of_classes
