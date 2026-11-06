@@ -31,11 +31,16 @@ module SuperSlim
     # At the scanner, the rest of the line is only this character; on a whole line, the line ends with it.
     LINE_CONTINUATION = /[,\\]\z/
     BACKSLASH_AT_END = /\\\z/
+    # `$`, not `\z`: once a bracket has opened a line, the lines that follow are read until it closes.
     OPENING_BRACKET_AT_LINE_END = /[(\[{]$/
-    OPENING_BRACKETS = %i[PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES BRACKET_LEFT BRACKET_LEFT_ARRAY BRACE_LEFT LAMBDA_BEGIN EMBEXPR_BEGIN].freeze
+    # Prism 2 splits some tokens by role (BRACE_LEFT_HASH, PARENTHESIS_LEFT_GROUPING): older ones never emit them.
+    OPENING_BRACKETS = %i[
+      PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES PARENTHESIS_LEFT_GROUPING BRACKET_LEFT BRACKET_LEFT_ARRAY
+      BRACE_LEFT BRACE_LEFT_HASH BRACE_LEFT_ARGUMENT LAMBDA_BEGIN EMBEXPR_BEGIN
+    ].freeze
     CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
     PERCENT_LISTS = %i[PERCENT_LOWER_W PERCENT_UPPER_W PERCENT_LOWER_I PERCENT_UPPER_I].freeze
-    LINE_ENDS = %i[NEWLINE IGNORED_NEWLINE EOF COMMENT].freeze
+    LINE_ENDS = %i[NEWLINE NEWLINE_TERMINATOR IGNORED_NEWLINE EOF COMMENT].freeze
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -376,20 +381,19 @@ module SuperSlim
     # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
     # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
     def bracket_open_at_line_end?(code)
-      tokens = Prism.lex(code).value
       open_brackets = []
-      tokens.each_with_index do |(token, _state), index|
+      # The last token is always EOF, so each bracket has a token after it.
+      Prism.lex(code).value.each_cons(2) do |(token, _state), (following, _following_state)|
         type = token.type
         if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
-          following = tokens[index + 1]&.first
           # In %w[ and %i[, the line break after the bracket is a word separator.
-          at_line_end = LINE_ENDS.include?(following&.type) || (following&.type == :WORDS_SEP && following.value.start_with?("\n"))
+          at_line_end = LINE_ENDS.include?(following.type) || (following.type == :WORDS_SEP && following.value.start_with?("\n"))
           open_brackets << [type, at_line_end]
         elsif CLOSING_BRACKETS.include?(type) || (type == :STRING_END && PERCENT_LISTS.include?(open_brackets.last&.first))
           open_brackets.pop
         end
       end
-      open_brackets.any? { |(_type, at_line_end)| at_line_end }
+      open_brackets.any?(&:last)
     end
 
     def parse_tag(tag)

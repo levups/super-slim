@@ -9,7 +9,7 @@ module SuperSlim
       CODE_LINE = /\A *(?:-|==?[<>]*) /
       TAG_OUTPUT = /\G\s*==?['<>]*\s*/
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
-      BLOCK_OPENINGS = %i[KEYWORD_DO KEYWORD_DO_LOOP].freeze
+      DO_KEYWORDS = %i[KEYWORD_DO KEYWORD_DO_BLOCK KEYWORD_DO_LAMBDA KEYWORD_DO_LOOP].freeze
       MODIFIERS = %i[KEYWORD_IF_MODIFIER KEYWORD_UNLESS_MODIFIER KEYWORD_WHILE_MODIFIER KEYWORD_UNTIL_MODIFIER KEYWORD_RESCUE_MODIFIER].freeze
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
@@ -112,7 +112,7 @@ module SuperSlim
           when :HEREDOC_START then return []
           # `a, b = …` assigns several variables: its commas separate no arguments.
           when :EQUAL then return [] if depth.zero? && !offsets.empty?
-          when *BLOCK_OPENINGS then break
+          when *DO_KEYWORDS then break
           # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
           when *MODIFIERS then return [] if depth.zero?
           when *Parser::OPENING_BRACKETS then depth += 1
