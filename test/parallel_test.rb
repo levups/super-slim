@@ -9,6 +9,7 @@ class ParallelTest < Minitest::Test
 
   def test_results_come_back_in_item_order
     assert_equal ITEMS.map { _1 * 2 }, SuperSlim::Parallel.map(ITEMS) { _1 * 2 }
+    assert_equal [*ITEMS, 401, 402, 403].map { [_1, -_1] }, SuperSlim::Parallel.map([*ITEMS, 401, 402, 403]) { [_1, -_1] }
   end
 
   def test_an_exception_in_a_worker_is_raised_by_the_parent

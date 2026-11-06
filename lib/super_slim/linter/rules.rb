@@ -15,7 +15,7 @@ module SuperSlim
         DEFAULTS = {enabled: true}.freeze
 
         def self.rule_name
-          name.split("::").last
+          @rule_name ||= name.split("::").last
         end
 
         GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH
@@ -86,7 +86,9 @@ module SuperSlim
           document.outline.each_with_index.filter_map do |info, lineno|
             next unless info&.kind == :structure
 
-            indent = document.lines[lineno - 1][/\A */].size
+            line = document.lines[lineno - 1]
+            indent = 0
+            indent += 1 while line.getbyte(indent) == Parser::SPACE_BYTE
             expected = info.depth * Formatter::INDENT_WIDTH
             offense(document, lineno, "Indent with #{expected} spaces, not #{indent}") if indent != expected
           end
@@ -102,11 +104,11 @@ module SuperSlim
       end
 
       class TrailingWhitespace < Rule
-        # Matches wherever a line may end in whitespace, and a little more (a \r before \n): it only skips files.
-        ANY_TRAILING_WHITESPACE = /[ \t\r\f\v](?=\r?\n|\z)/
-
         def offenses(document, source)
-          return [] unless source.match?(ANY_TRAILING_WHITESPACE)
+          # Whitespace ending a line is in one of these, as are a few more files (a \r anywhere): they only skip files.
+          # A string search is faster than any regexp here.
+          return [] unless source.include?(" \n") || source.include?("\t\n") || source.include?("\r") || source.include?("\f") ||
+            source.include?("\v") || source.end_with?(" ", "\t")
 
           each_line(document).filter_map do |line, lineno|
             next unless line.match?(/\s\z/)
@@ -142,6 +144,9 @@ module SuperSlim
 
       class ControlStatementSpacing < Rule
         TAG_OUTPUT = /\A(\s*)(==?)(['<>]*)(\s*)(?=\S)/
+        # [\s\0]* is what String#lstrip strips.
+        UNSPACED_CONTROL = /\A[\s\0]*-(?=\S)/
+        UNSPACED_OUTPUT = /\A[\s\0]*((?>==?[<>]*))(?=\S)/
 
         def offenses(document, _source)
           document.outline.each_with_index.filter_map do |info, lineno|
@@ -153,9 +158,9 @@ module SuperSlim
 
               offense(document, lineno, "Put a space before and after `#{$2}`") if $1.empty? || $4.empty?
             elsif info.kind == :structure
-              case line.lstrip
-              when /\A-(?=\S)/ then offense(document, lineno, "Put a space after `-`")
-              when /\A((?>==?[<>]*))(?=\S)/ then offense(document, lineno, "Put a space after `#{$1}`")
+              case line
+              when UNSPACED_CONTROL then offense(document, lineno, "Put a space after `-`")
+              when UNSPACED_OUTPUT then offense(document, lineno, "Put a space after `#{$1}`")
               end
             end
           end
@@ -163,9 +168,12 @@ module SuperSlim
       end
 
       class RedundantDiv < Rule
+        # [\s\0]* is what String#lstrip strips.
+        REDUNDANT_DIV = /\A[\s\0]*div(?=[.#][\p{Word}-])/
+
         def offenses(document, _source)
           document.outline.each_with_index.filter_map do |info, lineno|
-            next unless info&.kind == :structure && document.lines[lineno - 1].lstrip.match?(Formatter::REDUNDANT_DIV)
+            next unless info&.kind == :structure && document.lines[lineno - 1].match?(REDUNDANT_DIV)
 
             offense(document, lineno, "`div` is implied by the `.class` or `#id` shortcut")
           end
@@ -574,7 +582,7 @@ module SuperSlim
         EMOJI_JOINER = /(?<=\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}]|\uFE0F)\u200D(?=\p{Extended_Pictographic})/
 
         def offenses(document, source)
-          return [] unless source.match?(INVISIBLE)
+          return [] if source.ascii_only? || !source.match?(INVISIBLE)
 
           each_line(document).filter_map do |line, lineno|
             line = line.delete_prefix("\uFEFF") if lineno == 1

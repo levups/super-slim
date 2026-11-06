@@ -107,7 +107,16 @@ module SuperSlim
 
     def line_starts(source, byte_order_mark_size)
       line_starts = [nil, byte_order_mark_size]
-      source.each_line { |line| line_starts << line_starts.last + line.size }
+      if source.ascii_only?
+        offset = 0
+        while (newline = source.byteindex("\n", offset))
+          offset = newline + 1
+          line_starts << byte_order_mark_size + offset
+        end
+        line_starts << byte_order_mark_size + source.bytesize if offset < source.bytesize
+      else
+        source.each_line { |line| line_starts << line_starts.last + line.size }
+      end
       line_starts
     end
 
@@ -391,7 +400,7 @@ module SuperSlim
     end
 
     def parse_broken_line
-      first = source_offset + @scanner.rest[/\A\s*/].size if @outline
+      first = source_offset + @scanner.match?(WHITESPACE) if @outline
       broken_line = @scanner.rest
       broken_line.strip!
       brackets = RubyBrackets.new(broken_line) if broken_line.match?(OPENING_BRACKET_AT_LINE_END)
