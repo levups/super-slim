@@ -32,23 +32,29 @@ module SuperSlim
     def call(source)
       parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
       nodes = parser.call(source)
-      formatted = layout(source, parser.outline)
-      layout_changed = formatted != source
-      if layout_changed
-        formatted_code = compiled_code(formatted)
-        raise UnsafeFormattingError, "Formatting would change how this template renders" unless same_code?(compiled_code(source, nodes), formatted_code)
+      outline = parser.outline
+      formatted = layout(source, outline)
+      unless formatted == source
+        source_code = compiled_code(nodes)
+        nodes, outline = parsed_template(formatted)
+        formatted_code = compiled_code(nodes)
+        # Most templates the layout changes compile to the very same Ruby: only the others are parsed.
+        unless source_code.is_a?(String) && source_code == formatted_code
+          formatted_ruby = parsed_ruby(formatted_code)
+          raise UnsafeFormattingError, "Formatting would change how this template renders" unless same_ruby?(parsed_ruby(source_code), formatted_ruby)
+        end
       end
       return formatted unless @line_wrapper
 
-      wrapped = @line_wrapper.call(formatted, outline: (parser.outline unless layout_changed))
+      wrapped = @line_wrapper.call(formatted, outline:)
       return formatted if wrapped == formatted
 
-      wrapped_ruby = parsed_ruby(compiled_code(wrapped))
+      wrapped_ruby = parsed_ruby(compiled_code(parsed_template(wrapped, outline: false).first))
       # Only Prism's tree vouches for a wrap: a compile error can read the same before and after it.
       return formatted unless wrapped_ruby.is_a?(Prism::ParseResult)
 
-      formatted_code = compiled_code(source, nodes) unless layout_changed
-      same_ruby?(parsed_ruby(formatted_code), wrapped_ruby) ? wrapped : formatted
+      formatted_ruby ||= parsed_ruby(formatted_code || compiled_code(nodes))
+      same_ruby?(formatted_ruby, wrapped_ruby) ? wrapped : formatted
     # Prism walks code recursively too: code nested thousands deep can't be checked, so it isn't formatted.
     rescue SystemStackError
       raise UnsafeFormattingError, "Code nested too deep to check that formatting changes nothing"
@@ -117,17 +123,21 @@ module SuperSlim
       line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
-    # The Ruby the template compiles to, its attributes sorted by name; the error when it doesn't compile.
-    def compiled_code(template, nodes = nil)
-      nodes ||= Parser.new(tailwind_classes: @tailwind_classes).call(template)
+    # The template's nodes and outline; the error when it doesn't parse.
+    def parsed_template(template, outline: true)
+      parser = Parser.new(outline:, tailwind_classes: @tailwind_classes)
+      [parser.call(template), parser.outline]
+    rescue Error => exception
+      [exception, nil]
+    end
+
+    # The Ruby the nodes compile to, their attributes sorted by name; the error when they don't parse or compile.
+    def compiled_code(nodes)
+      return nodes if nodes.is_a?(Error)
+
       Compiler.new(format: :xml).call(with_attributes_sorted_by_name(nodes))
     rescue Error => exception
       exception
-    end
-
-    # Most templates the layout changes compile to the very same Ruby: only the others are parsed.
-    def same_code?(code, other_code)
-      (code.is_a?(String) && code == other_code) || same_ruby?(parsed_ruby(code), parsed_ruby(other_code))
     end
 
     # Prism's tree of the compiled Ruby; that Ruby with its separators folded when Prism can't read it; the error
@@ -192,10 +202,12 @@ module SuperSlim
     end
 
     def node_comparator(node)
-      COMPARATOR_BY_NODE_CLASS[node.class] ||= Formatter.comparator_for(node.class, *node_fields(node))
+      COMPARATOR_BY_NODE_CLASS[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
     end
 
     class << self
+      private
+
       # Compares what two nodes of one class hold besides their children, and pushes their children on `pending_values`.
       def comparator_for(node_class, field_names, located_names, flagged)
         if node_class <= Prism::SourceLineNode
@@ -210,7 +222,7 @@ module SuperSlim
           located_names.each { |name| clauses << "same_name?(value.#{name}, other_value.#{name})" }
           pushes = field_names.map { |name| "pending_values << value.#{name} << other_value.#{name}" }
           # Fields unrolled, without public_send: 2.5x faster with YJIT. The names come from Prism's own classes.
-          eval(<<~LAMBDA, binding, __FILE__, __LINE__ + 1) # rubocop:disable Security/Eval
+          lambda_from(<<~LAMBDA)
             ->(value, other_value, pending_values) do
               #{"return false unless #{clauses.join(" && ")}" unless clauses.empty?}
               #{pushes.join("\n")}
@@ -220,7 +232,10 @@ module SuperSlim
         end
       end
 
-      private
+      # Evaluated here, the lambda holds no local but its own source.
+      def lambda_from(code)
+        eval(code, binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+      end
 
       def same_flags?(node, other_node)
         (node.send(:flags) & ~NEWLINE_FLAG) == (other_node.send(:flags) & ~NEWLINE_FLAG)
