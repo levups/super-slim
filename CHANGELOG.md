@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [3.2.0] — 2026-11-06
+
+One layout per line and per tag in `super-slim format`, cache digests that follow Slim partials, and a faster lint.
+
+**New**
+- With `max_line_length`, `super-slim format` gives each line one layout: Ruby code spread over several lines is
+  joined back when it fits, and a longer call spreads its arguments one per line between parentheses, each followed
+  by a comma. Code spread by hand stays as it is when this layout would pass the limit.
+- A tag's attributes stand without delimiters when they fit on its line, and one per line inside
+  `attribute_delimiters` when they don't. A literal `id` or `class` becomes a shortcut, a repeated class shortcut
+  goes, and attributes follow one order, from `id` and `class` to `aria-*` and `role`. The formatter takes attribute
+  values to have no side effects.
+
+**Faster**
+- `super-slim lint` is 11 to 22% faster, and finding templates from an app's root skips `node_modules` and `tmp`:
+  twice as fast.
+
+**Fixed**
+- The digest of a `cache` block in a Slim view now follows the partials it renders, as in ERB: a changed partial
+  no longer serves a stale fragment. A partial whose name is computed needs `/# Template Dependency: path`. Each
+  such fragment is rebuilt once after the upgrade, and Rails 8.0 processes without eager loading now load Prism
+  with Action View.
+- The RuboCop plugin's autocorrect works on templates with CRLF line endings, and `super-slim format` keeps the
+  spaces a line renders.
+
 ## [3.1.1] — 2026-11-06
 
 Two ways for data to inject markup closed, hostile templates read in linear time, and Prism kept out of rendering.
@@ -147,7 +172,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/levups/super-slim/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/levups/super-slim/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/levups/super-slim/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/levups/super-slim/compare/v2.2.0...v3.0.0
