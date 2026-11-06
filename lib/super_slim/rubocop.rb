@@ -45,7 +45,9 @@ module SuperSlim
 
       def initialize(processed_source)
         @processed_source = processed_source
-        @source = processed_source.raw_source
+        # Offsets count in the source buffer, which reads \r\n as \n: counted with the \r, a correction lands one
+        # character further for each line above it.
+        @source = processed_source.raw_source.gsub("\r\n", "\n")
       end
 
       def call

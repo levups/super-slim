@@ -93,7 +93,8 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 ## Formatter
 
 `super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
-where a `.class` or `#id` is enough, no trailing whitespace, single blank lines and a final newline. This template:
+where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
+newline. This template:
 
 ```slim
 div.card
