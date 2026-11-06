@@ -1,14 +1,61 @@
 # SuperSlim
 
-[Slim](https://github.com/slim-template/slim) is a template language for Ruby that writes HTML with indentation
-instead of closing tags. SuperSlim is a new implementation of Slim 5, written from scratch. Your existing `.slim`
-templates keep working and produce exactly the same HTML, but they compile about nine times faster and render
-about twice as fast. SuperSlim also comes with a formatter, a linter and a RuboCop plugin, all built on the same
-parser as the engine.
+SuperSlim renders [Slim](https://github.com/slim-template/slim) templates in Ruby and Rails apps. Slim is a template
+language that writes HTML with indentation instead of closing tags, and SuperSlim is a new engine for it, written
+from scratch: your existing `.slim` files produce the same HTML, but they compile about nine times faster and
+render about twice as fast.
 
-Website: https://levups.github.io/super-slim/
+It also comes with a formatter, a linter and a RuboCop plugin. All three read templates with the engine's own
+parser, so they never disagree with it about what a template means.
 
-## What a template looks like
+Website and guide: https://levups.github.io/super-slim/
+
+## Why SuperSlim
+
+A template engine does two jobs. It compiles each template into Ruby code, which Rails does the first time a
+template renders and again after you edit it in development. Then it runs that code on every request. SuperSlim
+makes both cheaper.
+
+`bench/compare.rb` renders the same blog page (24 post cards) with five engines and checks that they all produce
+the same HTML. On the last run (November 2026, Ruby 4.0 with YJIT), SuperSlim compiled the page 9.3 times faster
+than Slim and rendered it 2.3 times faster, with a quarter of the allocations:
+
+| Engine | Compiles per second | Renders per second | Objects allocated per render |
+|---|---:|---:|---:|
+| SuperSlim 1.0.0 | 12,423 | 60,725 | 111 |
+| Slim 5.2.2 | 1,341 | 26,786 | 480 |
+| Haml 7.5.2 | 1,559 | 37,704 | 471 |
+| Herb 0.11.1 | 5,600 | 17,496 | 830 |
+| Erubi 1.13.1 (ERB) | 51,144 | 62,746 | 115 |
+
+On whole apps, the 1,399 templates of a production Rails app compile in 108 ms instead of 522 ms, and 6,053
+templates from 30 open-source projects in 529 ms instead of 2,472 ms. The linter takes about a third of the CPU
+time slim-lint takes on the same templates. The [benchmarks page](https://levups.github.io/super-slim/benchmarks.html)
+has the charts and the steps to reproduce them.
+
+## Installation
+
+SuperSlim needs Ruby 3.3 or later. In a Rails app, add it to your Gemfile, and remove `slim-rails` if you have it:
+SuperSlim replaces it.
+
+```ruby
+gem "super-slim"
+```
+
+Rails then renders every `.slim` view with SuperSlim. There is nothing to configure. Rails itself is optional, and
+SuperSlim is tested on Rails 8.0 and later.
+
+Without Rails, `SuperSlim.compile` turns a template into Ruby code, which you evaluate where the template's
+variables and methods are defined:
+
+```ruby
+require "super_slim"
+
+ruby_code = SuperSlim.compile(File.read("page.slim"), file: "page.slim") # file: is shown in errors and backtraces
+html = eval(ruby_code, binding)
+```
+
+## A first template
 
 ```slim
 ul.posts
@@ -29,32 +76,10 @@ Lines starting with `-` run Ruby, `=` outputs the result of Ruby code (escaped f
 tag, text or an attribute. The [Slim documentation](https://github.com/slim-template/slim#readme) describes the whole
 language. SuperSlim reads all of it, except the few parts listed in [What SuperSlim leaves out](#what-superslim-leaves-out).
 
-## Installation
-
-In a Rails app, add the gem to your Gemfile. If you use `slim-rails`, remove it: SuperSlim replaces it.
-
-```ruby
-gem "super-slim"
-```
-
-Rails then renders every `.slim` view with SuperSlim. There is nothing to configure.
-
-Without Rails, `SuperSlim.compile` turns a template into Ruby code, which you evaluate where the template's
-variables and methods are defined:
-
-```ruby
-require "super_slim"
-
-ruby_code = SuperSlim.compile(File.read("page.slim"))
-html = eval(ruby_code, binding)
-```
-
-SuperSlim needs Ruby 3.3 or later. Rails is optional, and it is tested on Rails 8.0 and later.
-
 ## Switching from Slim
 
-SuperSlim renders what Slim renders with the options `format: :html, sort_attrs: false`. Slim's defaults are
-different (`format: :xhtml, sort_attrs: true`), so if you never changed them, switch in two steps:
+SuperSlim renders what Slim renders with the options `format: :html, sort_attrs: false`, byte for byte. Slim's
+defaults are different (`format: :xhtml, sort_attrs: true`), so if you never changed them, switch in two steps:
 
 1. Set those two options on Slim and run your test suite. Fix anything that depended on XHTML output or on
    sorted attributes.
@@ -66,20 +91,42 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 
 ## Formatter
 
+`super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
+where a `.class` or `#id` is enough, no trailing whitespace, single blank lines and a final newline. This template:
+
+```slim
+div.card
+    -if post.draft?
+        span.badge Draft
+    =link_to post.title, post
+
+
+    img src=post.image_url
+```
+
+comes out as:
+
+```slim
+.card
+  - if post.draft?
+    span.badge Draft
+  = link_to post.title, post
+
+  img src=post.image_url
+```
+
 ```sh
-super-slim format            # rewrite every .slim file under the current directory (except .git, node_modules, tmp, vendor)
+super-slim format            # every .slim file under the current directory (except .git, node_modules, tmp, vendor)
 super-slim format --check    # list the files that would change, and fail if there are any
 super-slim format app/views/posts
 ```
 
-The formatter rewrites templates in one consistent layout: two spaces per level, a space after `-` and `=`, no
-`div` where a `.class` or `#id` is enough, no trailing whitespace, single blank lines and a final newline. `fmt`
-is an alias of `format`.
+`fmt` is an alias of `format`.
 
-It can't change what a page renders. Before writing a file, it compiles the old and the new version and compares
-the Ruby code they produce, using [Prism](https://github.com/ruby/prism). Line breaks, spaces, a trailing comma or
-the parentheses of a call may differ. If anything else does, it leaves the file alone and reports it. Text blocks move together with
-their whitespace for the same reason.
+The formatter can't change what a page renders. Before writing a file, it compiles the old and the new version and
+compares the Ruby code they produce, using [Prism](https://github.com/ruby/prism). Line breaks, spaces, a trailing
+comma or the parentheses of a call may differ. If anything else does, it leaves the file alone and reports it. Text
+blocks move together with their whitespace for the same reason.
 
 To also wrap long lines, set a maximum length in `.super-slim.yml`:
 
@@ -99,8 +146,14 @@ super-slim lint              # every .slim file under the current directory
 super-slim lint app/views/posts
 ```
 
-The linter reads its settings from `.super-slim.yml`, in the directory you run it from. It takes about a third of
-the CPU time slim-lint takes on the same templates. Its rules come from other linters, so most will look familiar:
+On the formatted template above, it still finds the image without a text alternative:
+
+```
+_card.html.slim:6: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`
+```
+
+The linter reads its settings from `.super-slim.yml`, in the directory you run it from. Its rules come from other
+linters, so most will look familiar:
 
 | Rule | Comes from | Default |
 |---|---|---|
@@ -253,14 +306,22 @@ These parts of Slim aren't supported. Each one fails when the template compiles,
 - the `logic_less`, `translator`, `include` and `smart` plugins, and custom shortcuts (only `#id` and `.class`
   exist).
 
-The embedded engines that do work are `ruby:`, `javascript:`, `css:` and `markdown:`, which uses
-[Markly](https://github.com/ioquatix/markly). The rest can come back if people ask for them, as long as they don't
-slow down rendering.
+The embedded engines that do work are `ruby:`, `javascript:`, `css:` and `markdown:`. `markdown:` uses
+[Markly](https://github.com/ioquatix/markly), so add `gem "markly"` to your Gemfile if you use it. The rest can
+come back if people ask for them, as long as they don't slow down rendering.
+
+## Learn more
+
+The website has a [guide](https://levups.github.io/super-slim/guide.html) with every option, a page on the
+[formatter and linter](https://levups.github.io/super-slim/tools.html) with an example for each rule, the
+[benchmarks](https://levups.github.io/super-slim/benchmarks.html) and the
+[test setup](https://levups.github.io/super-slim/testing.html). [CHANGELOG.md](CHANGELOG.md) lists the changes in
+each version.
 
 ## How it is tested
 
-Slim's own test suite, including the examples of its specification (`TESTS.md`), runs against SuperSlim. Every
-template is rendered by both engines, and the HTML has to match.
+Slim is the reference. Its own test suite, including the examples of its specification (`TESTS.md`), runs against
+SuperSlim: every template is rendered by both engines, and the HTML has to match.
 
 On top of that:
 
@@ -278,23 +339,6 @@ and lints each of them and compares the result with Slim. `rake corpus:diff BASE
 them: compiled Ruby, formatting and lint offenses. These templates are never rendered, because rendering would run
 their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
 
-## Benchmarks
-
-`bench/compare.rb` renders the same blog page with SuperSlim, Slim, Haml, Erubi and Herb, checks that they all
-produce the same HTML, then measures compile and render speed and memory allocations. The results go to
-`docs/benchmarks.json`, which the website displays. On the last run (November 2026, Ruby 4.0 with YJIT),
-SuperSlim compiled the page 9.3 times faster than Slim and rendered it 2.3 times faster, with a quarter of the
-allocations.
-
-```sh
-bundle exec rake bench                                       # with YJIT, 5 seconds per measurement
-SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench   # also times compiling a whole app against Slim
-BENCH_LOCK=path/to/.bench.lock bundle exec rake bench        # waits while another benchmark holds the lock
-```
-
-Run it on a quiet machine. If `corpus/cache` is there, it also times the open-source templates, and compares
-`super-slim lint` and `format` with slim-lint when slim-lint is installed.
-
 ## Development
 
 ```sh
@@ -306,6 +350,16 @@ FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
 bundle exec ruby -Ilib bench/corpus.rb path/to/app               # compile time and allocations against Slim
 bundle exec ruby --yjit -Ilib bench/render.rb                    # render speed and allocations against Slim
 bundle exec rake docs                                            # rebuild the linter rules page of the website
+```
+
+The website's numbers come from `docs/benchmarks.json`, which `rake bench` rewrites by running `bench/compare.rb`.
+If `corpus/cache` is there, it also times the open-source templates, and compares `super-slim lint` and `format`
+with slim-lint when slim-lint is installed. Run it on a quiet machine:
+
+```sh
+bundle exec rake bench                                       # with YJIT, 5 seconds per measurement
+SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench   # also times compiling a whole app against Slim
+BENCH_LOCK=path/to/.bench.lock bundle exec rake bench        # waits while another benchmark holds the lock
 ```
 
 [CONTRIBUTING.md](CONTRIBUTING.md) explains how to propose a change. Please report security issues privately, as

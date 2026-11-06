@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SuperSlim — Slim templates, compiled faster</title>
-<meta name="description" content="Slim templates, compiled faster, with fewer allocations. Same HTML, byte for byte. A formatter and a linter in the box.">
-<meta property="og:title" content="SuperSlim — Slim templates, compiled faster">
-<meta property="og:description" content="A from-scratch Slim engine for Rails: same HTML byte for byte, a single-pass compiler, a formatter and a linter.">
+<title>SuperSlim: Slim templates, compiled faster</title>
+<meta name="description" content="SuperSlim is a new engine for Slim, the Ruby template language: the same HTML, byte for byte, compiled and rendered faster, with a formatter and a linter.">
+<meta property="og:title" content="SuperSlim: Slim templates, compiled faster">
+<meta property="og:description" content="A new engine for Slim templates in Ruby and Rails: the same HTML, byte for byte, compiled and rendered faster, with a formatter and a linter.">
 <meta property="og:type" content="website">
 <link rel="canonical" href="https://levups.github.io/super-slim/">
 <meta property="og:url" content="https://levups.github.io/super-slim/">
@@ -37,11 +37,41 @@
     <h1 class="wordmark">SuperSlim</h1>
     <p class="byline"><span id="byline-speed">Slim templates, compiled faster.</span><span class="byline-sub">Same HTML, byte for byte.</span></p>
     <div>
-      <p class="summary">A from-scratch Slim engine for Rails: no Temple, a single-pass compiler, and a formatter and a linter that read templates with the same parser.</p>
+      <p class="summary">Slim is a Ruby template language that writes HTML with indentation instead of closing tags. SuperSlim is a new engine for it, written from scratch: your <code>.slim</code> files keep working and render faster. It comes with a formatter and a linter.</p>
       <code class="install">gem "super-slim"</code>
       <p class="links"><a href="guide.html">Get started</a><a href="guide.html#migrating">Migrating from Slim</a><a href="benchmarks.html">Benchmarks</a></p>
     </div>
   </header>
+
+  <section aria-labelledby="example-title">
+    <h2 id="example-title">What a template looks like</h2>
+    <div class="prose">
+      <p>Nesting replaces closing tags. Lines starting with <code>-</code> run Ruby, <code>=</code> outputs a value escaped for HTML, and the rest are tags, attributes and text. The <a href="https://github.com/slim-template/slim#readme">Slim documentation</a> describes the whole language.</p>
+    </div>
+    <div class="split">
+      <div>
+        <p class="code-label">app/views/posts/index.html.slim</p>
+<pre><code class="language-slim"><span class="nt">ul</span><span class="nc">.posts</span>
+  <span class="p">-</span> <span class="n">posts</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span>
+    <span class="nt">li</span>
+      <span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="n">post</span><span class="nc">.url</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
+      <span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+        <span class="nt">span</span><span class="nc">.badge</span><span class="w"> </span>Draft</code></pre>
+      </div>
+      <div>
+        <p class="code-label">HTML, with two posts, the second a draft (indented here: SuperSlim writes it on one line)</p>
+<pre><code class="language-html"><span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">"posts"</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;li&gt;</span>
+    <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"/posts/1"</span><span class="nt">&gt;</span>Hello <span class="ni">&amp;amp;</span> welcome<span class="nt">&lt;/a&gt;</span>
+  <span class="nt">&lt;/li&gt;</span>
+  <span class="nt">&lt;li&gt;</span>
+    <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"/posts/2"</span><span class="nt">&gt;</span>Next steps<span class="nt">&lt;/a&gt;</span>
+    <span class="nt">&lt;span</span> <span class="na">class=</span><span class="s">"badge"</span><span class="nt">&gt;</span>Draft<span class="nt">&lt;/span&gt;</span>
+  <span class="nt">&lt;/li&gt;</span>
+<span class="nt">&lt;/ul&gt;</span></code></pre>
+      </div>
+    </div>
+  </section>
 
   <section aria-labelledby="numbers-title">
     <h2 id="numbers-title">In numbers</h2>
@@ -58,7 +88,7 @@
     <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SuperSlim">
       <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
       <div class="proof-row"><span>SuperSlim</span><code data-sha="SuperSlim">…</code></div>
-      <p class="proof-verdict">Identical on 295 of Slim’s own tests, on the 1,400 templates of a production app, and on 10,000 new random templates at every CI run.</p>
+      <p class="proof-verdict">Identical on 295 of Slim's own tests, on the 1,400 templates of a production app, and on 10,000 new random templates at every CI run.</p>
     </div>
     <p class="more"><a href="testing.html">How SuperSlim is tested</a></p>
   </section>
@@ -68,27 +98,27 @@
     <div class="cards">
       <div class="card">
         <h3>An engine for Rails</h3>
-        <p>A railtie registers <code>.slim</code> with Action View, and <code>SuperSlim.compile</code> serves plain Ruby. Every <code>-</code> and <code>=</code> stays on its template line, so backtraces point at the right one.</p>
+        <p>Add the gem and Rails renders every <code>.slim</code> view with it, with nothing to configure. Outside Rails, <code>SuperSlim.compile</code> returns plain Ruby. Each <code>-</code> and <code>=</code> line compiles onto its template line, so backtraces point at the right one.</p>
         <p><a href="guide.html">Guide</a></p>
       </div>
       <div class="card">
         <h3>A formatter that cannot change a page</h3>
-        <p><code>super-slim format</code> writes one layout, and compiles both versions before writing: if the Ruby differs, it refuses.</p>
+        <p><code>super-slim format</code> rewrites templates in one layout. Before writing a file, it compiles the old and the new version, and leaves the file alone if the Ruby differs.</p>
         <p><a href="tools.html#formatter">Formatter</a></p>
       </div>
       <div class="card">
         <h3>A linter with HTML and accessibility rules</h3>
-        <p>Rules from slim-lint, haml-lint, erb_lint, Herb and jsx-a11y, each with a flagged and a clean example. The Ruby inside goes to RuboCop, through a plugin.</p>
+        <p>Rules from slim-lint, haml-lint, erb_lint, Herb and jsx-a11y, each shown with a flagged and a clean example. A RuboCop plugin checks the Ruby inside templates.</p>
         <p><a href="tools.html#linter">Linter rules</a></p>
       </div>
       <div class="card">
         <h3>Tailwind class names</h3>
-        <p>One option, and <code>.rounded-b-[3px]</code>, <code>.size-2.5</code> or <code>.lg:hover:underline</code> work as class shortcuts. Attribute lists keep their meaning.</p>
+        <p>Slim splits or refuses class shortcuts such as <code>.rounded-b-[3px]</code>, <code>.size-2.5</code> or <code>.lg:hover:underline</code>. Turn on one option and they work. Attribute lists keep their meaning.</p>
         <p><a href="guide.html#tailwind">Tailwind</a></p>
       </div>
       <div class="card">
         <h3>Nothing new to learn</h3>
-        <p>The whole Slim 5 grammar, the same HTML, the same errors. What SuperSlim leaves out fails at compile time instead of rendering wrong. The grammar is Slim’s, by the Slim Team.</p>
+        <p>The whole Slim 5 grammar, the same HTML, the same errors. The few parts SuperSlim leaves out fail when the template compiles, so nothing renders wrong. The grammar is Slim's, by the Slim Team.</p>
         <p><a href="guide.html#left-out">What SuperSlim leaves out</a></p>
       </div>
     </div>
