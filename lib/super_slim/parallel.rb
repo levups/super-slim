@@ -12,7 +12,9 @@ module SuperSlim
       process_count = [Etc.nprocessors, items.size / minimum_per_process].min
       return items.map(&block) if process_count < 2 || !Process.respond_to?(:fork)
 
-      workers = items.each_slice((items.size.to_f / process_count).ceil).map do |slice|
+      # Dealt like cards: neighbouring templates, as heavy as each other, would load one process with all of them.
+      slices = Array.new(process_count) { |process_index| items.values_at(*process_index.step(items.size - 1, process_count)) }
+      workers = slices.map do |slice|
         reader, writer = IO.pipe
         pid = fork do
           reader.close
@@ -22,9 +24,12 @@ module SuperSlim
         writer.close
         [pid, reader]
       end
-      results_by_process = workers.map { |pid, reader| receive(pid, reader) }
-      results_by_process.each { |results| raise results if results.is_a?(Exception) }
-      results_by_process.flatten(1)
+      results_per_process = workers.map { |pid, reader| receive(pid, reader) }
+      results_per_process.each { |results| raise results if results.is_a?(Exception) }
+      # The first slice is the longest: zip pads the others with nils past the last item.
+      results_in_item_order = results_per_process.first.zip(*results_per_process.drop(1))
+      results_in_item_order.flatten!(1)
+      results_in_item_order.first(items.size)
     ensure
       workers&.each do |pid, reader|
         reader.close unless reader.closed?

@@ -83,11 +83,20 @@ module SuperSlim
       paths.flat_map do |path|
         next [path] unless File.directory?(path)
 
-        Dir.glob("**/*.slim", base: path).filter_map do |template|
+        templates_in(path).filter_map do |template|
           template_path = File.join(path, template)
           template_path if !template.match?(SKIPPED_DIRECTORIES) && File.lstat(template_path).file?
         end
       end.sort
+    end
+
+    # A glob of the whole directory would walk the skipped directories too, node_modules first of all.
+    def templates_in(directory)
+      subdirectories = Dir.children(directory).select do |name|
+        !name.start_with?(".") && !"#{name}/".match?(SKIPPED_DIRECTORIES) && File.lstat(File.join(directory, name)).directory?
+      end
+      Dir.glob("*.slim", base: directory) +
+        subdirectories.flat_map { |name| Dir.glob("**/*.slim", base: File.join(directory, name)).map { |template| File.join(name, template) } }
     end
 
     # Written beside the template then renamed over it, so that a full disk or a kill cannot leave it cut short.

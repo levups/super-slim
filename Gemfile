@@ -14,6 +14,7 @@ group :development, :test do
   gem "markly"
   gem "minitest"
   gem "ostruct"
+  gem "railties", *@rails
   gem "rake"
   gem "rubocop-performance", require: false
   gem "standard", require: false

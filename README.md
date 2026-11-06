@@ -42,8 +42,9 @@ SuperSlim replaces it.
 gem "super-slim"
 ```
 
-Rails then renders every `.slim` view with SuperSlim. There is nothing to configure. Rails itself is optional, and
-SuperSlim is tested on Rails 8.0 and later.
+Rails then renders every `.slim` view with SuperSlim, and the digest of a `cache` block changes when a partial it
+renders changes. A partial whose name is computed needs a `/# Template Dependency: orders/line` comment, as in ERB.
+There is nothing to configure. Rails itself is optional, and SuperSlim is tested on Rails 8.0 and later.
 
 Without Rails, `SuperSlim.compile` turns a template into Ruby code, which you evaluate where the template's
 variables and methods are defined:
