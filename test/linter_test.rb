@@ -10,6 +10,14 @@ class LinterTest < Minitest::Test
       "ul\n   li \n-x = 1\ndiv.card\n\n\np\n"
   end
 
+  def test_trailing_whitespace_that_renders_is_not_to_be_removed
+    source = %(p Posts \n<em>Posts</em> \np title="Posts \n  and comments" \nli \n)
+    messages = SuperSlim::Linter.new.call("show.html.slim", source).map { |offense| "#{offense.lineno}: #{offense.message}" }
+
+    renders = "Trailing whitespace renders: write it with `'` or `>` instead"
+    assert_equal ["1: #{renders}", "2: #{renders}", "3: #{renders}", "4: Remove trailing whitespace", "5: Remove trailing whitespace"], messages
+  end
+
   def test_final_newline
     assert_offenses ["TrailingBlankLines:1"], "p"
     assert_offenses ["TrailingBlankLines:2"], "p\n\n"

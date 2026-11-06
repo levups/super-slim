@@ -30,6 +30,14 @@ class FormatterTest < Minitest::Test
     assert_equal source, SuperSlim::Formatter.call(source)
   end
 
+  # Both render their trailing whitespace: stripped, the formatter refused the whole template.
+  def test_keeps_trailing_whitespace_of_inline_html_and_of_a_quoted_value_that_goes_on
+    assert_formats "p\n  <em>Posts</em>  \n", "p\n    <em>Posts</em>  \n"
+    assert_formats %(p title="Posts  \n  and comments"\n), %(p title="Posts  \n  and comments"\n)
+    assert_formats %(p(id="post"\n  title="Posts  \n  and comments")\n), %(p(id="post"\n  title="Posts  \n  and comments")  \n)
+    assert_formats %(p title="Posts\n  and\n  comments"\n), %(p title="Posts\n  and  \n  comments"\n)
+  end
+
   def test_is_idempotent
     formatted = SuperSlim::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
 

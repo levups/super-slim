@@ -50,7 +50,7 @@
     <div class="prose">
 <pre><code class="language-sh">super-slim format <span class="o">[</span>PATHâ€¦]           <span class="c"># rewrite templates in place</span>
 super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€¦]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
-      <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
+      <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace unless it renders, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
       <p>With <code>format: max_line_length</code> in <code>.super-slim.yml</code>, longer lines are wrapped: a tag&rsquo;s attributes one per line inside <code>attribute_delimiters</code> (<code>()</code> by default, or <code>[]</code>, <code>{}</code>), then the arguments of its Ruby code after each comma, which Slim reads as a line that goes on. When the line opens a block, its arguments go four spaces deeper, apart from the block&rsquo;s children. Lines already spread over several lines stay as they are, and a wrap is only kept when Prism reads the same compiled Ruby.</p>
 <pre><code class="language-slim"><span class="nt">a</span><span class="nc">.btn</span>(
@@ -140,7 +140,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <h2 id="rules-title">Rules</h2>
     <p class="note">Each example below is run through the linter when the page is generated: the flagged one must be flagged, the clean one must pass.</p>
 <!-- linter-rules -->
-<section class="rule-group"><h3>Layout â€” fixed by <code>super-slim format</code></h3>
+<section class="rule-group"><h3>Layout, fixed by <code>super-slim format</code></h3>
 <details class="rule">
   <summary><span class="rule-name">Indentation</span><span class="rule-message">Indent with 2 spaces, not 3</span></summary>
   <div class="rule-examples">
@@ -219,7 +219,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
 </details>
 </section>
-<section class="rule-group"><h3>Template hygiene â€” from slim-lint</h3>
+<section class="rule-group"><h3>Template hygiene, from slim-lint</h3>
 <details class="rule">
   <summary><span class="rule-name">LineLength</span><span class="rule-message">Line is too long [127/120]</span></summary>
   <div class="rule-examples">
@@ -286,7 +286,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
 </details>
 </section>
-<section class="rule-group"><h3>Ruby in templates â€” from haml-lint and erb_lint</h3>
+<section class="rule-group"><h3>Ruby in templates, from haml-lint and erb_lint</h3>
 <details class="rule">
   <summary><span class="rule-name">UnnecessaryInterpolation</span><span class="rule-message">Write <code>= post.title</code> instead of interpolating it alone</span></summary>
   <div class="rule-examples">
@@ -385,7 +385,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
 </details>
 </section>
-<section class="rule-group"><h3>HTML and accessibility â€” from Herb and jsx-a11y</h3>
+<section class="rule-group"><h3>HTML and accessibility, from Herb and jsx-a11y</h3>
 <details class="rule">
   <summary><span class="rule-name">DuplicateId</span><span class="rule-message">The id <code>menu</code> is already used in this template</span></summary>
   <div class="rule-examples">

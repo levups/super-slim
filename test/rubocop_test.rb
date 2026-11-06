@@ -47,6 +47,14 @@ class RuboCopTest < Minitest::Test
     assert_equal CORRECTED, File.read(File.join(@directory, "page.html.slim"))
   end
 
+  # Counted with each \r, a correction landed one character further per line above it, and ate a line break.
+  def test_autocorrection_of_a_template_with_crlf_line_endings
+    output = rubocop("--autocorrect-all", "--format", "emacs", template: %(p Posts\r\n= link_to "Comments", "/"\r\np by alice\r\n))
+
+    assert_equal ["2:11", "2:23"], output.scan(/:(\d+:\d+): C: \[Corrected\]/).flatten
+    assert_equal "p Posts\n= link_to 'Comments', '/'\np by alice\n", File.read(File.join(@directory, "page.html.slim"))
+  end
+
   def test_a_template_super_slim_cannot_parse_has_no_offense
     assert_includes rubocop("--format", "simple", template: "p(\n"), "no offenses detected"
   end

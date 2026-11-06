@@ -56,7 +56,7 @@
         <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
         <li>templates whose format is XML (<code>.xml</code>, <code>.rss</code>, <code>.atom</code>) render as XML, with <code>&lt;link /&gt;</code> and <code>doctype xml</code>;</li>
         <li><code>annotate_rendered_view_with_filenames</code> adds its <code>BEGIN</code>/<code>END</code> comments, and streaming works;</li>
-        <li>every <code>-</code> and <code>=</code> line compiles onto its template line, so an exception’s backtrace points at the right line — including after a <code>ruby:</code> block or a multi-line attribute list, where Slim drifts;</li>
+        <li>every <code>-</code> and <code>=</code> line compiles onto its template line, so an exception’s backtrace points at the right line, even after a <code>ruby:</code> block or a multi-line attribute list, where Slim drifts;</li>
         <li><code>/# locals: (post:)</code> declares a partial’s strict locals.</li>
       </ul>
     </div>

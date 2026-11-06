@@ -258,7 +258,10 @@ module SuperSlim
     end
 
     def parse_inline_html
-      record_ruby(:text, source_offset, line_end_offset) if @outline
+      if @outline
+        @outline[@lineno].text = true
+        record_ruby(:text, source_offset, line_end_offset)
+      end
       children = []
       @stacks.last << located(InlineHtml.new(@scanner.rest, children))
       nest(children)
@@ -573,6 +576,8 @@ module SuperSlim
 
       until depth == 0 && @scanner.peek_byte == quote_byte
         if @scanner.eos? || @scanner.match?(BACKSLASH_AT_END)
+          # Unlike a stripped continuation line, a line read whole keeps its trailing whitespace in the value.
+          @outline[@lineno].text = true if @outline && @scanner.eos? && @scanner.string.equal?(@line)
           value << (@scanner.eos? ? "\n" : " ")
           @stacks.last << NEWLINE
           expect_next_line
