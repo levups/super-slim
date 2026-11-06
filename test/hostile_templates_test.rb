@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
-require "benchmark"
 require "super_slim"
 require "super_slim/formatter"
 require "super_slim/linter"
@@ -54,8 +53,10 @@ class HostileTemplatesTest < Minitest::Test
 
   private
 
-  def assert_fast(&)
-    seconds = Benchmark.realtime(&)
+  def assert_fast
+    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    yield
+    seconds = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
     assert_operator seconds, :<, 2, "took #{seconds.round(2)} seconds"
   end
 
