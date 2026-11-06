@@ -69,7 +69,8 @@ class FormatterTest < Minitest::Test
   end
 
   def test_spreads_the_arguments_of_a_call_one_per_line_between_parentheses
-    assert_wraps %(= link_to(\n    "Edit, now",\n    edit_post_path(post, x: 1),\n    class: "btn",\n  )\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
+    assert_wraps %(= link_to(\n    "Edit, now",\n    edit_post_path(post, x: 1),\n    class: "btn",\n  )\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n),
+      max_line_length: 31
     assert_wraps %(- links = [\n    root_path,\n    posts_path,\n  ]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
   end
 
@@ -114,6 +115,26 @@ class FormatterTest < Minitest::Test
     source = %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n)
 
     assert_wraps source, source, max_line_length: 60
+  end
+
+  def test_keeps_code_spread_by_hand_when_every_layout_passes_the_limit
+    source = %(= render "posts/card", post:, title: "Alice",\n  hint: "Alice wrote this post. " \\\n    "Bob read it and wrote a long reply."\n)
+
+    assert_wraps source, source, max_line_length: 40
+  end
+
+  def test_spreads_an_argument_that_passes_the_limit_one_element_per_line
+    expected = %(= render(\n    "posts/card",\n    hint: [\n      "Alice wrote this post.",\n      "Bob read it and replied.",\n    ].join(" "),\n  )\n)
+
+    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.", "Bob read it and replied."].join(" ")\n), max_line_length: 40
+    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.",\n  "Bob read it and replied."].join(" ")\n), max_line_length: 40
+  end
+
+  def test_spreads_a_nested_array_spread_by_hand_one_element_per_line
+    expected = %(= form.select(\n    :state,\n    collection: [\n      ["New", "new"],\n      ["Used", "used"],\n      ["Demo", "demo"],\n    ],\n    class: "x",\n  )\n)
+
+    assert_wraps expected, %(= form.select :state, collection: [["New", "new"], ["Used", "used"], ["Demo", "demo"]], class: "x"\n), max_line_length: 30
+    assert_wraps expected, %(= form.select :state, collection: [["New", "new"], ["Used", "used"],\n    ["Demo", "demo"]], class: "x"\n), max_line_length: 30
   end
 
   def test_puts_the_arguments_of_new_in_parentheses
