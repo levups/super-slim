@@ -11,6 +11,12 @@ module SuperSlim
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
       DO_KEYWORDS = %i[KEYWORD_DO KEYWORD_DO_BLOCK KEYWORD_DO_LAMBDA KEYWORD_DO_LOOP].freeze
       MODIFIERS = %i[KEYWORD_IF_MODIFIER KEYWORD_UNLESS_MODIFIER KEYWORD_WHILE_MODIFIER KEYWORD_UNTIL_MODIFIER KEYWORD_RESCUE_MODIFIER].freeze
+      # Prism 2 splits some tokens by role (BRACE_LEFT_HASH, PARENTHESIS_LEFT_GROUPING): older ones never emit them.
+      OPENING_BRACKETS = %i[
+        PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES PARENTHESIS_LEFT_GROUPING BRACKET_LEFT BRACKET_LEFT_ARRAY
+        BRACE_LEFT BRACE_LEFT_HASH BRACE_LEFT_ARGUMENT LAMBDA_BEGIN EMBEXPR_BEGIN
+      ].freeze
+      CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
       OPENING_BY_ATTRIBUTE_DELIMITERS = {"()" => "(", "[]" => "[", "{}" => " {"}.freeze
@@ -115,8 +121,8 @@ module SuperSlim
           when *DO_KEYWORDS then break
           # RuboCop refuses a modifier that ends a statement spread over several lines (Style/MultilineIfModifier).
           when *MODIFIERS then return [] if depth.zero?
-          when *Parser::OPENING_BRACKETS then depth += 1
-          when *Parser::CLOSING_BRACKETS then depth -= 1
+          when *OPENING_BRACKETS then depth += 1
+          when *CLOSING_BRACKETS then depth -= 1
           end
         end
         offsets

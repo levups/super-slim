@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require "prism"
 require "strscan"
 
 module SuperSlim
@@ -33,14 +32,10 @@ module SuperSlim
     BACKSLASH_AT_END = /\\\z/
     # `$`, not `\z`: once a bracket has opened a line, the lines that follow are read until it closes.
     OPENING_BRACKET_AT_LINE_END = /[(\[{]$/
-    # Prism 2 splits some tokens by role (BRACE_LEFT_HASH, PARENTHESIS_LEFT_GROUPING): older ones never emit them.
-    OPENING_BRACKETS = %i[
-      PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES PARENTHESIS_LEFT_GROUPING BRACKET_LEFT BRACKET_LEFT_ARRAY
-      BRACE_LEFT BRACE_LEFT_HASH BRACE_LEFT_ARGUMENT LAMBDA_BEGIN EMBEXPR_BEGIN
-    ].freeze
-    CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
-    PERCENT_LISTS = %i[PERCENT_LOWER_W PERCENT_UPPER_W PERCENT_LOWER_I PERCENT_UPPER_I].freeze
-    LINE_ENDS = %i[NEWLINE NEWLINE_TERMINATOR IGNORED_NEWLINE EOF COMMENT].freeze
+    PLAIN_RUBY = /[^()\[\]{}"'`#%]+/
+    QUOTED_TEXT_BY_QUOTE = %w[" ' `].to_h { |quote| [quote, /(?:[^\\#{quote}#]|\\.|#(?!\{))*/m] }.freeze
+    PERCENT_LITERAL = /%[qQwWiIrsx]?([(\[{<])/
+    BRACKET_AT_LINE_END = /[ \t]*(?:\n|\z)/
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -387,20 +382,63 @@ module SuperSlim
 
     # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
     # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
+    # Brackets in strings, %-literals and comments don't count. Read by hand: Prism would cost every process that
+    # renders templates its load time and memory.
     def bracket_open_at_line_end?(code)
       open_brackets = []
-      # The last token is always EOF, so each bracket has a token after it.
-      Prism.lex(code).value.each_cons(2) do |(token, _state), (following, _following_state)|
-        type = token.type
-        if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
-          # In %w[ and %i[, the line break after the bracket is a word separator.
-          at_line_end = LINE_ENDS.include?(following.type) || (following.type == :WORDS_SEP && following.value.start_with?("\n"))
-          open_brackets << [type, at_line_end]
-        elsif CLOSING_BRACKETS.include?(type) || (type == :STRING_END && PERCENT_LISTS.include?(open_brackets.last&.first))
+      skip_ruby(StringScanner.new(code), open_brackets)
+      open_brackets.any? { |(_closing, at_line_end)| at_line_end }
+    end
+
+    # Reads Ruby code up to its end, or up to the `}` that closes the interpolation it is in.
+    def skip_ruby(scanner, open_brackets, interpolation: false)
+      depth = open_brackets.size
+      until scanner.eos?
+        next if scanner.skip(PLAIN_RUBY)
+        next skip_percent_literal(scanner, open_brackets) if scanner.scan(PERCENT_LITERAL)
+
+        character = scanner.getch
+        case character
+        when "(", "[", "{" then open_brackets << [DELIMITERS[character], scanner.match?(BRACKET_AT_LINE_END)]
+        when ")", "]", "}"
+          return if interpolation && open_brackets.size == depth
+
           open_brackets.pop
+        when '"', "'", "`" then skip_quoted(scanner, character, open_brackets)
+        when "#" then scanner.skip_until(/\n|\z/)
         end
       end
-      open_brackets.any?(&:last)
+    end
+
+    def skip_quoted(scanner, quote, open_brackets)
+      until scanner.eos?
+        scanner.skip(QUOTED_TEXT_BY_QUOTE[quote])
+        break if scanner.skip(quote)
+
+        scanner.getch
+        skip_ruby(scanner, open_brackets, interpolation: true) if quote != "'" && scanner.skip("{")
+      end
+    end
+
+    # `%w[a b]`, just opened, closes on its own bracket, nesting only that kind; left open at the end, it continues
+    # the line.
+    def skip_percent_literal(scanner, open_brackets)
+      opening = scanner[1]
+      closing = DELIMITERS.fetch(opening, ">")
+      at_line_end = scanner.match?(BRACKET_AT_LINE_END)
+      depth = 1
+      until depth.zero?
+        return open_brackets << [closing, at_line_end] if scanner.eos?
+
+        character = scanner.getch
+        if character == "\\"
+          scanner.getch
+        elsif character == opening
+          depth += 1
+        elsif character == closing
+          depth -= 1
+        end
+      end
     end
 
     def parse_tag(tag)
