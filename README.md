@@ -50,6 +50,13 @@ own:
 Slim refuses these lines, so no template that works with Slim changes. A bracket opened mid-line, as in
 `- items.each { |item|`, still leaves the lines below it as children.
 
+## Comments after Ruby code
+
+Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason` into a syntax error: the
+comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
+ends a line of code out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on the
+line it is about.
+
 ## Tailwind class names
 
 Slim cuts `.rounded-b-[3px]` at the bracket, and refuses `.lg:[&:nth-child(3)]:hover:underline`. Turn on
