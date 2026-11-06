@@ -82,23 +82,38 @@ class FormatterTest < Minitest::Test
   end
 
   def test_keeps_the_layout_when_a_wrap_would_change_the_ruby
-    formatter = SuperSlim::Formatter.new(max_line_length: 10)
-    formatter.instance_variable_set(:@line_wrapper, ->(_source) { "p Hello,\n  world\n" })
-
-    assert_equal "p Hello, world\n", formatter.call("p Hello, world\n")
+    assert_equal "p Hello, world\n", formatter_wrapping_into("p Hello,\n  world\n").call("p Hello, world\n")
   end
 
   def test_keeps_a_wrap_that_only_adds_a_trailing_comma_and_parentheses
     wrapped = "= link_to(\n    post.title,\n    post_path(post),\n  )\n"
 
-    assert_equal wrapped, with_wrapper(wrapped).call("= link_to post.title, post_path(post)\n")
+    assert_equal wrapped, formatter_wrapping_into(wrapped).call("= link_to post.title, post_path(post)\n")
   end
 
   def test_refuses_a_wrap_that_moves_an_argument
     source = "= link_to(post.title) + suffix\n"
 
-    assert_equal source, with_wrapper("= link_to (post.title) + suffix\n").call(source)
-    assert_equal source, with_wrapper("= link_to(post.title) + suffix,\n  more\n").call(source)
+    assert_equal source, formatter_wrapping_into("= link_to (post.title) + suffix\n").call(source)
+    assert_equal source, formatter_wrapping_into("= link_to(\n    post.title + suffix,\n  )\n").call(source)
+  end
+
+  def test_refuses_a_wrap_that_changes_a_number
+    source = "= limit 1, 2.5\n"
+
+    assert_equal source, formatter_wrapping_into("= limit(\n    2,\n    1.5,\n  )\n").call(source)
+  end
+
+  def test_refuses_a_wrap_that_renames_a_variable
+    source = "- @title = post.title\n"
+
+    assert_equal source, formatter_wrapping_into("- @name = post.title\n").call(source)
+  end
+
+  def test_refuses_a_wrap_of_a_template_that_does_not_compile
+    source = %(p id="a" id="b" Hello, world\n)
+
+    assert_equal source, formatter_wrapping_into(%(p id="a" id="b" Hello,\n  world\n)).call(source)
   end
 
   def test_wraps_a_template_that_yields
@@ -116,7 +131,7 @@ class FormatterTest < Minitest::Test
     assert_equal expected, SuperSlim::Formatter.call(source)
   end
 
-  def with_wrapper(wrapped)
+  def formatter_wrapping_into(wrapped)
     formatter = SuperSlim::Formatter.new(max_line_length: 10)
     formatter.instance_variable_set(:@line_wrapper, ->(_source) { wrapped })
     formatter
