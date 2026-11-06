@@ -114,7 +114,8 @@ module SuperSlim
       parser = Parser.new(file: path, outline: true)
       nodes = parser.call(source)
       visits = Document.visits_of(nodes, parser.line_by_node)
-      document = Document.new(path:, lines: source.split(/\r?\n/), nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
+      lines = source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
+      document = Document.new(path:, lines:, nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
         visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
       relative_path = File.expand_path(path).delete_prefix(@root)
       offenses = @rules.select { _1.applies_to?(relative_path) }.flat_map { _1.offenses(document, source) }
