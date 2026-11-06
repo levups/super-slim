@@ -124,7 +124,7 @@
   <section id="embedded" aria-labelledby="embedded-title">
     <h2 id="embedded-title">Embedded engines</h2>
     <div class="prose">
-      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SuperSlim itself depends on no gem.</p>
+      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SuperSlim itself needs only strscan 3.1.1 or later, a gem Ruby ships with; on Ruby 3.3, whose own strscan is older, Bundler installs the newer one.</p>
     </div>
   </section>
 
