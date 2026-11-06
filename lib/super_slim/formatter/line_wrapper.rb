@@ -26,11 +26,13 @@ module SuperSlim
         @attribute_arranger = AttributeArranger.new(tailwind_classes:)
       end
 
-      def call(source)
+      def call(source, outline: nil)
         lines = source.split("\n")
-        parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
-        parser.call(source)
-        outline = parser.outline
+        unless outline
+          parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
+          parser.call(source)
+          outline = parser.outline
+        end
         wrapped = []
         lineno = 1
         while lineno <= lines.size

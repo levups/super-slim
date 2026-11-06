@@ -65,6 +65,11 @@ module SuperSlim
       @record_outline = outline
     end
 
+    # A string separator splits 6x faster than the regexp, which only templates with \r need.
+    def self.split_lines(source)
+      source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
+    end
+
     def call(source)
       root = []
       if @record_outline
@@ -74,8 +79,7 @@ module SuperSlim
       end
       normalized = normalize(source)
       @line_starts = line_starts(normalized, source.size - normalized.size) if @record_outline
-      # A string separator splits 6x faster than the regexp, which only templates with \r need.
-      @lines = normalized.include?("\r") ? normalized.split(/\r?\n/) : normalized.split("\n")
+      @lines = Parser.split_lines(normalized)
       @scanner = StringScanner.new("")
       @stacks = [root]
       @indents = []
