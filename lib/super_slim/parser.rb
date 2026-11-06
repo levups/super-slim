@@ -108,12 +108,12 @@ module SuperSlim
     def line_starts(source, byte_order_mark_size)
       line_starts = [nil, byte_order_mark_size]
       if source.ascii_only?
-        offset = 0
-        while (newline = source.byteindex("\n", offset))
-          offset = newline + 1
-          line_starts << byte_order_mark_size + offset
+        line_start = 0
+        while (newline_index = source.byteindex("\n", line_start))
+          line_start = newline_index + 1
+          line_starts << byte_order_mark_size + line_start
         end
-        line_starts << byte_order_mark_size + source.bytesize if offset < source.bytesize
+        line_starts << byte_order_mark_size + source.bytesize if line_start < source.bytesize
       else
         source.each_line { |line| line_starts << line_starts.last + line.size }
       end
