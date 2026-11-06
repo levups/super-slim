@@ -149,8 +149,15 @@ per line between brackets that close on a line of their own, each followed by a 
 
 A call whose only argument is a call spreads that one, as `Card.new` above. Arguments go four spaces deep and the
 closing bracket two, two more when the line opens a block. Code spread by hand stays as it is when this layout
-would leave a line longer than the limit, and arguments to `new` go in parentheses. A long tag's attributes go one
-per line inside the delimiters.
+would leave a line longer than the limit, and arguments to `new` go in parentheses.
+
+A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
+they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
+named twice goes, and the other attributes follow one order: `id`, `class`, what the element is (`type`, `name`,
+`href`, `src`, `value`, `for`, `action`, `method`), the rest, `data-controller`, `data-action` and targets, other
+`data-*`, then `aria-*` and `role`. Delimiters stay around a boolean attribute and before text that would read as
+an attribute, and a tag with a `*splat` keeps its order. The formatter takes attribute values to have no side
+effects: reordering two Ruby values changes the order they run in.
 
 ## Linter
 

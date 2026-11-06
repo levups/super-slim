@@ -170,6 +170,42 @@ class FormatterTest < Minitest::Test
       %(= submit_button :save, if post.persisted? then "Save" else "Add" end\n)
   end
 
+  def test_turns_a_literal_id_or_class_into_shortcuts
+    assert_wraps %(form#search action="/search"\n), %(form id="search" action="/search"\n), max_line_length: 120
+    assert_wraps %(li.card.shadow id=dom_id(post)\n), %(li id=dom_id(post) class="card shadow"\n), max_line_length: 120
+    assert_wraps %(.card.shadow\n), %(div class="card shadow"\n), max_line_length: 120
+    assert_wraps %(a.link#home> href="/" Home\n), %(a.link> id="home" href="/" Home\n), max_line_length: 120
+    assert_wraps %(p id="post-\#{post.id}" class=classes\n), %(p id="post-\#{post.id}" class=classes\n), max_line_length: 120
+  end
+
+  def test_drops_a_class_named_twice
+    assert_wraps %(.p-3.border\n  p Hello\n), %(.p-3.border.p-3\n  p Hello\n), max_line_length: 120
+  end
+
+  def test_orders_attributes_by_what_they_say
+    assert_wraps %(input.form-control type="number" name="quantity" data-action="change->cart#update" aria-label=label\n),
+      %(input aria-label=label data-action="change->cart#update" type="number" name="quantity" class="form-control"\n), max_line_length: 120
+  end
+
+  def test_writes_attributes_without_delimiters_when_they_fit
+    assert_wraps %(fieldset data-flow="accessories"\n  legend Title\n), %(fieldset{data-flow="accessories"}\n  legend Title\n), max_line_length: 120
+    assert_wraps %(button.btn type="button" data-action="modal#close"\n), %(button.btn {\n  type="button"\n  data-action="modal#close"\n}\n), max_line_length: 120
+  end
+
+  def test_keeps_in_place_what_attributes_would_change
+    [
+      %(input(type="checkbox" checked)\n),
+      %(div *attributes class="card" id="main"\n),
+      %(*{tag: tag_name, class: "card"} Dynamic\n)
+    ].each { assert_wraps _1, _1, max_line_length: 120 }
+  end
+
+  def test_refuses_a_wrap_that_changes_the_order_of_classes
+    source = "div class=\"b a\" Hello\n"
+
+    assert_equal source, formatter_wrapping_into(".a.b Hello\n").call(source)
+  end
+
   private
 
   def assert_formats(expected, source)
