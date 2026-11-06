@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "prism"
+require_relative "formatter/code_wrapper"
 require_relative "formatter/line_wrapper"
 
 module SuperSlim
@@ -113,8 +114,7 @@ module SuperSlim
     # when the template doesn't compile.
     def compiled_ruby(source)
       code = SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml)
-      # Rails runs a template inside a method, where `yield` is valid.
-      parsed = Prism.parse("def template\n#{code}\nend")
+      parsed = Prism.parse("#{CodeWrapper::TEMPLATE_METHOD}#{code}\nend")
       parsed.success? ? parsed : code.gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
