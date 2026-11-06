@@ -83,6 +83,20 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_a_configuration_of_the_wrong_shape_fails_with_a_usage_error
+    {
+      "linters: 5\n" => ".super-slim.yml: `linters` must be a mapping",
+      "linters:\n  LineLength:\n    include: 3\n" => ".super-slim.yml: `LineLength: include` must be a list of globs",
+      "x: !ruby/object:Object {}\n" => "Tried to load unspecified class: Object"
+    }.each do |configuration, message|
+      in_templates("p Hello\n") do |directory|
+        File.write(File.join(directory, ".super-slim.yml"), configuration)
+
+        assert_output("", "#{message}\n") { assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["lint", "."]) }
+      end
+    end
+  end
+
   def test_include_and_exclude_globs_match_paths_from_the_configuration_directory
     in_templates("p style=\"color: red\" Hello\n") do |directory|
       FileUtils.mkdir_p(File.join(directory, "mailers"))

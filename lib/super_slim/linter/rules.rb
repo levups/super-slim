@@ -49,11 +49,7 @@ module SuperSlim
 
         # Text nodes carry no line of their own: they take the line of the closest node that does.
         def line_near(document, node, ancestors)
-          [node, *ancestors.reverse].each do |candidate|
-            lineno = document.line_of(candidate)
-            return lineno if lineno
-          end
-          nil
+          document.line_of(node) || document.line_of(ancestors.located)
         end
 
         def each_line(document)
@@ -236,7 +232,7 @@ module SuperSlim
 
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Tag) && node.name.match?(/[A-Z]/)
-            next if ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "svg" }
+            next if ancestors.inside_svg
 
             offense(document, document.line_of(node), "Write `#{node.name.downcase}` in lowercase")
           end
@@ -277,7 +273,7 @@ module SuperSlim
         def offenses(document, _source)
           branch_by_id = {}
           enum_for(:each_tag, document).filter_map do |tag, ancestors|
-            branch = ancestors.reverse.find { _1.is_a?(AST::Control) }
+            branch = ancestors.control
             literal_attributes(tag, "id").filter_map do |attribute|
               id = literal_value(attribute)
               if branch_by_id.key?(id) && branch_by_id[id].equal?(branch)
@@ -320,7 +316,7 @@ module SuperSlim
       class NestedLinks < Rule
         def offenses(document, _source)
           enum_for(:each_tag, document, "a").filter_map do |tag, ancestors|
-            next unless ancestors.any? { _1.is_a?(AST::Tag) && _1.name == "a" }
+            next unless ancestors.inside_link
 
             offense(document, document.line_of(tag), "Links cannot contain links")
           end
@@ -522,7 +518,7 @@ module SuperSlim
 
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
-            next unless node.is_a?(AST::TextBlock) && ancestors.none?(AST::Comment)
+            next unless node.is_a?(AST::TextBlock) && !ancestors.inside_comment
 
             text = node.children.grep(AST::Text).map(&:text).join(" ").gsub(/\s+/, " ").strip
             next unless text.gsub(NOT_WORDS, "").match?(/\p{L}/)
@@ -562,7 +558,7 @@ module SuperSlim
 
             text = $2
             lineno = document.line_of(node)
-            message = if text.match?(READ_AS_SYNTAX_AFTER_TAG) && ancestors.any? && document.line_of(ancestors.last) == lineno
+            message = if text.match?(READ_AS_SYNTAX_AFTER_TAG) && ancestors.last && document.line_of(ancestors.last) == lineno
               "Write the text `| #{text}` on its own line, under the tag: inline, it would read as attributes"
             else
               "Write the text `| #{text}` instead of outputting a string"

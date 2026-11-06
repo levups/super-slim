@@ -41,6 +41,10 @@ module SuperSlim
     CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
     PERCENT_LISTS = %i[PERCENT_LOWER_W PERCENT_UPPER_W PERCENT_LOWER_I PERCENT_UPPER_I].freeze
     LINE_ENDS = %i[NEWLINE NEWLINE_TERMINATOR IGNORED_NEWLINE EOF COMMENT].freeze
+    # Lines lexed at once to find where code continued over several lines ends: most calls fit in the first window.
+    CONTINUATION_WINDOW = 4
+    MAX_NESTING = 500
+    LOOKAHEAD_TOKENS = %i[HEREDOC_START EMBDOC_BEGIN].freeze
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -145,12 +149,37 @@ module SuperSlim
 
     # Characters of the line read so far, even when the scanner reads a stripped copy or attribute source.
     def column
-      @line.size - (@scanner.string.size - @scanner.charpos)
+      charpos = scanner_charpos
+      line_size - (@scanner_string_size - charpos)
     end
 
     # Where the scanner stands in the source, unlike `column` exact on a stripped line or on attribute source.
     def source_offset
-      @line_starts[@lineno] + @scanner_column + @scanner.charpos
+      @line_starts[@lineno] + @scanner_column + scanner_charpos
+    end
+
+    # StringScanner#charpos and String#size count from the start of the string at each call, and the outline asks
+    # for them at each attribute: counted on from where the last call left off, they stay linear in the line.
+    def scanner_charpos
+      string = @scanner.string
+      position = @scanner.pos
+      unless string.equal?(@charpos_string) && position >= @charpos_byte
+        @charpos_string = string
+        @charpos_byte = @charpos_char = 0
+        @scanner_string_size = string.size
+        @scanner_string_ascii = string.ascii_only?
+      end
+      return position if @scanner_string_ascii
+
+      @charpos_char += string.byteslice(@charpos_byte, position - @charpos_byte).size
+      @charpos_byte = position
+      @charpos_char
+    end
+
+    def line_size
+      @line_size = @line.size unless @line.equal?(@sized_line)
+      @sized_line = @line
+      @line_size
     end
 
     def line_end_offset
@@ -244,7 +273,7 @@ module SuperSlim
       record_ruby(:text, source_offset, line_end_offset) if @outline
       children = []
       @stacks.last << located(InlineHtml.new(@scanner.rest, children))
-      @stacks << children
+      nest(children)
     end
 
     def parse_control
@@ -252,7 +281,7 @@ module SuperSlim
       @scanner.pos += 1
       children = []
       @stacks.last << located(Control.new(parse_broken_line, children), lineno)
-      @stacks << children
+      nest(children)
     end
 
     def parse_output
@@ -271,7 +300,7 @@ module SuperSlim
       lineno = @lineno
       @stacks.last << located(Output.new(parse_broken_line, escape, children), lineno)
       @stacks.last << Static.new(" ") if trailing_whitespace
-      @stacks << children
+      nest(children)
     end
 
     def parse_tag_line
@@ -377,7 +406,7 @@ module SuperSlim
       first = source_offset + @scanner.rest[/\A\s*/].size if @outline
       broken_line = @scanner.rest
       broken_line.strip!
-      while broken_line.match?(LINE_CONTINUATION) || (broken_line.match?(OPENING_BRACKET_AT_LINE_END) && bracket_open_at_line_end?(broken_line))
+      continuation_line_count(broken_line).times do
         expect_next_line
         broken_line << "\n" << @scanner.string
       end
@@ -385,12 +414,81 @@ module SuperSlim
       broken_line
     end
 
-    # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
-    # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
+    # How many of the next lines continue the code: those after a comma or a backslash, and those until a bracket
+    # that ends its line closes. Lexing the code again after each line took quadratic time, so the next lines are
+    # lexed together, in windows that double, and each line end is read from the tokens before it. More lines than
+    # are left means the file ends first.
+    def continuation_line_count(code)
+      # After a comma or a backslash, until a line ends with a bracket, nothing needs a lexer.
+      count = 0
+      line = code
+      until line.match?(OPENING_BRACKET_AT_LINE_END)
+        return count unless line.match?(LINE_CONTINUATION)
+        return count + 1 if count == @lines.size
+
+        line = @lines[count].strip
+        count += 1
+      end
+
+      window = count + CONTINUATION_WINDOW
+      loop do
+        lines = @lines.first(window).map!(&:strip)
+        count = continuation_line_count_within(code, lines) or return heredoc_continuation_line_count(code)
+        return count if count <= lines.size
+        return @lines.size + 1 if lines.size == @lines.size
+
+        window *= 2
+      end
+    end
+
+    # The first line end, among those of `code` and each of `lines`, where the code doesn't continue, or
+    # lines.size + 1 when it continues past them all. Nil with a heredoc or a `=begin` comment, whose next lines
+    # change the tokens of the lines before them.
+    def continuation_line_count_within(code, lines)
+      tokens = lex([code, *lines].join("\n")).map(&:first)
+      return if tokens.any? { |token| LOOKAHEAD_TOKENS.include?(token.type) }
+
+      token_index = 0
+      open_brackets = []
+      bracket_at_line_end = false
+      line_end = -1
+      [code, *lines].each_with_index do |line, count|
+        line_end += line.bytesize + 1
+        bracket_at_line_end ||= line.match?(OPENING_BRACKET_AT_LINE_END)
+        # Every token but the last has a token after it. That last one is EOF, or `__END__`, which ends the code.
+        while (following = tokens[token_index + 1]) && (token = tokens[token_index]).location.start_offset < line_end
+          type = token.type
+          if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
+            # In %w[ and %i[, the line break after the bracket is a word separator.
+            at_line_end = LINE_ENDS.include?(following.type) || (following.type == :WORDS_SEP && following.value.start_with?("\n"))
+            open_brackets << [type, at_line_end]
+          elsif CLOSING_BRACKETS.include?(type) || (type == :STRING_END && PERCENT_LISTS.include?(open_brackets.last&.first))
+            open_brackets.pop
+          end
+          token_index += 1
+        end
+        continued = line.match?(LINE_CONTINUATION) || (bracket_at_line_end && open_brackets.any?(&:last))
+        return count unless continued
+      end
+      lines.size + 1
+    end
+
+    # Lexes the code again after each line, in quadratic time: heredocs and `=begin` in continued code are rare.
+    def heredoc_continuation_line_count(code)
+      code = code.dup
+      (0..@lines.size).each do |count|
+        continued = code.match?(LINE_CONTINUATION) || (code.match?(OPENING_BRACKET_AT_LINE_END) && bracket_open_at_line_end?(code))
+        return count unless continued
+
+        code << "\n" << @lines[count].to_s.strip
+      end
+      @lines.size + 1
+    end
+
     def bracket_open_at_line_end?(code)
       open_brackets = []
       # The last token is always EOF, so each bracket has a token after it.
-      Prism.lex(code).value.each_cons(2) do |(token, _state), (following, _following_state)|
+      lex(code).each_cons(2) do |(token, _state), (following, _following_state)|
         type = token.type
         if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
           # In %w[ and %i[, the line break after the bracket is a word separator.
@@ -401,6 +499,12 @@ module SuperSlim
         end
       end
       open_brackets.any?(&:last)
+    end
+
+    def lex(code)
+      Prism.lex(code).value
+    rescue SystemStackError
+      syntax_error!("Ruby code nested too deep")
     end
 
     def parse_tag(tag)
@@ -439,19 +543,19 @@ module SuperSlim
         siblings.insert(-2, Static.new(" ")) if output_leading_whitespace && !leading_whitespace
         siblings << Static.new(" ") if output_trailing_whitespace && !trailing_whitespace
       end
-      @stacks << block if block
+      nest(block) if block
     end
 
     # Returns the tag content, the block expecting indented children, and the whitespace an `=<>` output adds.
     def parse_tag_content
       # Not `column`, which counts the spaces stripped from the end of a continuation line.
-      output_column = @scanner_column + @scanner.charpos if @outline
+      output_column = @scanner_column + scanner_charpos if @outline
       if @scanner.skip(NESTED_TAG)
         return [[parse_embedded(@scanner[1], @scanner[2], @scanner.rest)]] if @scanner.skip(ENGINE)
 
         (tag = scan_tag) || syntax_error!("Expected tag")
         content = []
-        @stacks << content
+        nest(content)
         stack_index = @stacks.size - 1
         parse_tag(tag)
         @stacks.delete_at(stack_index)
@@ -582,6 +686,12 @@ module SuperSlim
       record_ruby(:text, first, source_offset) if @outline
       @scanner.pos += 1
       value
+    end
+
+    # The compiler, the linter and Ruby's own parser of the compiled code walk the tree recursively.
+    def nest(children)
+      syntax_error!("Tags nested more than #{MAX_NESTING} levels deep") if @stacks.size > MAX_NESTING
+      @stacks << children
     end
 
     def syntax_error!(message)

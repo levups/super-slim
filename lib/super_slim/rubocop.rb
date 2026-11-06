@@ -63,8 +63,8 @@ module SuperSlim
         parser.call(@source)
         parser.ruby_ranges.flat_map do |kind, first, last|
           # From the start of its first line, so that the indentation of a `ruby:` block is the same on every line.
-          first = (@source.rindex("\n", first - 1) || -1) + 1 if kind == :embedded_ruby
-          fragment = Fragment.new(@source[first...last], first)
+          first = character_offset((@source.byterindex("\n", byte_offset(first) - 1) || -1) + 1) if kind == :embedded_ruby
+          fragment = Fragment.new(@source.byteslice(byte_offset(first)...byte_offset(last)), first)
           case kind
           when :text then interpolations(fragment)
           when :code then without_block_syntax(fragment)
@@ -73,6 +73,26 @@ module SuperSlim
         end
       rescue SyntaxError
         []
+      end
+
+      # The ranges count characters, and slicing by characters counts them again from the start of the template
+      # at each slice: on a template that isn't ASCII, each character's byte offset is worked out once.
+      def byte_offset(character_offset)
+        byte_offsets ? byte_offsets[character_offset] : character_offset
+      end
+
+      def character_offset(byte_offset)
+        byte_offsets ? byte_offsets.bsearch_index { _1 >= byte_offset } : byte_offset
+      end
+
+      def byte_offsets
+        return if @source.ascii_only?
+
+        @byte_offsets ||= begin
+          offsets = [0]
+          @source.each_char { |character| offsets << offsets.last + character.bytesize }
+          offsets
+        end
       end
 
       def tailwind_classes?
