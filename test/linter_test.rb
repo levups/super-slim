@@ -199,6 +199,11 @@ class LinterTest < Minitest::Test
     assert_offenses ["LineLength:5"], source
   end
 
+  def test_disable_directive_skips_comments
+    assert_offenses [], "/ super-slim:disable ImageAlt\n/ Hero\nimg src=\"/a.webp\"\n"
+    assert_offenses [], "/ super-slim:disable ImageAlt\n/ super-slim:disable ButtonType\nimg src=\"/a.webp\"\nbutton Save\n"
+  end
+
   def test_disable_directive_with_no_line_after_it_is_reported
     assert_offenses ["Directive:2"], "p\n/ super-slim:disable ImageAlt\n"
   end
