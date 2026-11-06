@@ -102,6 +102,43 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_fmt_leaves_symlinks_and_special_files_found_in_a_directory_alone
+    Dir.mktmpdir do |outside|
+      victim = File.join(outside, "victim.slim")
+      File.write(victim, "div.a\n")
+      in_templates("p Hello\n") do |directory|
+        File.symlink(victim, File.join(directory, "link.slim"))
+        File.mkfifo(File.join(directory, "fifo.slim"))
+
+        assert_equal [0, ""], run_cli("format", ".")
+        assert_equal "div.a\n", File.read(victim)
+      end
+    end
+  end
+
+  def test_fmt_keeps_the_mode_of_the_template_it_rewrites
+    in_templates("ul\n   li Home\n") do |directory|
+      path = File.join(directory, template_name(1))
+      File.chmod(0o640, path)
+
+      assert_equal 0, run_cli("format", ".").first
+      assert_equal 0o640, File.stat(path).mode & 0o7777
+      assert_equal [template_name(1)], Dir.children(directory).grep(/super-slim|\A#{template_name(1)}\z/)
+    end
+  end
+
+  def test_control_characters_are_escaped_in_what_lint_prints
+    Dir.mktmpdir do |directory|
+      Dir.chdir(directory) do
+        File.write("a\e[2Jb\n::error::x.slim", "p Hello \n")
+        status, output = run_cli("lint", ".")
+
+        assert_equal 1, status
+        assert_equal ["./a\\e[2Jb\\n::error::x.slim:1: [TrailingWhitespace] Trailing whitespace renders: write it with `'` or `>` instead"], output.lines(chomp: true)
+      end
+    end
+  end
+
   private
 
   def template_name(number) = format("template_%03d.html.slim", number)

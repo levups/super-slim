@@ -33,7 +33,10 @@ module SuperSlim
 
     # Attributes only known at render time: splats (`*hash`), `data=`/`aria=` hashes and dynamic tags (`*{tag: "a"}`).
     class Attributes
-      INVALID_NAME = /[ \0"'>\/=]/
+      # Slim lets tabs and line breaks through: they end a name, so `data: {"x\tonclick" => code}` set onclick.
+      INVALID_NAME = /[[:cntrl:] "'>\/=]/
+      # Read after escaping, which turns markup into entities: `&` is refused with the rest.
+      VALID_TAG = /\A[a-zA-Z][^[:cntrl:] "'&<>\/=]*\z/
       HYPHENATED = %w[data aria].freeze
 
       def initialize(html_safe)
@@ -57,7 +60,7 @@ module SuperSlim
       end
 
       def attr(name, value)
-        raise InvalidAttributeNameError, "Invalid attribute name '#{name}' was rendered" if name.match?(INVALID_NAME)
+        raise InvalidAttributeNameError, "Invalid attribute name '#{name}' was rendered" if name.empty? || name.match?(INVALID_NAME)
 
         if !@value_by_name.key?(name)
           @value_by_name[name] = value
@@ -71,6 +74,7 @@ module SuperSlim
       def build_tag(content = nil)
         tag = @value_by_name.delete("tag").to_s
         tag = "div" if tag.empty?
+        raise InvalidTagNameError, "Invalid tag name '#{tag}' was rendered" unless tag.match?(VALID_TAG)
         content ? "<#{tag}#{self}>#{content}</#{tag}>" : "<#{tag}#{self} />"
       end
 

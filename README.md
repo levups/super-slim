@@ -30,6 +30,18 @@ markers, `|` and `'` text, inline HTML, `/` and `/!` comments, `-` control code,
 templates), and the `ruby:`, `javascript:`, `css:` and `markdown:` (through
 [Markly](https://github.com/ioquatix/markly)) embedded engines.
 
+## Escaping
+
+`=`, `#{}` and attribute values are escaped for HTML, as in Slim. Names known only at render time are checked
+too, more strictly than Slim: a `*splat` or `data`/`aria` key holding a tab, a line break or another control
+character raises `SuperSlim::InvalidAttributeNameError` instead of slipping in an attribute of its own (Slim
+renders `data: {"x\tonclick" => code}` as an `onclick`), and a `*{tag: …}` that is not a tag name raises
+`SuperSlim::InvalidTagNameError`.
+
+HTML escaping knows nothing of the place it lands in. Inside `javascript:` and `css:`, an unquoted attribute of
+inline HTML or a link of `markdown:`, a `#{}` of user data can still break out: write
+`#{{json_escape(value.to_json)}}` in Rails scripts, quote attributes, and check URLs before they reach a template.
+
 ## Ruby code over several lines
 
 Slim continues a line of Ruby code after a comma or a backslash. SuperSlim also continues it after a `(`, `[` or `{`

@@ -13,6 +13,7 @@ module SuperSlim
 
   class Error < StandardError; end
   class InvalidAttributeNameError < Error; end
+  class InvalidTagNameError < Error; end
   class UnsafeFormattingError < Error; end
 
   class SyntaxError < Error
