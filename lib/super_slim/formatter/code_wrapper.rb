@@ -11,9 +11,10 @@ module SuperSlim
       TEMPLATE_METHOD = "def template\n"
       CODE_OFFSET = TEMPLATE_METHOD.bytesize
 
-      # Returns the lines after the first one's indentation, or nil when the code has nothing to spread.
-      def self.call(code, indent, opens_block:)
-        new(code, indent, opens_block:).call
+      # Returns the lines after the first one's indentation, or nil when the code has nothing to spread. An item
+      # still longer than max_line_length spreads its own arguments or elements.
+      def self.call(code, indent, opens_block:, max_line_length:)
+        new(code, indent, opens_block:, max_line_length:).call
       end
 
       # `render Card.new title:` reads as if title went to render: arguments to `new` go in parentheses.
@@ -68,17 +69,19 @@ module SuperSlim
       end
 
       # opens_block: whether the line has children, which Slim passes to its call as a block even without `do`.
-      def initialize(code, indent, opens_block:)
+      def initialize(code, indent, opens_block:, max_line_length:)
         @code = code
         @indent = indent
         @opens_block = opens_block
+        @max_line_length = max_line_length
       end
 
       def call
         statements, opens_block = self.class.parse(@code)
         return unless statements&.size == 1 && (node = spreadable(statements.first))
 
-        spread(node, @opens_block || opens_block)
+        closing_indent = @indent + (" " * ((@opens_block || opens_block) ? 2 * INDENT_WIDTH : INDENT_WIDTH))
+        spread(node, CODE_OFFSET, CODE_OFFSET + @code.bytesize, closing_indent)
       end
 
       private
@@ -89,35 +92,46 @@ module SuperSlim
         when Prism::CallNode
           items = self.class.arguments_of(node)
           # An operator such as `+` has no parentheses to add, and `list[index] = value` holds value in its arguments.
-          return if items.nil? || node.name.end_with?("=") || (node.opening_loc.nil? && !METHOD_NAME.match?(node.name.to_s))
-          return spreadable(items.first) if items.size == 1
+          return if node.name.end_with?("=") || (node.opening_loc.nil? && !METHOD_NAME.match?(node.name.to_s))
+          return node if items && items.size > 1
 
-          node
+          # `[a, b].join(" ")` spreads its array.
+          (spreadable(items.first) if items) || (spreadable(node.receiver) if node.receiver.is_a?(Prism::ArrayNode) || node.receiver.is_a?(Prism::HashNode))
         when Prism::ArrayNode, Prism::HashNode
           # `%w[a b]` takes no commas.
           node if ["[", "{"].include?(node.opening) && node.elements.size > 1
         end
       end
 
-      def spread(node, opens_block)
+      # The lines of the code from first to last, node's items spread between them, the first line unindented.
+      def spread(node, first, last, closing_indent)
         items = node.is_a?(Prism::CallNode) ? self.class.arguments_of(node) : node.elements
         # `hint: -> do` ends past the line, with the children of the line.
         return if self.class.end_offset(items.last) > CODE_OFFSET + @code.bytesize
 
-        closing_indent = @indent + (" " * (opens_block ? 2 * INDENT_WIDTH : INDENT_WIDTH))
         item_indent = closing_indent + (" " * INDENT_WIDTH)
         head, tail =
           if node.opening_loc
-            [slice(CODE_OFFSET, node.opening_loc.end_offset), slice(node.closing_loc.start_offset)]
+            [slice(first, node.opening_loc.end_offset), slice(node.closing_loc.start_offset, last)]
           else
-            ["#{slice(CODE_OFFSET, node.message_loc.end_offset)}(", ")#{slice(self.class.end_offset(items.last))}"]
+            ["#{slice(first, node.message_loc.end_offset)}(", ")#{slice(self.class.end_offset(items.last), last)}"]
           end
-        item_lines = items.map do |item|
-          # A comma after `&block` is a syntax error.
-          comma = "," unless item.is_a?(Prism::BlockArgumentNode)
-          "#{item_indent}#{slice(item.location.start_offset, self.class.end_offset(item))}#{comma}"
-        end
+        item_lines = items.flat_map { spread_item(_1, item_indent) }
         [head, *item_lines, closing_indent + tail]
+      end
+
+      def spread_item(item, indent)
+        # A comma after `&block` is a syntax error.
+        comma = "," unless item.is_a?(Prism::BlockArgumentNode)
+        item_end = self.class.end_offset(item)
+        line = "#{indent}#{slice(item.location.start_offset, item_end)}#{comma}"
+        return [line] if line.size <= @max_line_length
+
+        nested = spreadable(item.is_a?(Prism::AssocNode) ? item.value : item)
+        lines = nested && spread(nested, item.location.start_offset, item_end, indent)
+        return [line] unless lines
+
+        [indent + lines.first, *lines[1...-1], "#{lines.last}#{comma}"]
       end
 
       # From offsets in the parsed source, up to the end of the line by default.

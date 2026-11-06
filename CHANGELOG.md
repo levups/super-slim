@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [3.2.1] — 2026-11-06
+
+A comment after Ruby code no longer breaks the template.
+
+**Fixed**
+- A comment that ends a line of Ruby code, as in
+  `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason`,
+  no longer makes the template a syntax error: it is left out of the
+  compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can
+  sit on the line it is about. Slim refuses these lines.
+
 ## [3.2.0] — 2026-11-06
 
 One layout per line and per tag in `super-slim format`, cache digests that follow Slim partials, and a faster lint.
@@ -172,7 +183,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.1...HEAD
+[3.2.1]: https://github.com/levups/super-slim/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/levups/super-slim/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/levups/super-slim/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/levups/super-slim/compare/v3.0.0...v3.1.0
