@@ -102,7 +102,7 @@ class FormatterTest < Minitest::Test
     assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(= link_to post.title,\n        post_path(post)\n)
   end
 
-  def test_keeps_a_hash_spread_by_hand_that_would_pass_the_limit_joined
+  def test_keeps_code_spread_by_hand_when_the_layout_would_pass_the_limit
     source = %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n)
 
     assert_wraps source, source, max_line_length: 60

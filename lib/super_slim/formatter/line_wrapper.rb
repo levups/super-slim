@@ -64,8 +64,9 @@ module SuperSlim
         return [rejoined] if rejoined && rejoined.size <= @max_line_length
 
         # Only the outer call is spread: a hash spread inside it by hand would come back longer than the limit.
-        longer = broken.any? { _1.size > @max_line_length } && lines.size > 1 && lines.none? { _1.size > @max_line_length }
-        longer ? lines : broken
+        return lines if lines.size > 1 && lines.none? { _1.size > @max_line_length } && broken.any? { _1.size > @max_line_length }
+
+        broken
       end
 
       def with_new_parenthesized(line, info)
