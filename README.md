@@ -249,7 +249,7 @@ attributes and whitespace markers (`span> title="x" = name`), so you may see a f
 
 ## Additions to Slim
 
-Two additions read templates that Slim refuses or misreads. Neither changes a template that already works with
+Three additions read templates that Slim refuses or misreads. None changes a template that already works with
 Slim.
 
 ### Ruby code over several lines
@@ -270,6 +270,13 @@ an opening `(`, `[` or `{` at the end of a line, until the bracket is closed:
 
 A bracket opened in the middle of a line, as in `- items.each { |item|`, works as before: the lines below it are
 its children.
+
+### Comments after Ruby code
+
+Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason` into a syntax error: the
+comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
+follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
+the line it is about.
 
 ### Tailwind class names
 

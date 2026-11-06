@@ -1,0 +1,23 @@
+= title # rubocop:disable Style/Example -- a reason
+== safe_markup # unescaped
+p = number # inline
+p after a sibling
+= wrap do # a block
+  span inside
+= wrap # a block without do
+  span inside
+ul
+  - items.each_with_index # a loop without do
+    li = items.first
+- count = items.size # an assignment
+p = count
+- total = count \
+  # alone on a continued line
+p = total
+p = "#{title} # inside a string"
+p = "#not a comment"
+= format(
+    "%s and %s",
+    "alice", # inside the call
+    "bob",
+  ) # after the call

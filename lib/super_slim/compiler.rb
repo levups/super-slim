@@ -149,7 +149,20 @@ module SuperSlim
     end
 
     def with_do(code, children)
+      code = without_trailing_comment(code)
       (code.match?(BLOCK_SELF_OPENING) || AST.empty?(children)) ? code : "#{code} do"
+    end
+
+    # A comment that ends the code would swallow what the compiler writes after it, such as the closing
+    # parenthesis of an output or the `do` of a block. It never runs, so it is left out. One alone on a line
+    # stays: a backslash before it carries the code on to that line.
+    def without_trailing_comment(code)
+      return code unless code.include?("#")
+
+      comment_offset = Parser::RubyBrackets.new(code).trailing_comment_offset or return code
+
+      code_before = code.byteslice(0, comment_offset).sub(/[ \t]+\z/, "")
+      (code_before.empty? || code_before.end_with?("\n")) ? code : code_before
     end
 
     def compile_tag(tag)

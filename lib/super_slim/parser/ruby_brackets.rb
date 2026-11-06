@@ -3,7 +3,7 @@
 module SuperSlim
   class Parser
     # Read by hand, a line at a time: Prism would cost every process that renders templates its load time and memory.
-    # Misread, all rare after a bracket that ends its line: heredocs, `?(`, `$'`, a regexp after a method name or a
+    # Misread, all rare after a bracket that ends its line or before a comment that ends the code: heredocs, `?(`, `$'`, a regexp after a method name or a
     # keyword (`when /'/`), `%` glued to a value (`"%d"%[a]`), interpolation in a %-literal and %-literals between
     # other delimiters (`%|a(|`).
     class RubyBrackets
@@ -28,7 +28,11 @@ module SuperSlim
         read
       end
 
+      # The byte offset of the comment that ends the code, if one does.
+      attr_reader :trailing_comment_offset
+
       def <<(line)
+        @trailing_comment_offset = nil
         @scanner << "\n" << line
         read
         self
@@ -63,7 +67,10 @@ module SuperSlim
           when '"', "'", "`" then return @literals << character
           when "/" then return @literals << character if regexp_start?
           when "%" then return open_percent_literal if @scanner.scan(PERCENT_LITERAL_OPENING)
-          when "#" then @scanner.skip_until(LINE_END)
+          when "#"
+            comment_offset = @scanner.pos - 1
+            @scanner.skip_until(LINE_END)
+            @trailing_comment_offset = comment_offset if @scanner.eos?
           end
         end
       end

@@ -148,12 +148,17 @@ class GoldenTest < Minitest::Test
     parser.line_by_node.each do |node, lineno|
       next unless node.is_a?(SuperSlim::AST::Control) || node.is_a?(SuperSlim::AST::Output)
 
-      first_code_line = node.code.lines.first.to_s.strip
+      first_code_line = without_trailing_comment(node.code.lines.first.to_s).strip
       next if first_code_line.empty?
 
       assert_includes generated_lines[lineno - 1].to_s, first_code_line,
         "#{golden_case.name}:#{lineno}: `#{first_code_line}` is not on line #{lineno} of the Ruby"
     end
+  end
+
+  def without_trailing_comment(line)
+    comment = Prism.parse(line).comments.last
+    (comment && line.byteslice(comment.location.end_offset..).strip.empty?) ? line.byteslice(0, comment.location.start_offset) : line
   end
 
   def assert_formatting_holds(golden_case, formatted, html)

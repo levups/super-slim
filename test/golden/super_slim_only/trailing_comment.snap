@@ -1,0 +1,81 @@
+~~~~~~~~ super_slim: html
+Posts &amp; comments<i>safe</i><p>42</p><p>after a sibling</p>[&lt;span&gt;inside&lt;/span&gt;][&lt;span&gt;inside&lt;/span&gt;]<ul><li>one</li><li>one</li><li>one</li></ul><p>3</p><p>3</p><p>Posts &amp; comments # inside a string</p><p>#not a comment</p>alice and bob
+~~~~~~~~ super_slim: tilt
+_buf = +""; _buf << ::ERB::Escape.html_escape((title))
+_buf << (safe_markup).to_s
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((number))
+
+_buf << "</p><p>after a sibling</p>".freeze; _super_slim1 = wrap do; _super_slim2 = +""
+
+_super_slim2 << "<span>inside</span>".freeze; _super_slim2; end; _buf << ::ERB::Escape.html_escape((_super_slim1)); _super_slim3 = wrap do; _super_slim4 = +""
+
+_super_slim4 << "<span>inside</span>".freeze; _super_slim4; end; _buf << ::ERB::Escape.html_escape((_super_slim3))
+_buf << "<ul>".freeze; items.each_with_index do
+_buf << "<li>".freeze; _buf << ::ERB::Escape.html_escape((items.first))
+_buf << "</li>".freeze; end; _buf << "</ul>".freeze; count = items.size
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((count))
+_buf << "</p>".freeze; total = count \
+# alone on a continued line
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((total))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("#{title} # inside a string"))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("#not a comment"))
+_buf << "</p>".freeze; _buf << ::ERB::Escape.html_escape((format(
+"%s and %s",
+"alice", # inside the call
+"bob",
+)))
+_buf
+~~~~~~~~ super_slim: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer << (title)
+@output_buffer.safe_concat((safe_markup).to_s)
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (number)
+
+@output_buffer.safe_concat("</p><p>after a sibling</p>".freeze); _super_slim1 = wrap do
+
+@output_buffer.safe_concat("<span>inside</span>".freeze); end; @output_buffer << (_super_slim1); _super_slim2 = wrap do
+
+@output_buffer.safe_concat("<span>inside</span>".freeze); end; @output_buffer << (_super_slim2)
+@output_buffer.safe_concat("<ul>".freeze); items.each_with_index do
+@output_buffer.safe_concat("<li>".freeze); @output_buffer << (items.first)
+@output_buffer.safe_concat("</li>".freeze); end; @output_buffer.safe_concat("</ul>".freeze); count = items.size
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (count)
+@output_buffer.safe_concat("</p>".freeze); total = count \
+# alone on a continued line
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (total)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("#{title} # inside a string")
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("#not a comment")
+@output_buffer.safe_concat("</p>".freeze); @output_buffer << (format(
+"%s and %s",
+"alice", # inside the call
+"bob",
+))
+@output_buffer
+~~~~~~~~ super_slim: fmt
+= title # rubocop:disable Style/Example -- a reason
+== safe_markup # unescaped
+p = number # inline
+p after a sibling
+= wrap do # a block
+  span inside
+= wrap # a block without do
+  span inside
+ul
+  - items.each_with_index # a loop without do
+    li = items.first
+- count = items.size # an assignment
+p = count
+- total = count \
+  # alone on a continued line
+p = total
+p = "#{title} # inside a string"
+p = "#not a comment"
+= format(
+    "%s and %s",
+    "alice", # inside the call
+    "bob",
+  ) # after the call
+~~~~~~~~ super_slim: lint
+2: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+4: [HardcodedText] Translate `after a sibling` instead of writing it in the template
+6: [HardcodedText] Translate `inside` instead of writing it in the template
+8: [HardcodedText] Translate `inside` instead of writing it in the template
