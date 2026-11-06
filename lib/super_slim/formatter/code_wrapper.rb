@@ -12,54 +12,73 @@ module SuperSlim
       CODE_OFFSET = TEMPLATE_METHOD.bytesize
 
       # Returns the lines after the first one's indentation, or nil when the code has nothing to spread.
-      def self.call(code, indent, block:)
-        new(code, indent, block:).call
+      def self.call(code, indent, opens_block:)
+        new(code, indent, opens_block:).call
       end
 
       # `render Card.new title:` reads as if title went to render: arguments to `new` go in parentheses.
       def self.parenthesize_new(code)
         loop do
-          statements, _block = parse(code)
-          call = statements && bare_new(statements)
+          statements, _opens_block = parse(code)
+          call = statements && new_without_parentheses(statements)
           return code unless call
 
+          arguments = arguments_of(call)
           name_end = call.message_loc.end_offset - CODE_OFFSET
-          arguments_start = call.arguments.location.start_offset - CODE_OFFSET
-          arguments_end = call.arguments.location.end_offset - CODE_OFFSET
+          arguments_start = arguments.first.location.start_offset - CODE_OFFSET
+          arguments_end = end_offset(arguments.last) - CODE_OFFSET
+          return code if arguments_end > code.bytesize
+
           code = "#{code.byteslice(0, name_end)}(#{code.byteslice(arguments_start...arguments_end)})#{code.byteslice(arguments_end..)}"
         end
       end
 
-      def self.bare_new(statements)
+      def self.new_without_parentheses(statements)
         nodes = statements.dup
         while (node = nodes.pop)
-          return node if node.is_a?(Prism::CallNode) && node.name == :new && node.arguments && node.opening_loc.nil?
+          return node if node.is_a?(Prism::CallNode) && node.name == :new && node.opening_loc.nil? && arguments_of(node)
 
           nodes.concat(node.child_nodes.compact)
         end
       end
+      private_class_method :new_without_parentheses
 
       # Returns the statements of the line and whether it opens a block: it then holds its `do` but not its `end`.
       # Their offsets count from CODE_OFFSET.
       def self.parse(code)
         parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend")
-        block = !parsed.success?
-        parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend\nend") if block
-        [parsed.value.statements.body.first.body&.body || [], block] if parsed.success? && parsed.comments.empty?
+        opens_block = !parsed.success?
+        parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend\nend") if opens_block
+        [parsed.value.statements.body.first.body&.body || [], opens_block] if parsed.success? && parsed.comments.empty?
       end
 
-      # block: whether the line has children, which Slim passes to its call as a block even without `do`.
-      def initialize(code, indent, block:)
+      # Positional and keyword arguments, then the block argument; nil when the call takes none.
+      def self.arguments_of(call)
+        arguments = (call.arguments&.arguments || []).flat_map { |argument| argument.is_a?(Prism::KeywordHashNode) ? argument.elements : [argument] }
+        arguments += [call.block] if call.block.is_a?(Prism::BlockArgumentNode)
+        arguments unless call.message_loc.nil? || arguments.empty?
+      end
+
+      # 2026-11: Prism 0.19 (Ruby 3.3) ends a call that takes a block argument, and any node around it, before the
+      # call's closing parenthesis: `f(&x`.
+      def self.end_offset(node)
+        closing = node.closing_loc if node.respond_to?(:closing_loc)
+        child_ends = node.child_nodes.filter_map { |child| end_offset(child) if child }
+        [node.location.end_offset, closing&.end_offset || 0, *child_ends].max
+      end
+
+      # opens_block: whether the line has children, which Slim passes to its call as a block even without `do`.
+      def initialize(code, indent, opens_block:)
         @code = code
         @indent = indent
-        @block = block
+        @opens_block = opens_block
       end
 
       def call
-        statements, block = self.class.parse(@code)
+        statements, opens_block = self.class.parse(@code)
         return unless statements&.size == 1 && (node = spreadable(statements.first))
 
-        spread(node, @block || block)
+        spread(node, @opens_block || opens_block)
       end
 
       private
@@ -68,41 +87,37 @@ module SuperSlim
         node = node.value if node.type.end_with?("_write_node") && node.respond_to?(:value)
         case node
         when Prism::CallNode
-          items = call_items(node)
-          # An operator such as `+` has no parentheses to add.
-          return if items.nil? || (node.opening_loc.nil? && !METHOD_NAME.match?(node.name.to_s))
+          items = self.class.arguments_of(node)
+          # An operator such as `+` has no parentheses to add, and `list[index] = value` holds value in its arguments.
+          return if items.nil? || node.name.end_with?("=") || (node.opening_loc.nil? && !METHOD_NAME.match?(node.name.to_s))
           return spreadable(items.first) if items.size == 1
 
-          node if items.size > 1
+          node
         when Prism::ArrayNode, Prism::HashNode
-          node if node.opening_loc && node.elements.size > 1
+          # `%w[a b]` takes no commas.
+          node if ["[", "{"].include?(node.opening) && node.elements.size > 1
         end
       end
 
-      def call_items(call)
-        return if call.message_loc.nil? || (call.arguments.nil? && !call.block.is_a?(Prism::BlockArgumentNode))
+      def spread(node, opens_block)
+        items = node.is_a?(Prism::CallNode) ? self.class.arguments_of(node) : node.elements
+        # `hint: -> do` ends past the line, with the children of the line.
+        return if self.class.end_offset(items.last) > CODE_OFFSET + @code.bytesize
 
-        items = (call.arguments&.arguments || []).flat_map { |argument| argument.is_a?(Prism::KeywordHashNode) ? argument.elements : [argument] }
-        call.block.is_a?(Prism::BlockArgumentNode) ? [*items, call.block] : items
-      end
-
-      def spread(node, block)
-        items = node.is_a?(Prism::CallNode) ? call_items(node) : node.elements
-        closing_indent = @indent + (" " * (block ? 2 * INDENT_WIDTH : INDENT_WIDTH))
+        closing_indent = @indent + (" " * (opens_block ? 2 * INDENT_WIDTH : INDENT_WIDTH))
         item_indent = closing_indent + (" " * INDENT_WIDTH)
         head, tail =
           if node.opening_loc
             [slice(CODE_OFFSET, node.opening_loc.end_offset), slice(node.closing_loc.start_offset)]
           else
-            ["#{slice(CODE_OFFSET, node.message_loc.end_offset)}(", ")#{slice(end_offset(items.last))}"]
+            ["#{slice(CODE_OFFSET, node.message_loc.end_offset)}(", ")#{slice(self.class.end_offset(items.last))}"]
           end
-        [head, *items.map { |item| "#{item_indent}#{slice(item.location.start_offset, end_offset(item))}," }, closing_indent + tail]
-      end
-
-      # Prism 0.19 (Ruby 3.3) ends a call that takes a block argument before its closing parenthesis: `f(&x`.
-      def end_offset(node)
-        closing = node.closing_loc if node.respond_to?(:closing_loc)
-        closing ? [node.location.end_offset, closing.end_offset].max : node.location.end_offset
+        item_lines = items.map do |item|
+          # A comma after `&block` is a syntax error.
+          comma = "," unless item.is_a?(Prism::BlockArgumentNode)
+          "#{item_indent}#{slice(item.location.start_offset, self.class.end_offset(item))}#{comma}"
+        end
+        [head, *item_lines, closing_indent + tail]
       end
 
       # From offsets in the parsed source, up to the end of the line by default.

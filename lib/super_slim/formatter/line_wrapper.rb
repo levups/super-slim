@@ -10,7 +10,6 @@ module SuperSlim
       TAG_OUTPUT = /\G\s*==?['<>]*\s*/
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
       CONTINUED_LINE = /[,\\(\[{]$/
-      OPENING_BRACKET_AT_END = /[(\[{]\z/
       CLOSING_BRACKET_AT_START = /\A[)\]}]/
       NEW_WITHOUT_PARENTHESES = /\.new [^\s=]/
 
@@ -74,14 +73,14 @@ module SuperSlim
       # The code of a line continued after a comma, a backslash or an opening bracket, on one line; nil when the
       # continuation lines hold anything else, such as attributes or text.
       def joined_code(lines, info)
-        return unless code_start(lines.first, info.output_column) && lines.drop(1).all? { |line| info.text.nil? && !line.strip.empty? }
+        return unless info.text.nil? && code_start(lines.first, info.output_column) && lines.drop(1).none? { _1.strip.empty? }
 
         lines.drop(1).reduce(lines.first.rstrip) do |joined, line|
           piece = line.strip
           joined = joined.delete_suffix("\\").rstrip
           if piece.match?(CLOSING_BRACKET_AT_START)
             joined.delete_suffix(",") + piece
-          elsif joined.match?(OPENING_BRACKET_AT_END)
+          elsif joined.match?(Parser::OPENING_BRACKET_AT_LINE_END)
             joined + piece
           else
             "#{joined} #{piece}"
@@ -106,7 +105,7 @@ module SuperSlim
         return lines unless code_start && lines.last.size > @max_line_length
 
         last_indent = lines.last[/\A */]
-        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, block: children)
+        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, opens_block: children)
         return lines unless code_lines
 
         lines[0...-1] + [lines.last[0...code_start] + code_lines.first, *code_lines.drop(1)]
