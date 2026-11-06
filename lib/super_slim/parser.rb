@@ -32,10 +32,13 @@ module SuperSlim
     BACKSLASH_AT_END = /\\\z/
     # `$`, not `\z`: once a bracket has opened a line, the lines that follow are read until it closes.
     OPENING_BRACKET_AT_LINE_END = /[(\[{]$/
-    PLAIN_RUBY = /[^()\[\]{}"'`#%]+/
-    QUOTED_TEXT_BY_QUOTE = %w[" ' `].to_h { |quote| [quote, /(?:[^\\#{quote}#]|\\.|#(?!\{))*/m] }.freeze
-    PERCENT_LITERAL = /%[qQwWiIrsx]?([(\[{<])/
-    BRACKET_AT_LINE_END = /[ \t]*(?:\n|\z)/
+    PLAIN_RUBY = /[^()\[\]{}"'`#%\/]+/
+    QUOTED_TEXT_BY_DELIMITER = %w[" ` /].to_h { |delimiter| [delimiter, /(?:[^\\#{delimiter}#]|\\.|#(?!\{))*/m] }
+      .merge("'" => /(?:[^\\']|\\.)*/m).freeze
+    PERCENT_LITERAL_OPENING = /[qQwWiIrsx]?([(\[{<])/
+    BYTES_BEFORE_REGEXP = "\n(,[{|&=!~;:?<>+-*%^".bytes.freeze
+    LINE_END = /[ \t]*(?:\n|\z)/
+    LINE_END_OR_COMMENT = /[ \t]*(?:[#\n]|\z)/
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -382,53 +385,64 @@ module SuperSlim
 
     # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
     # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
-    # Brackets in strings, %-literals and comments don't count. Read by hand: Prism would cost every process that
-    # renders templates its load time and memory.
+    # Read by hand: Prism would cost every process that renders templates its load time and memory.
     def bracket_open_at_line_end?(code)
       open_brackets = []
       skip_ruby(StringScanner.new(code), open_brackets)
-      open_brackets.any? { |(_closing, at_line_end)| at_line_end }
+      open_brackets.any?
     end
 
-    # Reads Ruby code up to its end, or up to the `}` that closes the interpolation it is in.
-    def skip_ruby(scanner, open_brackets, interpolation: false)
+    # Reads Ruby code up to its end, or up to the bracket that closes one opened before it: the `}` of an
+    # interpolation. Misread, as rare after a bracket that ends its line: heredocs, `?(`, `$'`, a regexp after a
+    # method name or a keyword (`when /'/`), `%` glued to a value (`"%d"%[a]`), interpolation in a %-literal and
+    # %-literals between other delimiters (`%|a(|`).
+    def skip_ruby(scanner, open_brackets)
       depth = open_brackets.size
       until scanner.eos?
         next if scanner.skip(PLAIN_RUBY)
-        next skip_percent_literal(scanner, open_brackets) if scanner.scan(PERCENT_LITERAL)
 
         character = scanner.getch
         case character
-        when "(", "[", "{" then open_brackets << [DELIMITERS[character], scanner.match?(BRACKET_AT_LINE_END)]
+        when "(", "[", "{" then open_brackets << scanner.match?(LINE_END_OR_COMMENT)
         when ")", "]", "}"
-          return if interpolation && open_brackets.size == depth
-
           open_brackets.pop
+          return if open_brackets.size < depth
         when '"', "'", "`" then skip_quoted(scanner, character, open_brackets)
-        when "#" then scanner.skip_until(/\n|\z/)
+        when "/" then skip_quoted(scanner, character, open_brackets) if regexp_start?(scanner)
+        when "%" then skip_percent_literal(scanner, open_brackets) if scanner.scan(PERCENT_LITERAL_OPENING)
+        when "#" then scanner.skip_until(LINE_END)
         end
       end
     end
 
-    def skip_quoted(scanner, quote, open_brackets)
+    def skip_quoted(scanner, delimiter, open_brackets)
       until scanner.eos?
-        scanner.skip(QUOTED_TEXT_BY_QUOTE[quote])
-        break if scanner.skip(quote)
+        scanner.skip(QUOTED_TEXT_BY_DELIMITER[delimiter])
+        break if scanner.skip(delimiter)
 
         scanner.getch
-        skip_ruby(scanner, open_brackets, interpolation: true) if quote != "'" && scanner.skip("{")
+        next unless scanner.skip("{")
+
+        open_brackets << scanner.match?(LINE_END_OR_COMMENT)
+        skip_ruby(scanner, open_brackets)
       end
     end
 
-    # `%w[a b]`, just opened, closes on its own bracket, nesting only that kind; left open at the end, it continues
-    # the line.
+    def regexp_start?(scanner)
+      code = scanner.string
+      offset = scanner.pos - 2
+      offset -= 1 while offset >= 0 && (code.getbyte(offset) == SPACE_BYTE || code.getbyte(offset) == TAB_BYTE)
+      offset.negative? || BYTES_BEFORE_REGEXP.include?(code.getbyte(offset))
+    end
+
+    # `%w[a) b(]` nests only its own kind of bracket.
     def skip_percent_literal(scanner, open_brackets)
       opening = scanner[1]
       closing = DELIMITERS.fetch(opening, ">")
-      at_line_end = scanner.match?(BRACKET_AT_LINE_END)
+      at_line_end = scanner.match?(LINE_END)
       depth = 1
       until depth.zero?
-        return open_brackets << [closing, at_line_end] if scanner.eos?
+        return open_brackets << at_line_end if scanner.eos?
 
         character = scanner.getch
         if character == "\\"

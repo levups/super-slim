@@ -43,3 +43,10 @@ p = format(
     # a comment (
     "bob",
   )
+p = format( # alice (
+    "%s",
+    "bob's".sub(names.any? ? /'s/ : "", ""),
+  )
+p = %(
+    alice
+  ).strip
