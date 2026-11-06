@@ -55,6 +55,25 @@ module SuperSlim
     # What the formatter and the linter need to know about each source line, indexed by line number. A tag's
     # attribute list on one line is [first, last, [[first, last], …]], in columns of that line.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists)
+    FORMAT_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:format (off|on)\s*\z}
+
+    # The lines after `/ super-slim:format off`, up to `/ super-slim:format on` or the end of the block that holds it.
+    def self.unformatted_linenos(lines, outline)
+      off_depth = nil
+      unformatted_linenos = Set.new
+      lines.each.with_index(1) do |line, lineno|
+        info = outline[lineno]
+        if info.kind == :structure
+          off_depth = nil if off_depth && info.depth < off_depth
+          if (directive = line[FORMAT_DIRECTIVE, 1])
+            off_depth = (directive == "off") ? info.depth : nil
+            next
+          end
+        end
+        unformatted_linenos << lineno if off_depth
+      end
+      unformatted_linenos
+    end
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges

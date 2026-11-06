@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">33</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">34</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -450,6 +450,15 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="s">"disabled"</span>
 </code></pre></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="kp">true</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
+  <summary><span class="rule-name">AriaBooleanValue</span><span class="rule-message">Write <code>aria-atomic=&quot;true&quot;</code>: Slim renders <code>aria-atomic=true</code> without a value</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="kp">true</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="s">"true"</span>
 </code></pre></div>
   </div>
 </details>

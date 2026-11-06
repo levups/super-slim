@@ -31,13 +31,15 @@ module SuperSlim
         parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
         parser.call(source)
         outline = parser.outline
+        unformatted_linenos = Parser.unformatted_linenos(lines, outline)
         wrapped = []
         lineno = 1
         while lineno <= lines.size
           info = outline[lineno]
           last_lineno = lineno
           last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
-          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info, outline, lineno))
+          structure_lines = lines[(lineno - 1)...last_lineno]
+          wrapped.concat(unformatted_linenos.include?(lineno) ? structure_lines : layout(structure_lines, info, outline, lineno))
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
