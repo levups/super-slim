@@ -6,15 +6,42 @@ module SuperSlim
   class Linter
     Offense = Data.define(:path, :lineno, :rule, :message)
 
+    # What the rules ask of a node's ancestors, worked out as the tree is walked: a list of them, copied at each
+    # level, made linting quadratic in the depth of the tree.
+    Ancestors = Data.define(:last, :control, :located, :inside_svg, :inside_link, :inside_comment) do
+      def self.root = new(nil, nil, nil, false, false, false)
+
+      def under(node, line_by_node)
+        tag_name = node.name if node.is_a?(AST::Tag)
+        Ancestors.new(
+          last: node,
+          control: node.is_a?(AST::Control) ? node : control,
+          located: line_by_node.key?(node) ? node : located,
+          inside_svg: inside_svg || tag_name == "svg",
+          inside_link: inside_link || tag_name == "a",
+          inside_comment: inside_comment || node.is_a?(AST::Comment)
+        )
+      end
+    end
+
     # The tree is walked once per template: every rule iterates `visits`, each node with its ancestors.
     Document = Data.define(:path, :lines, :nodes, :outline, :line_by_node, :visits, :tag_visits) do
-      def self.visits_of(nodes, ancestors = [], visits = [])
-        nodes&.each do |node|
+      # Depth first, children before the next sibling, with a stack of its own: a deep template would exhaust Ruby's.
+      def self.visits_of(nodes, line_by_node)
+        visits = []
+        frames = [[nodes || [], 0, Ancestors.root]]
+        until frames.empty?
+          frame = frames.last
+          siblings, index, ancestors = frame
+          next frames.pop if index == siblings.size
+
+          frame[1] += 1
+          node = siblings[index]
           next if node == AST::NEWLINE
 
           visits << [node, ancestors]
           children = children_of(node)
-          visits_of(children, [*ancestors, node].freeze, visits) if children
+          frames << [children, 0, ancestors.under(node, line_by_node)] if children
         end
         visits
       end
@@ -66,7 +93,7 @@ module SuperSlim
     def call(path, source)
       parser = Parser.new(file: path, outline: true)
       nodes = parser.call(source)
-      visits = Document.visits_of(nodes)
+      visits = Document.visits_of(nodes, parser.line_by_node)
       document = Document.new(path:, lines: source.split(/\r?\n/), nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
         visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
       relative_path = File.expand_path(path).delete_prefix(@root)

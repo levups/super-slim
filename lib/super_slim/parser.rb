@@ -148,12 +148,37 @@ module SuperSlim
 
     # Characters of the line read so far, even when the scanner reads a stripped copy or attribute source.
     def column
-      @line.size - (@scanner.string.size - @scanner.charpos)
+      charpos = scanner_charpos
+      line_size - (@scanner_string_size - charpos)
     end
 
     # Where the scanner stands in the source, unlike `column` exact on a stripped line or on attribute source.
     def source_offset
-      @line_starts[@lineno] + @scanner_column + @scanner.charpos
+      @line_starts[@lineno] + @scanner_column + scanner_charpos
+    end
+
+    # StringScanner#charpos and String#size count from the start of the string at each call, and the outline asks
+    # for them at each attribute: counted on from where the last call left off, they stay linear in the line.
+    def scanner_charpos
+      string = @scanner.string
+      position = @scanner.pos
+      unless string.equal?(@charpos_string) && position >= @charpos_byte
+        @charpos_string = string
+        @charpos_byte = @charpos_char = 0
+        @scanner_string_size = string.size
+        @scanner_string_ascii = string.ascii_only?
+      end
+      return position if @scanner_string_ascii
+
+      @charpos_char += string.byteslice(@charpos_byte, position - @charpos_byte).size
+      @charpos_byte = position
+      @charpos_char
+    end
+
+    def line_size
+      @line_size = @line.size unless @line.equal?(@sized_line)
+      @sized_line = @line
+      @line_size
     end
 
     def line_end_offset
@@ -517,7 +542,7 @@ module SuperSlim
     # Returns the tag content, the block expecting indented children, and the whitespace an `=<>` output adds.
     def parse_tag_content
       # Not `column`, which counts the spaces stripped from the end of a continuation line.
-      output_column = @scanner_column + @scanner.charpos if @outline
+      output_column = @scanner_column + scanner_charpos if @outline
       if @scanner.skip(NESTED_TAG)
         return [[parse_embedded(@scanner[1], @scanner[2], @scanner.rest)]] if @scanner.skip(ENGINE)
 

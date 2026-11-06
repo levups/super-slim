@@ -21,6 +21,12 @@ class HostileTemplatesTest < Minitest::Test
     assert_fast { SuperSlim.compile("= foo(\n" + "  [\n" * 2_000 + "  1" + "]" * 2_000 + ")\n") }
   end
 
+  # Outline columns counted each attribute from the start of the line, and rules scanned every ancestor.
+  def test_long_lines_and_deep_nesting_lint_in_linear_time
+    assert_fast { SuperSlim::Linter.new.call("t.slim", "p é #{"a=\"é\" " * 40_000}\n") }
+    assert_fast { SuperSlim::Linter.new.call("t.slim", ("A: " * 200 + "b\n") * 200) }
+  end
+
   def test_an_output_without_code_is_no_crash
     ["p =\n", "a=\n", %(a title="x\n  y" = n  \n)].each do |source|
       SuperSlim::Linter.new.call("t.slim", source)
