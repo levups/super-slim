@@ -61,7 +61,11 @@ results = SuperSlim::Parallel.map(paths, minimum_per_process: 200) do |path|
     misplaced = parser.line_by_node.find do |node, lineno|
       next false unless node.is_a?(SuperSlim::AST::Control) || node.is_a?(SuperSlim::AST::Output)
 
-      first_code_line = node.code.lines.first.to_s.strip
+      first_code_line = node.code.lines.first.to_s
+      # The compiler leaves out a comment that ends the code.
+      comment = Prism.parse(first_code_line).comments.last
+      first_code_line = first_code_line.byteslice(0, comment.location.start_offset) if comment && first_code_line.byteslice(comment.location.end_offset..).strip.empty?
+      first_code_line = first_code_line.strip
       !first_code_line.empty? && !generated_lines[lineno - 1].to_s.include?(first_code_line)
     end
     failures << [:lines, "#{path}:#{misplaced[1]}: `#{misplaced[0].code.lines.first.strip[0, 60]}` is not on its line"] if misplaced
