@@ -43,6 +43,7 @@ module SuperSlim
     LINE_ENDS = %i[NEWLINE NEWLINE_TERMINATOR IGNORED_NEWLINE EOF COMMENT].freeze
     # Lines lexed at once to find where code continued over several lines ends: most calls fit in the first window.
     CONTINUATION_WINDOW = 4
+    MAX_NESTING = 500
     LOOKAHEAD_TOKENS = %i[HEREDOC_START EMBDOC_BEGIN].freeze
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
@@ -272,7 +273,7 @@ module SuperSlim
       record_ruby(:text, source_offset, line_end_offset) if @outline
       children = []
       @stacks.last << located(InlineHtml.new(@scanner.rest, children))
-      @stacks << children
+      nest(children)
     end
 
     def parse_control
@@ -280,7 +281,7 @@ module SuperSlim
       @scanner.pos += 1
       children = []
       @stacks.last << located(Control.new(parse_broken_line, children), lineno)
-      @stacks << children
+      nest(children)
     end
 
     def parse_output
@@ -299,7 +300,7 @@ module SuperSlim
       lineno = @lineno
       @stacks.last << located(Output.new(parse_broken_line, escape, children), lineno)
       @stacks.last << Static.new(" ") if trailing_whitespace
-      @stacks << children
+      nest(children)
     end
 
     def parse_tag_line
@@ -444,7 +445,7 @@ module SuperSlim
     # lines.size + 1 when it continues past them all. Nil with a heredoc or a `=begin` comment, whose next lines
     # change the tokens of the lines before them.
     def continuation_line_count_within(code, lines)
-      tokens = Prism.lex([code, *lines].join("\n")).value.map(&:first)
+      tokens = lex([code, *lines].join("\n")).map(&:first)
       return if tokens.any? { |token| LOOKAHEAD_TOKENS.include?(token.type) }
 
       token_index = 0
@@ -487,7 +488,7 @@ module SuperSlim
     def bracket_open_at_line_end?(code)
       open_brackets = []
       # The last token is always EOF, so each bracket has a token after it.
-      Prism.lex(code).value.each_cons(2) do |(token, _state), (following, _following_state)|
+      lex(code).each_cons(2) do |(token, _state), (following, _following_state)|
         type = token.type
         if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
           # In %w[ and %i[, the line break after the bracket is a word separator.
@@ -498,6 +499,12 @@ module SuperSlim
         end
       end
       open_brackets.any?(&:last)
+    end
+
+    def lex(code)
+      Prism.lex(code).value
+    rescue SystemStackError
+      syntax_error!("Ruby code nested too deep")
     end
 
     def parse_tag(tag)
@@ -536,7 +543,7 @@ module SuperSlim
         siblings.insert(-2, Static.new(" ")) if output_leading_whitespace && !leading_whitespace
         siblings << Static.new(" ") if output_trailing_whitespace && !trailing_whitespace
       end
-      @stacks << block if block
+      nest(block) if block
     end
 
     # Returns the tag content, the block expecting indented children, and the whitespace an `=<>` output adds.
@@ -548,7 +555,7 @@ module SuperSlim
 
         (tag = scan_tag) || syntax_error!("Expected tag")
         content = []
-        @stacks << content
+        nest(content)
         stack_index = @stacks.size - 1
         parse_tag(tag)
         @stacks.delete_at(stack_index)
@@ -679,6 +686,12 @@ module SuperSlim
       record_ruby(:text, first, source_offset) if @outline
       @scanner.pos += 1
       value
+    end
+
+    # The compiler, the linter and Ruby's own parser of the compiled code walk the tree recursively.
+    def nest(children)
+      syntax_error!("Tags nested more than #{MAX_NESTING} levels deep") if @stacks.size > MAX_NESTING
+      @stacks << children
     end
 
     def syntax_error!(message)

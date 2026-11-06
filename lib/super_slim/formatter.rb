@@ -41,6 +41,9 @@ module SuperSlim
       return formatted unless wrapped_ruby.is_a?(Prism::ParseResult)
 
       same_ruby?(formatted_ruby || compiled_ruby(formatted), wrapped_ruby) ? wrapped : formatted
+    # Prism walks code recursively too: code nested thousands deep can't be checked, so it isn't formatted.
+    rescue SystemStackError
+      raise UnsafeFormattingError, "Code nested too deep to check that formatting changes nothing"
     end
 
     private
@@ -124,8 +127,28 @@ module SuperSlim
       same_node?(ruby.value, other_ruby.value) && comment_texts(ruby) == comment_texts(other_ruby)
     end
 
+    # Walks both trees with a stack of its own: deep code or a deep template would exhaust Ruby's.
     def same_node?(node, other_node)
-      return false unless node.instance_of?(other_node.class)
+      pairs = [[node, other_node]]
+      until pairs.empty?
+        value, other_value = pairs.pop
+        case value
+        when Prism::Node
+          return false unless value.instance_of?(other_value.class)
+          return false unless same_node_value?(value, other_value)
+        when Array
+          return false unless other_value.is_a?(Array) && value.size == other_value.size
+        else
+          return false unless value == other_value
+
+          next
+        end
+        pairs.concat(children_pairs(value, other_value).reverse)
+      end
+      true
+    end
+
+    def same_node_value?(node, other_node)
       # `__LINE__` holds no value in the tree: removing a blank line above it changes what it renders.
       return node.location.start_line == other_node.location.start_line if node.is_a?(Prism::SourceLineNode)
 
@@ -134,16 +157,14 @@ module SuperSlim
       # 2026-11: Prism 0.19 (Ruby 3.3) keeps the value of an integer or a float out of its fields.
       return node.value == other_node.value if field_names.empty? && (node.is_a?(Prism::IntegerNode) || node.is_a?(Prism::FloatNode))
 
-      field_names.all? { |name| same_field?(node.public_send(name), other_node.public_send(name)) } &&
-        located_names.all? { |name| same_name?(node.public_send(name), other_node.public_send(name)) }
+      located_names.all? { |name| same_name?(node.public_send(name), other_node.public_send(name)) }
     end
 
-    def same_field?(value, other_value)
-      case value
-      when Prism::Node then other_value.is_a?(Prism::Node) && same_node?(value, other_value)
-      when Array then other_value.is_a?(Array) && value.size == other_value.size && value.each_index.all? { same_field?(value[_1], other_value[_1]) }
-      else value == other_value
-      end
+    def children_pairs(value, other_value)
+      return value.zip(other_value) if value.is_a?(Array)
+      return [] if value.is_a?(Prism::SourceLineNode)
+
+      node_fields(value).first.map { |name| [value.public_send(name), other_value.public_send(name)] }
     end
 
     # Beside a location, a field holds either a name or, from Prism 2 on, the source the location covers

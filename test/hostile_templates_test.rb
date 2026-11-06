@@ -27,6 +27,17 @@ class HostileTemplatesTest < Minitest::Test
     assert_fast { SuperSlim::Linter.new.call("t.slim", ("A: " * 200 + "b\n") * 200) }
   end
 
+  def test_nesting_too_deep_for_the_stack_is_an_error
+    exception = assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("#{"a: " * 5_000}b\n") }
+    assert_equal "Tags nested more than 500 levels deep", exception.error
+    assert_equal "<a>" * 499 + "<b></b>" + "</a>" * 499, render("#{"a: " * 499}b\n")
+
+    deep_code = "#{"[" * 12_000}1#{"]" * 12_000}"
+    assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("= foo(\n#{deep_code})\n") }
+    assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n= #{deep_code}  \n") }
+    assert_equal "p\n= #{"[" * 2_000}1#{"]" * 2_000}\n", SuperSlim::Formatter.new.call("p\n= #{"[" * 2_000}1#{"]" * 2_000}  \n")
+  end
+
   def test_an_output_without_code_is_no_crash
     ["p =\n", "a=\n", %(a title="x\n  y" = n  \n)].each do |source|
       SuperSlim::Linter.new.call("t.slim", source)
