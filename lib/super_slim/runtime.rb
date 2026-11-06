@@ -38,6 +38,8 @@ module SuperSlim
       # Read after escaping, which turns markup into entities: `&` is refused with the rest.
       VALID_TAG = /\A[a-zA-Z][^[:cntrl:] "'&<>\/=]*\z/
       HYPHENATED = %w[data aria].freeze
+      # Far deeper than any page needs, and short of the stack a hash referring to itself would exhaust.
+      MAX_HYPHENATED_DEPTH = 100
 
       def initialize(html_safe)
         @html_safe = html_safe
@@ -89,9 +91,11 @@ module SuperSlim
 
       private
 
-      def hyphenated_attr(name, escape, value)
+      def hyphenated_attr(name, escape, value, depth = 0)
         if value.is_a?(Hash)
-          value.each { |key, nested_value| hyphenated_attr("#{name}-#{key}", escape, nested_value) }
+          raise Error, "A data or aria hash is nested more than #{MAX_HYPHENATED_DEPTH} levels deep" if depth > MAX_HYPHENATED_DEPTH
+
+          value.each { |key, nested_value| hyphenated_attr("#{name}-#{key}", escape, nested_value, depth + 1) }
         else
           attr(name, escape(escape, value))
         end

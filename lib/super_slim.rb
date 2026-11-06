@@ -35,7 +35,7 @@ module SuperSlim
         #{error}
           #{file}, Line #{lineno}, Column #{@column}
             #{line}
-            #{" " * column}^
+            #{" " * [column, 0].max}^
       MESSAGE
     end
   end

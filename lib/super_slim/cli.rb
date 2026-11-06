@@ -44,7 +44,12 @@ module SuperSlim
       rescue Error => exception
         return warn(exception.message) || EX_USAGE
       end
-      offenses = Parallel.map(templates(paths)) { |path| linter.call(path, File.read(path)) }.flatten
+      offenses = Parallel.map(templates(paths)) do |path|
+        linter.call(path, File.read(path))
+      # One template that breaks SuperSlim, a bug or a stack too deep, must not hide the offenses of the others.
+      rescue StandardError, SystemStackError => exception
+        [Linter::Offense.new(path, 0, "Error", "#{exception.class}: #{exception.message.lines.first&.strip}")]
+      end.flatten
       offenses.each { |offense| puts printable("#{offense.path}:#{offense.lineno}: [#{offense.rule}] #{offense.message}") }
       offenses.empty? ? 0 : 1
     end
@@ -59,8 +64,9 @@ module SuperSlim
 
         replace(path, formatted) unless check
         [:reformatted, path]
-      rescue Error => exception
-        [:refused, "#{path}: #{exception.message.lines.first.strip}"]
+      rescue StandardError, SystemStackError => exception
+        message = exception.message.lines.first&.strip
+        [:refused, "#{path}: #{exception.is_a?(Error) ? message : "#{exception.class}: #{message}"}"]
       end
       outcomes.compact.each { |outcome, text| (outcome == :reformatted) ? puts(printable(text)) : warn(printable(text)) }
       (outcomes.any? { |outcome,| outcome == :refused || (outcome == :reformatted && check) }) ? 1 : 0

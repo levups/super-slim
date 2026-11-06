@@ -72,7 +72,7 @@ module SuperSlim
       relative_path = File.expand_path(path).delete_prefix(@root)
       offenses = @rules.select { _1.applies_to?(relative_path) }.flat_map { _1.offenses(document, source) }
       # sort_by is not stable: the index keeps offenses of one line in rule order.
-      offenses.each_with_index.sort_by { |offense, index| [offense.lineno, index] }.map(&:first)
+      offenses.each_with_index.sort_by { |offense, index| [offense.lineno.to_i, index] }.map(&:first)
     rescue SyntaxError => exception
       [Offense.new(path, exception.lineno, "Syntax", exception.error)]
     end

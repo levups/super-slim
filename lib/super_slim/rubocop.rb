@@ -34,7 +34,7 @@ module SuperSlim
       TRAILING_DO = /(?:\b[ \t]*|[ \t])do[ \t]*(\|[^|]*\|)?[ \t]*(#.*)?\z/
       WHEN = /\A\s*when[ \t]/
       THEN = /[ \t]then(?:[ \t].*)?\z/m
-      INTERPOLATION = /#\{((?>[^{}]|(\{(?>[^{}]|\g<1>)*\}))*)\}/
+      INTERPOLATION_START = /#\{/
       ESCAPED_INTERPOLATION = /\\#\{/
       UNESCAPED_INTERPOLATION_CODE = /\A\{.*\}\z/m
       TEXT_WITHOUT_INTERPOLATION = /[^#\\]+|./m
@@ -81,13 +81,15 @@ module SuperSlim
       end
 
       def interpolations(text)
+        closing_by_opening = Compiler.closing_braces(text.code)
         scanner = StringScanner.new(text.code)
         fragments = []
         until scanner.eos?
           next if scanner.skip(ESCAPED_INTERPOLATION)
 
-          if scanner.scan(INTERPOLATION)
-            code = scanner[1]
+          if scanner.match?(INTERPOLATION_START) && (closing = closing_by_opening[scanner.pos + 1])
+            code = text.code.byteslice(scanner.pos + 2...closing)
+            scanner.pos = closing + 1
             offset = text.offset + scanner.charpos - code.size - 1
             fragments << (code.match?(UNESCAPED_INTERPOLATION_CODE) ? Fragment.new(code[1..-2], offset + 1) : Fragment.new(code, offset))
           else
