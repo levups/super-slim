@@ -41,6 +41,9 @@ module SuperSlim
     CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
     PERCENT_LISTS = %i[PERCENT_LOWER_W PERCENT_UPPER_W PERCENT_LOWER_I PERCENT_UPPER_I].freeze
     LINE_ENDS = %i[NEWLINE NEWLINE_TERMINATOR IGNORED_NEWLINE EOF COMMENT].freeze
+    # Lines lexed at once to find where code continued over several lines ends: most calls fit in the first window.
+    CONTINUATION_WINDOW = 4
+    LOOKAHEAD_TOKENS = %i[HEREDOC_START EMBDOC_BEGIN].freeze
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -377,7 +380,7 @@ module SuperSlim
       first = source_offset + @scanner.rest[/\A\s*/].size if @outline
       broken_line = @scanner.rest
       broken_line.strip!
-      while broken_line.match?(LINE_CONTINUATION) || (broken_line.match?(OPENING_BRACKET_AT_LINE_END) && bracket_open_at_line_end?(broken_line))
+      continuation_line_count(broken_line).times do
         expect_next_line
         broken_line << "\n" << @scanner.string
       end
@@ -385,8 +388,77 @@ module SuperSlim
       broken_line
     end
 
-    # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
-    # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
+    # How many of the next lines continue the code: those after a comma or a backslash, and those until a bracket
+    # that ends its line closes. Lexing the code again after each line took quadratic time, so the next lines are
+    # lexed together, in windows that double, and each line end is read from the tokens before it. More lines than
+    # are left means the file ends first.
+    def continuation_line_count(code)
+      # After a comma or a backslash, until a line ends with a bracket, nothing needs a lexer.
+      count = 0
+      line = code
+      until line.match?(OPENING_BRACKET_AT_LINE_END)
+        return count unless line.match?(LINE_CONTINUATION)
+        return count + 1 if count == @lines.size
+
+        line = @lines[count].strip
+        count += 1
+      end
+
+      window = count + CONTINUATION_WINDOW
+      loop do
+        lines = @lines.first(window).map!(&:strip)
+        count = continuation_line_count_within(code, lines) or return heredoc_continuation_line_count(code)
+        return count if count <= lines.size
+        return @lines.size + 1 if lines.size == @lines.size
+
+        window *= 2
+      end
+    end
+
+    # The first line end, among those of `code` and each of `lines`, where the code doesn't continue, or
+    # lines.size + 1 when it continues past them all. Nil with a heredoc or a `=begin` comment, whose next lines
+    # change the tokens of the lines before them.
+    def continuation_line_count_within(code, lines)
+      tokens = Prism.lex([code, *lines].join("\n")).value.map(&:first)
+      return if tokens.any? { |token| LOOKAHEAD_TOKENS.include?(token.type) }
+
+      token_index = 0
+      open_brackets = []
+      bracket_at_line_end = false
+      line_end = -1
+      [code, *lines].each_with_index do |line, count|
+        line_end += line.bytesize + 1
+        bracket_at_line_end ||= line.match?(OPENING_BRACKET_AT_LINE_END)
+        # Every token but the last has a token after it. That last one is EOF, or `__END__`, which ends the code.
+        while (following = tokens[token_index + 1]) && (token = tokens[token_index]).location.start_offset < line_end
+          type = token.type
+          if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
+            # In %w[ and %i[, the line break after the bracket is a word separator.
+            at_line_end = LINE_ENDS.include?(following.type) || (following.type == :WORDS_SEP && following.value.start_with?("\n"))
+            open_brackets << [type, at_line_end]
+          elsif CLOSING_BRACKETS.include?(type) || (type == :STRING_END && PERCENT_LISTS.include?(open_brackets.last&.first))
+            open_brackets.pop
+          end
+          token_index += 1
+        end
+        continued = line.match?(LINE_CONTINUATION) || (bracket_at_line_end && open_brackets.any?(&:last))
+        return count unless continued
+      end
+      lines.size + 1
+    end
+
+    # Lexes the code again after each line, in quadratic time: heredocs and `=begin` in continued code are rare.
+    def heredoc_continuation_line_count(code)
+      code = code.dup
+      (0..@lines.size).each do |count|
+        continued = code.match?(LINE_CONTINUATION) || (code.match?(OPENING_BRACKET_AT_LINE_END) && bracket_open_at_line_end?(code))
+        return count unless continued
+
+        code << "\n" << @lines[count].to_s.strip
+      end
+      @lines.size + 1
+    end
+
     def bracket_open_at_line_end?(code)
       open_brackets = []
       # The last token is always EOF, so each bracket has a token after it.

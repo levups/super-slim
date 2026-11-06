@@ -15,6 +15,12 @@ class HostileTemplatesTest < Minitest::Test
     assert_equal "<p>a {b} c</p>", render("p a \#{\"{b}\"} c")
   end
 
+  # Each line after a bracket left open lexed the code read so far again: 4,000 lines took 21 seconds.
+  def test_code_continued_over_many_lines_parses_in_linear_time
+    assert_fast { SuperSlim::Linter.new.call("t.slim", "= foo(\n" + "  1 +\n" * 20_000 + "  1)\n") }
+    assert_fast { SuperSlim.compile("= foo(\n" + "  [\n" * 2_000 + "  1" + "]" * 2_000 + ")\n") }
+  end
+
   def test_an_output_without_code_is_no_crash
     ["p =\n", "a=\n", %(a title="x\n  y" = n  \n)].each do |source|
       SuperSlim::Linter.new.call("t.slim", source)
