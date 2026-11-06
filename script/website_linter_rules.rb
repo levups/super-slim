@@ -54,15 +54,15 @@ EXAMPLE_BY_RULE = {
 }.freeze
 
 RULES_BY_GROUP = {
-  "Layout — fixed by <code>super-slim format</code>" =>
+  "Layout, fixed by <code>super-slim format</code>" =>
     %w[Indentation Tab TrailingWhitespace EmptyLines TrailingBlankLines ControlStatementSpacing RedundantDiv],
-  "Template hygiene — from slim-lint" =>
+  "Template hygiene, from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
-  "Ruby in templates — from haml-lint and erb_lint" =>
+  "Ruby in templates, from haml-lint and erb_lint" =>
     %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles UnescapedOutput
       EmbeddedEngines HardcodedText],
   "Rails conventions" => %w[InstanceVariables StrictLocals],
-  "HTML and accessibility — from Herb and jsx-a11y" =>
+  "HTML and accessibility, from Herb and jsx-a11y" =>
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaRole AriaAttribute ButtonType]
 }.freeze
 

@@ -30,6 +30,14 @@ class FormatterTest < Minitest::Test
     assert_equal source, SuperSlim::Formatter.call(source)
   end
 
+  # Both render their trailing whitespace: stripped, the formatter refused the whole template.
+  def test_keeps_trailing_whitespace_of_inline_html_and_of_a_quoted_value_that_goes_on
+    assert_formats "p\n  <em>Posts</em>  \n", "p\n    <em>Posts</em>  \n"
+    assert_formats %(p title="Posts  \n  and comments"\n), %(p title="Posts  \n  and comments"\n)
+    assert_formats %(p(id="post"\n  title="Posts  \n  and comments")\n), %(p(id="post"\n  title="Posts  \n  and comments")  \n)
+    assert_formats %(p title="Posts\n  and\n  comments"\n), %(p title="Posts\n  and  \n  comments"\n)
+  end
+
   def test_is_idempotent
     formatted = SuperSlim::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
 
@@ -57,57 +65,173 @@ class FormatterTest < Minitest::Test
     source = %(td = link_to post.title, post_path(post) if post.published?\n)
 
     assert_equal source, SuperSlim::Formatter.new(max_line_length: 30).call(source)
-    assert_wraps %(= link_to post.title,\n  (post_path(post) if post.published?)\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
+    assert_wraps %(= link_to(\n    post.title,\n    (post_path(post) if post.published?),\n  )\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
   end
 
-  def test_wraps_arguments_after_each_comma_up_to_the_block
-    assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
-    assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
+  def test_spreads_the_arguments_of_a_call_one_per_line_between_parentheses
+    assert_wraps %(= link_to(\n    "Edit, now",\n    edit_post_path(post, x: 1),\n    class: "btn",\n  )\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n)
+    assert_wraps %(- links = [\n    root_path,\n    posts_path,\n  ]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
+  end
+
+  def test_spreads_the_only_argument_when_it_is_a_call_or_a_hash
+    assert_wraps %(= render Card.new(\n    title: post.title,\n    body: post.body,\n  )\n), %(= render Card.new(title: post.title, body: post.body)\n)
+    assert_wraps %(= render({\n    partial: "a/partial",\n    locals: {post: post},\n  })\n), %(= render({partial: "a/partial", locals: {post: post}})\n), max_line_length: 20
+  end
+
+  def test_spreads_a_block_argument_without_a_trailing_comma
+    assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n    &block\n  )\n), %(= link_to post.title, post_path(post), &block\n)
+    assert_wraps %(= link_to(\n    post.title,\n    data: post_data(&block),\n  )\n), %(= link_to post.title, data: post_data(&block)\n)
+  end
+
+  def test_leaves_alone_the_lines_it_cannot_spread_and_wraps_the_others
+    untouched = %(- words = %w[alpha bravo charlie delta]\n- list[first_key, second_key] = value\n= form.radio label: post.title, hint: -> do\n  p Hint\n)
+
+    assert_wraps %(#{untouched}= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(#{untouched}= link_to post.title, post_path(post)\n)
+  end
+
+  def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
+    assert_wraps %(= form_with(\n      model: post,\n      url: posts_path,\n    ) do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
-    assert_wraps %(= render layout: "card",\n    locals: {post:}\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
+    assert_wraps %(= render(\n      layout: "card",\n      locals: {post:},\n    )\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes
-    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date post.created_at,\n  :long\n),
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n),
       %(p class=classes title="A long title" = format_date post.created_at, :long\n)
+  end
+
+  def test_joins_code_spread_over_lines_when_it_fits
+    assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title,\n      post_path(post)\n), max_line_length: 40
+    assert_wraps %(= link_to(post.title, post_path(post))\n), %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), max_line_length: 40
+    assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title, \\\n  post_path(post)\n), max_line_length: 40
+  end
+
+  def test_respreads_code_spread_by_hand
+    assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(= link_to post.title,\n        post_path(post)\n)
+  end
+
+  def test_keeps_code_spread_by_hand_when_the_layout_would_pass_the_limit
+    source = %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n)
+
+    assert_wraps source, source, max_line_length: 60
+  end
+
+  def test_puts_the_arguments_of_new_in_parentheses
+    assert_wraps %(= render Card.new(title: post.title)\n), %(= render Card.new title: post.title\n)
+    assert_wraps %(= render Card.new(title: post.title) do\n  p Hello\n), %(= render Card.new title: post.title do\n  p Hello\n)
+    assert_wraps %(= render Card.new(post, &block)\n), %(= render Card.new post, &block\n), max_line_length: 50
+    assert_wraps %(= render Card.new(post, body: body(&block))\n), %(= render Card.new post, body: body(&block)\n), max_line_length: 50
   end
 
   def test_leaves_alone_what_wrapping_would_change
     [
       %(- first, second = values_of_a_long_list, and_another_one\n),
+      %(- first, second = values_of_a_long_list,\n  and_another_one\n),
       %(p.card title="A long title here" Some text\n  continued on the next line\n),
       %(*{tag: tag_name, class: "card", id: "dynamic-identifier"} Dynamic\n),
-      %(= render({partial: "a/partial", locals: {post: post}})\n)
+      %(= link_to post.title, post_path(post) # the post\n),
+      %(- if post.published? && post.commentable? && current_user\n  p Hello\n)
     ].each { assert_wraps _1, _1, max_line_length: 20 }
   end
 
   def test_keeps_the_layout_when_a_wrap_would_change_the_ruby
-    formatter = SuperSlim::Formatter.new(max_line_length: 10)
-    formatter.instance_variable_set(:@line_wrapper, ->(_source) { "p Hello,\n  world\n" })
-
-    assert_equal "p Hello, world\n", formatter.call("p Hello, world\n")
+    assert_equal "p Hello, world\n", formatter_wrapping_into("p Hello,\n  world\n").call("p Hello, world\n")
   end
 
   def test_keeps_a_wrap_that_only_adds_a_trailing_comma_and_parentheses
     wrapped = "= link_to(\n    post.title,\n    post_path(post),\n  )\n"
 
-    assert_equal wrapped, with_wrapper(wrapped).call("= link_to post.title, post_path(post)\n")
+    assert_equal wrapped, formatter_wrapping_into(wrapped).call("= link_to post.title, post_path(post)\n")
   end
 
   def test_refuses_a_wrap_that_moves_an_argument
     source = "= link_to(post.title) + suffix\n"
 
-    assert_equal source, with_wrapper("= link_to (post.title) + suffix\n").call(source)
-    assert_equal source, with_wrapper("= link_to(post.title) + suffix,\n  more\n").call(source)
+    assert_equal source, formatter_wrapping_into("= link_to (post.title) + suffix\n").call(source)
+    assert_equal source, formatter_wrapping_into("= link_to(\n    post.title + suffix,\n  )\n").call(source)
+  end
+
+  def test_refuses_a_wrap_that_changes_a_number
+    source = "= limit 1, 2.5\n"
+
+    assert_equal source, formatter_wrapping_into("= limit(\n    2,\n    1.5,\n  )\n").call(source)
+  end
+
+  def test_refuses_a_wrap_that_renames_a_variable
+    source = "- @title = post.title\n"
+
+    assert_equal source, formatter_wrapping_into("- @name = post.title\n").call(source)
+  end
+
+  def test_refuses_a_wrap_of_a_template_that_does_not_compile
+    source = %(p id="a" id="b" Hello, world\n)
+
+    assert_equal source, formatter_wrapping_into(%(p id="a" id="b" Hello,\n  world\n)).call(source)
   end
 
   def test_wraps_a_template_that_yields
-    assert_wraps %(= render "card",\n  body: yield(post)\n), %(= render "card", body: yield(post)\n)
+    assert_wraps %(= render(\n    "card",\n    body: yield(post),\n  )\n), %(= render "card", body: yield(post)\n)
   end
 
   def test_wraps_an_argument_that_is_an_if_expression
-    assert_wraps %(= submit_button :save,\n  if post.persisted? then "Save" else "Add" end\n),
+    assert_wraps %(= submit_button(\n    :save,\n    if post.persisted? then "Save" else "Add" end,\n  )\n),
       %(= submit_button :save, if post.persisted? then "Save" else "Add" end\n)
+  end
+
+  def test_turns_a_literal_id_or_class_into_shortcuts
+    assert_wraps %(form#search action="/search"\n), %(form id="search" action="/search"\n), max_line_length: 120
+    assert_wraps %(li.card.shadow id=dom_id(post)\n), %(li id=dom_id(post) class="card shadow"\n), max_line_length: 120
+    assert_wraps %(.card.shadow\n), %(div class="card shadow"\n), max_line_length: 120
+    assert_wraps %(a.link#home> href="/" Home\n), %(a.link> id="home" href="/" Home\n), max_line_length: 120
+    assert_wraps %(p id="post-\#{post.id}" class=classes\n), %(p id="post-\#{post.id}" class=classes\n), max_line_length: 120
+  end
+
+  def test_drops_a_class_named_twice
+    assert_wraps %(.p-3.border\n  p Hello\n), %(.p-3.border.p-3\n  p Hello\n), max_line_length: 120
+  end
+
+  def test_orders_attributes_by_what_they_say
+    assert_wraps %(input.form-control type="number" name="quantity" data-action="change->cart#update" aria-label=label\n),
+      %(input aria-label=label data-action="change->cart#update" type="number" name="quantity" class="form-control"\n), max_line_length: 120
+  end
+
+  def test_writes_attributes_without_delimiters_when_they_fit
+    assert_wraps %(fieldset data-flow="accessories"\n  legend Title\n), %(fieldset{data-flow="accessories"}\n  legend Title\n), max_line_length: 120
+    assert_wraps %(button.btn type="button" data-action="modal#close"\n), %(button.btn {\n  type="button"\n  data-action="modal#close"\n}\n), max_line_length: 120
+  end
+
+  def test_leaves_attributes_alone_when_their_order_or_delimiters_matter
+    [
+      %(input(type="checkbox" checked)\n),
+      %(div *attributes class="card" id="main"\n),
+      %(*{tag: tag_name, class: "card"} Dynamic\n),
+      %(p(title="A") role=main\n),
+      %(p class=classes class="card"\n),
+      %(p class=" " Hello\n),
+      %(.card class="card shadow"\n)
+    ].each { assert_wraps "#{_1}.p-3\n", "#{_1}.p-3.p-3\n", max_line_length: 120 }
+  end
+
+  def test_joins_back_only_the_attributes_of_a_tag
+    [%(/ Disabled until (\n  the API ships\n  )\n), %(| Call us (\n  9am to 5pm\n  )\n)].each do
+      assert_wraps "#{_1}.p-3\n", "#{_1}.p-3.p-3\n", max_line_length: 120
+    end
+  end
+
+  def test_spreads_attributes_whose_opening_line_fits_the_limit
+    assert_wraps %(abcdefgh(\n  title="aaaaaaaaaaaaaa"\n)\n), %(abcdefgh title="aaaaaaaaaaaaaa"\n), max_line_length: 10
+  end
+
+  def test_reads_tailwind_shortcuts_whole
+    formatter = SuperSlim::Formatter.new(max_line_length: 120, tailwind_classes: true)
+
+    assert_equal ".py-1.5.py-1\n.w-1/2.w-1\n.p-3\n", formatter.call(".py-1.5.py-1\n.w-1/2.w-1\n.p-3.p-3\n")
+  end
+
+  def test_refuses_a_wrap_that_changes_the_order_of_classes
+    source = "div class=\"b a\" Hello\n"
+
+    assert_equal source, formatter_wrapping_into(".a.b Hello\n").call(source)
   end
 
   private
@@ -116,7 +240,7 @@ class FormatterTest < Minitest::Test
     assert_equal expected, SuperSlim::Formatter.call(source)
   end
 
-  def with_wrapper(wrapped)
+  def formatter_wrapping_into(wrapped)
     formatter = SuperSlim::Formatter.new(max_line_length: 10)
     formatter.instance_variable_set(:@line_wrapper, ->(_source) { wrapped })
     formatter

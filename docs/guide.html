@@ -56,7 +56,7 @@
         <li>output is escaped with Rails’ <code>html_safe</code> rules, and <code>==</code> outputs raw;</li>
         <li>templates whose format is XML (<code>.xml</code>, <code>.rss</code>, <code>.atom</code>) render as XML, with <code>&lt;link /&gt;</code> and <code>doctype xml</code>;</li>
         <li><code>annotate_rendered_view_with_filenames</code> adds its <code>BEGIN</code>/<code>END</code> comments, and streaming works;</li>
-        <li>every <code>-</code> and <code>=</code> line compiles onto its template line, so an exception’s backtrace points at the right line — including after a <code>ruby:</code> block or a multi-line attribute list, where Slim drifts;</li>
+        <li>every <code>-</code> and <code>=</code> line compiles onto its template line, so an exception’s backtrace points at the right line, even after a <code>ruby:</code> block or a multi-line attribute list, where Slim drifts;</li>
         <li><code>/# locals: (post:)</code> declares a partial’s strict locals.</li>
       </ul>
     </div>
@@ -124,7 +124,7 @@
   <section id="embedded" aria-labelledby="embedded-title">
     <h2 id="embedded-title">Embedded engines</h2>
     <div class="prose">
-      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SuperSlim itself depends on no gem.</p>
+      <p><code>ruby:</code>, <code>javascript:</code>, <code>css:</code> and <code>markdown:</code> work as in Slim, interpolation included. <code>markdown:</code> renders through <a href="https://github.com/ioquatix/markly">Markly</a>: add <code>gem "markly"</code> to use it. SuperSlim itself needs only strscan 3.1.1 or later, a gem Ruby ships with; on Ruby 3.3, whose own strscan is older, Bundler installs the newer one.</p>
     </div>
   </section>
 

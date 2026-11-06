@@ -83,6 +83,20 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_a_configuration_of_the_wrong_shape_fails_with_a_usage_error
+    {
+      "linters: 5\n" => ".super-slim.yml: `linters` must be a mapping",
+      "linters:\n  LineLength:\n    include: 3\n" => ".super-slim.yml: `LineLength: include` must be a list of globs",
+      "x: !ruby/object:Object {}\n" => "Tried to load unspecified class: Object"
+    }.each do |configuration, message|
+      in_templates("p Hello\n") do |directory|
+        File.write(File.join(directory, ".super-slim.yml"), configuration)
+
+        assert_output("", "#{message}\n") { assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["lint", "."]) }
+      end
+    end
+  end
+
   def test_include_and_exclude_globs_match_paths_from_the_configuration_directory
     in_templates("p style=\"color: red\" Hello\n") do |directory|
       FileUtils.mkdir_p(File.join(directory, "mailers"))
@@ -99,6 +113,43 @@ class CLITest < Minitest::Test
       assert_equal 1, status
       assert_equal TEMPLATE_COUNT, output.lines.size
       refute_includes output, "mailers"
+    end
+  end
+
+  def test_fmt_leaves_symlinks_and_special_files_found_in_a_directory_alone
+    Dir.mktmpdir do |outside|
+      victim = File.join(outside, "victim.slim")
+      File.write(victim, "div.a\n")
+      in_templates("p Hello\n") do |directory|
+        File.symlink(victim, File.join(directory, "link.slim"))
+        File.mkfifo(File.join(directory, "fifo.slim"))
+
+        assert_equal [0, ""], run_cli("format", ".")
+        assert_equal "div.a\n", File.read(victim)
+      end
+    end
+  end
+
+  def test_fmt_keeps_the_mode_of_the_template_it_rewrites
+    in_templates("ul\n   li Home\n") do |directory|
+      path = File.join(directory, template_name(1))
+      File.chmod(0o640, path)
+
+      assert_equal 0, run_cli("format", ".").first
+      assert_equal 0o640, File.stat(path).mode & 0o7777
+      assert_equal [template_name(1)], Dir.children(directory).grep(/super-slim|\A#{template_name(1)}\z/)
+    end
+  end
+
+  def test_control_characters_are_escaped_in_what_lint_prints
+    Dir.mktmpdir do |directory|
+      Dir.chdir(directory) do
+        File.write("a\e[2Jb\n::error::x.slim", "p Hello \n")
+        status, output = run_cli("lint", ".")
+
+        assert_equal 1, status
+        assert_equal ["./a\\e[2Jb\\n::error::x.slim:1: [TrailingWhitespace] Trailing whitespace renders: write it with `'` or `>` instead"], output.lines(chomp: true)
+      end
     end
   end
 

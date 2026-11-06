@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "prism"
 require "strscan"
+require_relative "parser/ruby_brackets"
 
 module SuperSlim
   # Reads each line with one StringScanner that moves forward: no MatchData, and no copy of the rest of the
@@ -31,11 +31,8 @@ module SuperSlim
     # At the scanner, the rest of the line is only this character; on a whole line, the line ends with it.
     LINE_CONTINUATION = /[,\\]\z/
     BACKSLASH_AT_END = /\\\z/
-    OPENING_BRACKET_AT_LINE_END = /[(\[{]$/
-    OPENING_BRACKETS = %i[PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES BRACKET_LEFT BRACKET_LEFT_ARRAY BRACE_LEFT LAMBDA_BEGIN EMBEXPR_BEGIN].freeze
-    CLOSING_BRACKETS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
-    PERCENT_LISTS = %i[PERCENT_LOWER_W PERCENT_UPPER_W PERCENT_LOWER_I PERCENT_UPPER_I].freeze
-    LINE_ENDS = %i[NEWLINE IGNORED_NEWLINE EOF COMMENT].freeze
+    OPENING_BRACKET_AT_LINE_END = /[(\[{]\z/
+    MAX_NESTING = 500
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
     HTML_COMMENT = /\/!( ?)/
@@ -98,12 +95,28 @@ module SuperSlim
         source.force_encoding(Encoding::UTF_8)
         source.force_encoding(original_encoding) unless source.valid_encoding?
       end
+      invalid_encoding!(source) unless source.encoding == Encoding::UTF_8 && source.valid_encoding?
       source.delete_prefix("﻿")
+    end
+
+    def invalid_encoding!(source)
+      lines = source.b.split("\n")
+      lineno = lines.index { |line| !line.dup.force_encoding(Encoding::UTF_8).valid_encoding? } || 0
+      raise SyntaxError.new("Invalid UTF-8", @file, lines[lineno].to_s.force_encoding(Encoding::UTF_8).scrub, lineno + 1, 0)
     end
 
     def line_starts(source, byte_order_mark_size)
       line_starts = [nil, byte_order_mark_size]
-      source.each_line { |line| line_starts << line_starts.last + line.size }
+      if source.ascii_only?
+        line_start = 0
+        while (newline_index = source.byteindex("\n", line_start))
+          line_start = newline_index + 1
+          line_starts << byte_order_mark_size + line_start
+        end
+        line_starts << byte_order_mark_size + source.bytesize if line_start < source.bytesize
+      else
+        source.each_line { |line| line_starts << line_starts.last + line.size }
+      end
       line_starts
     end
 
@@ -133,12 +146,37 @@ module SuperSlim
 
     # Characters of the line read so far, even when the scanner reads a stripped copy or attribute source.
     def column
-      @line.size - (@scanner.string.size - @scanner.charpos)
+      charpos = scanner_charpos
+      line_size - (@scanner_string_size - charpos)
     end
 
     # Where the scanner stands in the source, unlike `column` exact on a stripped line or on attribute source.
     def source_offset
-      @line_starts[@lineno] + @scanner_column + @scanner.charpos
+      @line_starts[@lineno] + @scanner_column + scanner_charpos
+    end
+
+    # StringScanner#charpos and String#size count from the start of the string at each call, and the outline asks
+    # for them at each attribute: counted on from where the last call left off, they stay linear in the line.
+    def scanner_charpos
+      string = @scanner.string
+      position = @scanner.pos
+      unless string.equal?(@charpos_string) && position >= @charpos_byte
+        @charpos_string = string
+        @charpos_byte = @charpos_char = 0
+        @scanner_string_size = string.size
+        @scanner_string_ascii = string.ascii_only?
+      end
+      return position if @scanner_string_ascii
+
+      @charpos_char += string.byteslice(@charpos_byte, position - @charpos_byte).size
+      @charpos_byte = position
+      @charpos_char
+    end
+
+    def line_size
+      @line_size = @line.size unless @line.equal?(@sized_line)
+      @sized_line = @line
+      @line_size
     end
 
     def line_end_offset
@@ -229,10 +267,13 @@ module SuperSlim
     end
 
     def parse_inline_html
-      record_ruby(:text, source_offset, line_end_offset) if @outline
+      if @outline
+        @outline[@lineno].text = true
+        record_ruby(:text, source_offset, line_end_offset)
+      end
       children = []
       @stacks.last << located(InlineHtml.new(@scanner.rest, children))
-      @stacks << children
+      nest(children)
     end
 
     def parse_control
@@ -240,7 +281,7 @@ module SuperSlim
       @scanner.pos += 1
       children = []
       @stacks.last << located(Control.new(parse_broken_line, children), lineno)
-      @stacks << children
+      nest(children)
     end
 
     def parse_output
@@ -259,7 +300,7 @@ module SuperSlim
       lineno = @lineno
       @stacks.last << located(Output.new(parse_broken_line, escape, children), lineno)
       @stacks.last << Static.new(" ") if trailing_whitespace
-      @stacks << children
+      nest(children)
     end
 
     def parse_tag_line
@@ -362,34 +403,23 @@ module SuperSlim
     end
 
     def parse_broken_line
-      first = source_offset + @scanner.rest[/\A\s*/].size if @outline
+      first = source_offset + @scanner.match?(WHITESPACE) if @outline
       broken_line = @scanner.rest
       broken_line.strip!
-      while broken_line.match?(LINE_CONTINUATION) || (broken_line.match?(OPENING_BRACKET_AT_LINE_END) && bracket_open_at_line_end?(broken_line))
+      brackets = RubyBrackets.new(broken_line) if broken_line.match?(OPENING_BRACKET_AT_LINE_END)
+      line = broken_line
+      while line.match?(LINE_CONTINUATION) || brackets&.open_at_line_end?
         expect_next_line
-        broken_line << "\n" << @scanner.string
+        line = @scanner.string
+        broken_line << "\n" << line
+        if brackets
+          brackets << line
+        elsif line.match?(OPENING_BRACKET_AT_LINE_END)
+          brackets = RubyBrackets.new(broken_line)
+        end
       end
       record_ruby(:code, first, line_end_offset) if @outline
       broken_line
-    end
-
-    # A bracket that ends its line and is still open continues the code on the next lines, until it closes. A
-    # bracket opened mid-line, as in `items.each { |item|`, doesn't: Slim reads the lines below it as children.
-    def bracket_open_at_line_end?(code)
-      tokens = Prism.lex(code).value
-      open_brackets = []
-      tokens.each_with_index do |(token, _state), index|
-        type = token.type
-        if OPENING_BRACKETS.include?(type) || PERCENT_LISTS.include?(type)
-          following = tokens[index + 1]&.first
-          # In %w[ and %i[, the line break after the bracket is a word separator.
-          at_line_end = LINE_ENDS.include?(following&.type) || (following&.type == :WORDS_SEP && following.value.start_with?("\n"))
-          open_brackets << [type, at_line_end]
-        elsif CLOSING_BRACKETS.include?(type) || (type == :STRING_END && PERCENT_LISTS.include?(open_brackets.last&.first))
-          open_brackets.pop
-        end
-      end
-      open_brackets.any? { |(_type, at_line_end)| at_line_end }
     end
 
     def parse_tag(tag)
@@ -428,18 +458,19 @@ module SuperSlim
         siblings.insert(-2, Static.new(" ")) if output_leading_whitespace && !leading_whitespace
         siblings << Static.new(" ") if output_trailing_whitespace && !trailing_whitespace
       end
-      @stacks << block if block
+      nest(block) if block
     end
 
     # Returns the tag content, the block expecting indented children, and the whitespace an `=<>` output adds.
     def parse_tag_content
-      output_column = column if @outline
+      # Not `column`, which counts the spaces stripped from the end of a continuation line.
+      output_column = @scanner_column + scanner_charpos if @outline
       if @scanner.skip(NESTED_TAG)
         return [[parse_embedded(@scanner[1], @scanner[2], @scanner.rest)]] if @scanner.skip(ENGINE)
 
         (tag = scan_tag) || syntax_error!("Expected tag")
         content = []
-        @stacks << content
+        nest(content)
         stack_index = @stacks.size - 1
         parse_tag(tag)
         @stacks.delete_at(stack_index)
@@ -554,6 +585,8 @@ module SuperSlim
 
       until depth == 0 && @scanner.peek_byte == quote_byte
         if @scanner.eos? || @scanner.match?(BACKSLASH_AT_END)
+          # Unlike a stripped continuation line, a line read whole keeps its trailing whitespace in the value.
+          @outline[@lineno].text = true if @outline && @scanner.eos? && @scanner.string.equal?(@line)
           value << (@scanner.eos? ? "\n" : " ")
           @stacks.last << NEWLINE
           expect_next_line
@@ -570,6 +603,12 @@ module SuperSlim
       record_ruby(:text, first, source_offset) if @outline
       @scanner.pos += 1
       value
+    end
+
+    # The compiler, the linter and Ruby's own parser of the compiled code walk the tree recursively.
+    def nest(children)
+      syntax_error!("Tags nested more than #{MAX_NESTING} levels deep") if @stacks.size > MAX_NESTING
+      @stacks << children
     end
 
     def syntax_error!(message)

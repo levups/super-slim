@@ -23,8 +23,12 @@ end
 
 # A pinned commit's list never changes: once listed, a project needs no API call, so a full cache works offline.
 def slim_paths(repository, sha)
-  listing_path = File.join(CACHE_DIRECTORY, repository.tr("/", "_"), ".slim_paths_#{sha}")
+  project_directory = File.join(CACHE_DIRECTORY, repository.tr("/", "_"))
+  listing_path = File.join(project_directory, ".slim_paths_#{sha}")
   return File.readlines(listing_path, chomp: true) if File.exist?(listing_path)
+
+  # Templates fetched at another commit would be checked as if they were this one's, deleted ones included.
+  FileUtils.rm_rf(project_directory)
 
   ATTEMPT_COUNT.times do |attempt|
     tree_json, status = Open3.capture2("gh", "api", "repos/#{repository}/git/trees/#{sha}?recursive=1")
@@ -59,6 +63,9 @@ def fetch(http, download, headers)
 end
 
 manifest = YAML.load_file(File.join(CORPUS_DIRECTORY, "manifest.yml"), permitted_classes: [Date])
+# corpus:check reads every directory of the cache: a project dropped from the manifest goes with it.
+project_directories = manifest.map { File.join(CACHE_DIRECTORY, _1.fetch("repo").tr("/", "_")) }
+(Dir.glob(File.join(CACHE_DIRECTORY, "*")) - project_directories).each { FileUtils.rm_rf(_1) }
 downloads = manifest.map do |project|
   Thread.new do
     repository, sha = project.fetch("repo"), project.fetch("sha")

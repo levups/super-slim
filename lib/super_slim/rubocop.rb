@@ -34,7 +34,7 @@ module SuperSlim
       TRAILING_DO = /(?:\b[ \t]*|[ \t])do[ \t]*(\|[^|]*\|)?[ \t]*(#.*)?\z/
       WHEN = /\A\s*when[ \t]/
       THEN = /[ \t]then(?:[ \t].*)?\z/m
-      INTERPOLATION = /#\{((?>[^{}]|(\{(?>[^{}]|\g<1>)*\}))*)\}/
+      INTERPOLATION_START = /#\{/
       ESCAPED_INTERPOLATION = /\\#\{/
       UNESCAPED_INTERPOLATION_CODE = /\A\{.*\}\z/m
       TEXT_WITHOUT_INTERPOLATION = /[^#\\]+|./m
@@ -45,7 +45,9 @@ module SuperSlim
 
       def initialize(processed_source)
         @processed_source = processed_source
-        @source = processed_source.raw_source
+        # Offsets count in the source buffer, which reads \r\n as \n: counted with the \r, a correction lands one
+        # character further for each line above it.
+        @source = processed_source.raw_source.gsub("\r\n", "\n")
       end
 
       def call
@@ -63,8 +65,8 @@ module SuperSlim
         parser.call(@source)
         parser.ruby_ranges.flat_map do |kind, first, last|
           # From the start of its first line, so that the indentation of a `ruby:` block is the same on every line.
-          first = (@source.rindex("\n", first - 1) || -1) + 1 if kind == :embedded_ruby
-          fragment = Fragment.new(@source[first...last], first)
+          first = character_offset((@source.byterindex("\n", byte_offset(first) - 1) || -1) + 1) if kind == :embedded_ruby
+          fragment = Fragment.new(@source.byteslice(byte_offset(first)...byte_offset(last)), first)
           case kind
           when :text then interpolations(fragment)
           when :code then without_block_syntax(fragment)
@@ -75,19 +77,41 @@ module SuperSlim
         []
       end
 
+      # The ranges count characters, and slicing by characters counts them again from the start of the template
+      # at each slice: on a template that isn't ASCII, each character's byte offset is worked out once.
+      def byte_offset(character_offset)
+        byte_offsets ? byte_offsets[character_offset] : character_offset
+      end
+
+      def character_offset(byte_offset)
+        byte_offsets ? byte_offsets.bsearch_index { _1 >= byte_offset } : byte_offset
+      end
+
+      def byte_offsets
+        return if @source.ascii_only?
+
+        @byte_offsets ||= begin
+          offsets = [0]
+          @source.each_char { |character| offsets << offsets.last + character.bytesize }
+          offsets
+        end
+      end
+
       def tailwind_classes?
         configuration = Linter.configuration
         configuration.key?("tailwind_classes") ? configuration["tailwind_classes"] : SuperSlim.tailwind_classes
       end
 
       def interpolations(text)
+        closing_by_opening = Compiler.closing_braces(text.code)
         scanner = StringScanner.new(text.code)
         fragments = []
         until scanner.eos?
           next if scanner.skip(ESCAPED_INTERPOLATION)
 
-          if scanner.scan(INTERPOLATION)
-            code = scanner[1]
+          if scanner.match?(INTERPOLATION_START) && (closing = closing_by_opening[scanner.pos + 1])
+            code = text.code.byteslice(scanner.pos + 2...closing)
+            scanner.pos = closing + 1
             offset = text.offset + scanner.charpos - code.size - 1
             fragments << (code.match?(UNESCAPED_INTERPOLATION_CODE) ? Fragment.new(code[1..-2], offset + 1) : Fragment.new(code, offset))
           else

@@ -6,11 +6,11 @@ Gem::Specification.new do |spec|
   spec.name = "super-slim"
   spec.version = SuperSlim::VERSION
   spec.authors = ["Level UP Solutions"]
-  spec.summary = "Slim templates, rewritten: faster to compile and render, with a formatter and a linter"
-  spec.description = "A Slim template engine rewritten from scratch, without Temple: same HTML as Slim 5, " \
-                     "faster compilation and rendering with fewer allocations, a formatter that cannot change " \
-                     "a page, a linter with HTML and accessibility rules, and a RuboCop plugin for the " \
-                     "Ruby inside templates."
+  spec.summary = "A Slim template engine that compiles and renders faster, with a formatter and a linter"
+  spec.description = "A Slim template engine written from scratch, without Temple. It renders the same HTML as " \
+                     "Slim 5, compiles and renders faster with fewer allocations, and comes with a formatter " \
+                     "that cannot change a page, a linter with HTML and accessibility rules, and a RuboCop " \
+                     "plugin for the Ruby inside templates."
   spec.homepage = "https://github.com/levups/super-slim"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"

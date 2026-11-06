@@ -28,3 +28,25 @@ ul
       ).each do |name|
     li = name
 p = format("(%s", "alice")
+p = format(
+    "%s) and %s",
+    "alice",
+    "bob",
+  )
+- closings = %w[
+    a)
+    b(
+  ]
+p = closings.join(" ")
+p = format(
+    "%s #{"(" + names.first}",
+    # a comment (
+    "bob",
+  )
+p = format( # alice (
+    "%s",
+    "bob's".sub(names.any? ? /'s/ : "", ""),
+  )
+p = %(
+    alice
+  ).strip

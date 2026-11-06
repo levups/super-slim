@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "prism"
+require_relative "formatter/attribute_arranger"
+require_relative "formatter/code_wrapper"
 require_relative "formatter/line_wrapper"
 
 module SuperSlim
@@ -12,6 +15,7 @@ module SuperSlim
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
     REDUNDANT_DIV = /\Adiv(?=[.#][\p{Word}-])/
+    # Prism 1.x counts in a node's flags whether it starts a line.
     NEWLINE_FLAG = defined?(Prism::NodeFlags::NEWLINE) ? Prism::NodeFlags::NEWLINE : 0
     FIELDS_BY_NODE_CLASS = {}
 
@@ -35,7 +39,14 @@ module SuperSlim
       wrapped = @line_wrapper.call(formatted)
       return formatted if wrapped == formatted
 
-      same_ruby?(formatted_ruby || compiled_ruby(formatted), compiled_ruby(wrapped)) ? wrapped : formatted
+      wrapped_ruby = compiled_ruby(wrapped)
+      # Only Prism's tree vouches for a wrap: a compile error can read the same before and after it.
+      return formatted unless wrapped_ruby.is_a?(Prism::ParseResult)
+
+      same_ruby?(formatted_ruby || compiled_ruby(formatted), wrapped_ruby) ? wrapped : formatted
+    # Prism walks code recursively too: code nested thousands deep can't be checked, so it isn't formatted.
+    rescue SystemStackError
+      raise UnsafeFormattingError, "Code nested too deep to check that formatting changes nothing"
     end
 
     private
@@ -86,10 +97,9 @@ module SuperSlim
     end
 
     def with_output_spacing(line, info)
-      return line unless info.output_column
+      return line unless info.output_column && line[info.output_column..] =~ TAG_OUTPUT
 
       before = line[0...info.output_column].rstrip
-      line[info.output_column..] =~ TAG_OUTPUT
       $'.empty? ? "#{before} #{$1}#{$2}" : "#{before} #{$1}#{$2} #{$'}"
     end
 
@@ -101,14 +111,34 @@ module SuperSlim
       line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
-    # Prism's tree of the compiled Ruby, or the error that stops it.
+    # Prism's tree of the compiled Ruby; that Ruby with its separators folded when Prism can't read it; the error
+    # when the template doesn't compile.
     def compiled_ruby(source)
-      code = SuperSlim.compile(source, tailwind_classes: @tailwind_classes, format: :xml)
-      # Rails runs a template inside a method, where `yield` is valid.
-      parsed = Prism.parse("def template\n#{code}\nend")
+      nodes = Parser.new(tailwind_classes: @tailwind_classes).call(source)
+      code = Compiler.new(format: :xml).call(with_attributes_sorted_by_name(nodes))
+      parsed = Prism.parse("#{CodeWrapper::TEMPLATE_METHOD}#{code}\nend")
       parsed.success? ? parsed : code.gsub(/(?:\s*[;\n]\s*)+/, ";")
     rescue Error => exception
       exception.message
+    end
+
+    # A tag renders the same whatever the order of its attributes, and with a class shortcut named twice once: both
+    # templates get their attributes sorted by name, class values kept in order, before they are compiled. A
+    # splat merges attributes in order, so a tag holding one keeps its own.
+    def with_attributes_sorted_by_name(nodes)
+      nodes.each do |node|
+        next unless node.is_a?(Struct)
+
+        if node.is_a?(AST::Tag) && node.attributes.none?(AST::Splat)
+          attributes = node.attributes.uniq { class_shortcut?(_1) ? _1 : _1.__id__ }
+          node.attributes = attributes.sort_by.with_index { |attribute, index| [attribute.name, index] }
+        end
+        node.each { with_attributes_sorted_by_name(_1) if _1.is_a?(Array) }
+      end
+    end
+
+    def class_shortcut?(attribute)
+      attribute.is_a?(AST::StaticAttribute) && attribute.name == "class"
     end
 
     # Positions aside: line breaks, spaces, a trailing comma and the parentheses of a call change nothing, a
@@ -119,30 +149,64 @@ module SuperSlim
       same_node?(ruby.value, other_ruby.value) && comment_texts(ruby) == comment_texts(other_ruby)
     end
 
+    # Walks both trees with a stack of its own: deep code or a deep template would exhaust Ruby's.
     def same_node?(node, other_node)
-      return false unless node.instance_of?(other_node.class)
+      pairs = [[node, other_node]]
+      until pairs.empty?
+        value, other_value = pairs.pop
+        case value
+        when Prism::Node
+          return false unless value.instance_of?(other_value.class)
+          return false unless same_node_value?(value, other_value)
+        when Array
+          return false unless other_value.is_a?(Array) && value.size == other_value.size
+        else
+          return false unless value == other_value
 
-      field_names, flags = node_fields(node)
-      return false if flags && (node.send(:flags) & ~NEWLINE_FLAG) != (other_node.send(:flags) & ~NEWLINE_FLAG)
-
-      field_names.all? { |name| same_field?(node.public_send(name), other_node.public_send(name)) }
-    end
-
-    def same_field?(value, other_value)
-      case value
-      when Prism::Node then other_value.is_a?(Prism::Node) && same_node?(value, other_value)
-      when Array then other_value.is_a?(Array) && value.size == other_value.size && value.each_index.all? { same_field?(value[_1], other_value[_1]) }
-      else value == other_value
+          next
+        end
+        pairs.concat(children_pairs(value, other_value).reverse)
       end
+      true
     end
 
-    # Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each class. Prism
-    # 1.x keeps flags out of deconstruct_keys, and counts in them whether a node starts a line.
+    def same_node_value?(node, other_node)
+      # `__LINE__` holds no value in the tree: removing a blank line above it changes what it renders.
+      return node.location.start_line == other_node.location.start_line if node.is_a?(Prism::SourceLineNode)
+
+      field_names, located_names, flagged = node_fields(node)
+      return false if flagged && (node.send(:flags) & ~NEWLINE_FLAG) != (other_node.send(:flags) & ~NEWLINE_FLAG)
+      # 2026-11: Prism 0.19 (Ruby 3.3) keeps the value of an integer or a float out of its fields.
+      return node.value == other_node.value if field_names.empty? && (node.is_a?(Prism::IntegerNode) || node.is_a?(Prism::FloatNode))
+
+      located_names.all? { |name| same_name?(node.public_send(name), other_node.public_send(name)) }
+    end
+
+    def children_pairs(value, other_value)
+      return value.zip(other_value) if value.is_a?(Array)
+      return [] if value.is_a?(Prism::SourceLineNode)
+
+      node_fields(value).first.map { |name| [value.public_send(name), other_value.public_send(name)] }
+    end
+
+    # Beside a location, a field holds either a name or, from Prism 2 on, the source the location covers
+    # (`opening` beside `opening_loc`): only the name counts.
+    def same_name?(name, other_name)
+      return true unless name.is_a?(Symbol) || other_name.is_a?(Symbol)
+
+      name == other_name
+    end
+
+    # 2026-11: Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each
+    # class. Prism 1.x keeps flags out of deconstruct_keys.
     def node_fields(node)
-      FIELDS_BY_NODE_CLASS[node.class] ||= [
-        node.deconstruct_keys(nil).keys.reject { |key| key == :node_id || key == :flags || key == :location || key.end_with?("_loc") },
-        node.respond_to?(:flags, true)
-      ]
+      FIELDS_BY_NODE_CLASS[node.class] ||= begin
+        keys = node.deconstruct_keys(nil).keys
+        located_names, field_names = (keys - %i[node_id flags location])
+          .reject { _1.end_with?("_loc") }
+          .partition { keys.include?(:"#{_1}_loc") }
+        [field_names, located_names, node.respond_to?(:flags, true)]
+      end
     end
 
     def comment_texts(ruby)
