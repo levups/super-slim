@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-11-07
+
+Formatted templates that Slim and Brakeman read, lines and rules you can opt out of, and a formatter about 30% faster.
+
+**New**
+- `/ super-slim:format off` keeps the lines after it as written, up to `/ super-slim:format on` or the end of their
+  block, and `/ super-slim:disable Rule, OtherRule` silences rules for the next tag or line of code. An unknown rule
+  name, or a directive with no line after it, is reported.
+- The `SlimSyntax` lint rule, on by default, flags what Slim, and so Brakeman, can't read: code continued after an
+  opening bracket, and a comment after code.
+- The `AriaBooleanValue` lint rule, on by default, flags `aria-*=true`, which renders without a value, and
+  `aria-*=false`, which Slim leaves out.
+- `super-slim format` removes a blank line at the start of a block, sets a partial's first-line `/# locals:`
+  signature apart with a blank line, and writes the `do` that Slim adds to a line of code whose children render
+  something.
+
+**Faster**
+- `super-slim format` is about 30% faster: it compares the compiled Ruby as text before parsing it, and reads each
+  template once.
+
+**Fixed**
+- With `max_line_length`, `super-slim format` spreads a long call one argument per line, each line but the last
+  ending with a comma, instead of between brackets that close on a line of their own. Slim only continues code after
+  a comma or a backslash, so since 3.2.0 Brakeman could check nothing in a wrapped template. Formatting again
+  repairs the templates already written, a tag's output after its attributes included. A first argument too long to
+  follow its call, or the brackets or the `do` that close the last one, go to the next line after a backslash.
+- Code spread by hand with a comment inside stays as written, instead of keeping the formatter from wrapping
+  anything else in its file.
+
 ## [3.2.2] — 2026-11-06
 
 `super-slim format` no longer joins code spread by hand into lines past `max_line_length`.
@@ -193,7 +222,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.2.2...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/levups/super-slim/compare/v3.2.2...v3.3.0
 [3.2.2]: https://github.com/levups/super-slim/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/levups/super-slim/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/levups/super-slim/compare/v3.1.1...v3.2.0
