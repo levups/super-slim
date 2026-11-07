@@ -21,7 +21,7 @@ module SuperSlim
       # `render Card.new title:` reads as if title went to render: arguments to `new` go in parentheses.
       def self.parenthesize_new(code)
         loop do
-          statements, _opens_block = parse(code)
+          statements = parse(code)
           call = statements && new_without_parentheses(statements)
           return code unless call
 
@@ -45,13 +45,12 @@ module SuperSlim
       end
       private_class_method :new_without_parentheses
 
-      # Returns the statements of the line and whether it opens a block: it then holds its `do` but not its `end`.
-      # Their offsets count from CODE_OFFSET.
+      # Returns the statements of the line, whose offsets count from CODE_OFFSET. A line that opens a block holds its
+      # `do` but not its `end`.
       def self.parse(code)
         parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend")
-        opens_block = !parsed.success?
-        parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend\nend") if opens_block
-        [parsed.value.statements.body.first.body&.body || [], opens_block] if parsed.success? && parsed.comments.empty?
+        parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend\nend") unless parsed.success?
+        parsed.value.statements.body.first.body&.body || [] if parsed.success? && parsed.comments.empty?
       end
 
       # Positional and keyword arguments, then the block argument; nil when the call takes none.
@@ -76,7 +75,7 @@ module SuperSlim
       end
 
       def call
-        statements, _opens_block = self.class.parse(@code)
+        statements = self.class.parse(@code)
         return unless statements&.size == 1 && (node = spreadable(statements.first))
 
         argument_indent = @lead[/\A */] + (" " * 2 * INDENT_WIDTH)
@@ -107,31 +106,34 @@ module SuperSlim
       # The lines of lead then the code from first to last, with node's items at indent after the first.
       def spread(node, lead, first, last, indent)
         items = node.is_a?(Prism::CallNode) ? self.class.arguments_of(node) : node.elements
+        items_end = self.class.end_offset(items.last)
         # `hint: -> do` ends past the line, with the children of the line.
-        return if self.class.end_offset(items.last) > CODE_OFFSET + @code.bytesize
+        return if items_end > CODE_OFFSET + @code.bytesize
 
         lines = first_item_lines(items.first, lead + slice(first, items.first.location.start_offset), indent)
-        items.drop(1).each { lines.concat(item_lines(_1, indent, indent)) }
-        lines[-1] = lines.last.delete_suffix(",") + slice(self.class.end_offset(items.last), last)
+        items.drop(1).each { lines.concat(item_lines(_1, indent)) }
+        lines[-1] = lines.last.delete_suffix(",") + slice(items_end, last)
         lines
       end
 
       # A first item too long to follow its call goes to the next line, after a backslash.
-      def first_item_lines(item, head, indent)
-        after_head = item_lines(item, head, indent)
-        return after_head if after_head.first.size <= @max_line_length
+      def first_item_lines(item, lead, indent)
+        after_lead = item_lines(item, indent, lead)
+        return after_lead if after_lead.first.size <= @max_line_length
 
-        after_backslash = ["#{head.rstrip} \\", *item_lines(item, indent, indent)]
-        [after_head, after_backslash].min_by { |lines| lines.map(&:size).max }
+        after_backslash = ["#{lead.rstrip} \\", *item_lines(item, indent)]
+        [after_lead, after_backslash].min_by { |lines| lines.map(&:size).max }
       end
 
       # The lines of lead then item and a comma; the items it spreads go deeper than indent.
-      def item_lines(item, lead, indent)
-        line = "#{lead}#{slice(item.location.start_offset, self.class.end_offset(item))},"
+      def item_lines(item, indent, lead = indent)
+        item_start = item.location.start_offset
+        item_end = self.class.end_offset(item)
+        line = "#{lead}#{slice(item_start, item_end)},"
         return [line] if line.size <= @max_line_length
 
         nested = spreadable(item.is_a?(Prism::AssocNode) ? item.value : item)
-        lines = nested && spread(nested, lead, item.location.start_offset, self.class.end_offset(item), indent + (" " * INDENT_WIDTH))
+        lines = nested && spread(nested, lead, item_start, item_end, indent + (" " * INDENT_WIDTH))
         lines ? [*lines[0...-1], "#{lines.last},"] : [line]
       end
 

@@ -48,8 +48,11 @@ module SuperSlim
       def layout(lines, info)
         return lines unless info.kind == :structure
 
-        code = joined_code(lines, info) if lines.size > 1
-        line = (lines.size > 1) ? code || joined_attributes(lines, info) : lines.first
+        line = lines.first
+        if lines.size > 1
+          code = joined_code(lines, info)
+          line = code || joined_attributes(lines, info)
+        end
         return lines unless line
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
@@ -57,16 +60,16 @@ module SuperSlim
         line = with_new_parenthesized(line, info)
         return [line] if line.size <= @max_line_length
 
-        keepable = lines.size > 1 && (code.nil? || continued_as_slim_reads?(lines))
+        authors_layout_kept = lines.size > 1 && (code.nil? || continued_after_commas_or_backslashes?(lines))
         broken = wrap(line, info)
-        return (keepable ? lines : broken) if broken == [line]
+        return (authors_layout_kept ? lines : broken) if broken == [line]
 
         # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
         rejoined = joined_code(broken, info)
         return [rejoined] if rejoined && rejoined.size <= @max_line_length
 
         # A string continued with `\` comes back on one line, longer than the author's.
-        return lines if keepable && broken.max_by(&:size).size > lines.max_by(&:size).size
+        return lines if authors_layout_kept && broken.max_by(&:size).size > lines.max_by(&:size).size
 
         broken
       end
@@ -96,8 +99,8 @@ module SuperSlim
       end
 
       # Slim continues a line of code only after a comma or a backslash, not after an opening bracket.
-      def continued_as_slim_reads?(lines)
-        lines[0...-1].all? { _1.rstrip.end_with?(",", "\\") }
+      def continued_after_commas_or_backslashes?(lines)
+        lines[0...-1].all? { _1.rstrip.match?(Parser::LINE_CONTINUATION) }
       end
 
       # A tag whose attributes stand one per line inside delimiters, on one line: `p {` `title="A"` `} = text`.
