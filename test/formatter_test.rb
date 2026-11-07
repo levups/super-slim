@@ -41,7 +41,7 @@ class FormatterTest < Minitest::Test
 
   def test_leaves_the_lines_between_format_off_and_on_as_written_shifted_with_their_block
     source = "table\n    / super-slim:format off\n    tr: td  =  t(\".empty\")\n\n\n    tr: td  x\n    / super-slim:format on\n    tr: td  =  1\n"
-    expected = "table\n  / super-slim:format off\n  tr: td  =  t(\".empty\")\n\n\n  tr: td  x\n  / super-slim:format on\n  tr: td = 1\n"
+    expected = "table\n  / super-slim:format off\n  tr: td  =  t(\".empty\")\n\n\n  tr: td  x\n  / super-slim:format on\n  tr\n    td = 1\n"
 
     assert_equal expected, SuperSlim::Formatter.call(source)
     assert_equal expected, SuperSlim::Formatter.new(max_line_length: 20).call(source)
@@ -70,7 +70,7 @@ class FormatterTest < Minitest::Test
 
   def test_wraps_attributes_one_per_line_inside_delimiters
     assert_wraps %(a.btn(\n  href="/posts/1"\n  data-turbo="false"\n) Edit\n), %(a.btn href="/posts/1" data-turbo="false" Edit\n)
-    assert_wraps %(li: a(\n  href=url\n  disabled\n) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
+    assert_wraps %(li\n  a(\n    href=url\n    disabled\n  ) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
   end
 
   def test_wraps_attributes_inside_the_configured_delimiters
@@ -137,6 +137,53 @@ class FormatterTest < Minitest::Test
     assert_formats "= link_to root_path do\n  = fa_icon \"bell\"\n- posts.each do\n  p\n", "= link_to root_path\n  = fa_icon \"bell\"\n- posts.each\n\n  p\n"
     assert_wraps "= foo(a, b) do\n  p\n", "= foo(a,\n  b)\n  p\n"
     untouched = "= f.label :name\n  / a comment opens no block\n- if x\n  p\n- while false\n  p\n= render Card.new # card\n  p\n= form_with(model: x) { |form|\n  = form.text\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_moves_an_only_child_onto_its_tag_when_both_fit
+    assert_wraps "tr\n  td.muted = admin.name\n  td Total\n", "tr\n  td.muted\n    = admin.name\n  td\n    | Total\n"
+    assert_wraps "p Hello\ndiv\n", "p\n  | Hello\ndiv\n"
+    untouched = "p\n  | a = b\np\n  | Hello  \np\n  | href=\"x\" text\np\n  | .lead\ntd\n  = a\n  = b\np\n  | text\n    goes on\np\n  / comment\n  | text\n"
+    assert_wraps untouched, untouched
+    assert_wraps "p\n  = a_call_too_long\n", "p\n  = a_call_too_long\n", max_line_length: 15
+  end
+
+  def test_nests_inline_tags_one_per_line
+    assert_formats "table\n  tr\n    td colspan=8 = t(\".empty\")\n", "table\n  tr: td colspan=8 = t(\".empty\")\n"
+    assert_formats ".a\n  .b\n    p = x\n      span\np after\n", "div.a : div.b: p  =  x\n  span\np after\n"
+    assert_formats "td\n  a(href=\"/\"\n    class=\"x\") Link\n", "td: a(href=\"/\"\n  class=\"x\") Link\n"
+    untouched = "p: b text\n  continued text\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_keeps_the_layout_when_a_wrap_slim_cannot_read_holds_three_ruby_lines
+    formatter = formatter_wrapping_into("- a = 1\n- b = 2\n- c = 3\n  p\n p\n")
+
+    assert_equal "p\n", formatter.call("p\n")
+  end
+
+  def test_format_off_keeps_inline_tags_and_ruby_lines_as_written
+    untouched = "table\n  / super-slim:format off\n  tr: td x\n  - a = 1\n  - b = 2\n  - c = 3\n  / super-slim:format on\n  tr\n    td y\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_negated_if_without_else_reads_as_unless
+    assert_formats "div\n  - unless @product.commercialized?\n    p Soon\n", "div\n  - if !@product.commercialized?\n    p Soon\n"
+    untouched = "- if !x\n  p a\n- else\n  p b\n- if !a && b\n  p\n- if !a == b\n  p\n- if !(a || b)\n  p\n- if !!x\n  p\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_the_check_takes_a_negated_if_for_the_unless_it_reads_as
+    assert same_ruby?("- if !x\n  p\n", "- unless x\n  p\n")
+    refute same_ruby?("- if !x == y\n  p\n", "- unless x == y\n  p\n")
+    refute same_ruby?("- if !x\n  p\n- else\n  b\n", "- unless x\n  p\n- else\n  b\n")
+    refute same_ruby?("- if !x\n  p\n", "- unless y\n  p\n")
+  end
+
+  def test_three_ruby_lines_or_more_make_a_ruby_block_and_fewer_do_not
+    assert_formats "div\n  ruby:\n    a = 1\n    b = 2\n    c = 3\n\n  p = a\n", "div\n  - a = 1\n  - b = 2\n  - c = 3\n\n  p = a\n"
+    assert_formats "- page_title \"Edit\"\n- breadcrumb :form, @contract\np\n", "ruby:\n  page_title \"Edit\"\n  breadcrumb :form, @contract\np\n"
+    untouched = "- a = 1\n- b = 2\n- if a\n  p\n- c = 3\nruby:\n  x = [1,\n    2]\n- d = 1 # one\n- e = 2\n- f = 3\n"
     assert_formats untouched, untouched
   end
 
@@ -345,6 +392,12 @@ class FormatterTest < Minitest::Test
   def assert_formats(expected, source)
     assert_equal expected, SuperSlim::Formatter.call(source)
     assert_equal expected, SuperSlim::Formatter.call(expected)
+  end
+
+  def same_ruby?(template, other_template)
+    formatter = SuperSlim::Formatter.new
+    rubies = [template, other_template].map { formatter.send(:parsed_ruby, formatter.send(:compiled_code, formatter.send(:parsed_template, _1).first)) }
+    formatter.send(:same_ruby?, *rubies)
   end
 
   def formatter_wrapping_into(wrapped)

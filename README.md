@@ -95,7 +95,10 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 `super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
 where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
 newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
-body, and Ruby code with children ends with the `do` that Slim would add. This template:
+body, and Ruby code with children ends with the `do` that Slim would add. Tags nested inline (`tr: td`) go one per
+line, three `-` lines in a row or more make a `ruby:` block, and a `ruby:` block of one or two lines turns back into
+`-` lines. `- if !condition` with no `else` reads as `- unless condition` when the `!` covers the whole condition.
+This template:
 
 ```slim
 div.card
@@ -155,6 +158,10 @@ first argument that would pass the limit goes to the next line after a backslash
 that close the last one when they would. The lines after the first go two spaces deep, two more when the line opens a
 block. Code spread by hand stays as it is when it holds a comment, or when this layout would leave a line longer than
 the limit and Slim can read it. Arguments to `new` go in parentheses.
+
+A tag whose only child is one `=` output or one line of `|` text takes it on its own line when both fit:
+`td = total`, `p Hello`. Text that starts with anything but a letter, a digit or `&`, or whose first word is followed
+by `=`, stays below, where it can't read as an attribute.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut

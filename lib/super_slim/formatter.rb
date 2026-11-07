@@ -12,13 +12,22 @@ module SuperSlim
   class Formatter
     INDENT_WIDTH = 2
     CONTROL = /\A-\s*/
+    NEGATED_IF = /\A- if !(?!=)\s*(\S.*)\z/
+    COMPOUND_CONDITION = %r{[=<>+*/%&|^~#]|\?\s|\s-\s|:\s|\b(?:and|or|not|then|do)\b}
+    ELSE_LINE = /\A\s*-\s*(?:else|elsif)\b/
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
     REDUNDANT_DIV = /\Adiv(?=[.#][\p{Word}-])/
     LOCALS_HEADER = %r{\A﻿?/#\s*locals:}
     CODE_LINE = /\A(?:-|==?[<>]*) (.+)\z/
+    CONTROL_CODE = /\A\s*-\s*(\S.*)/
+    # The threshold of the ConsecutiveControlStatements lint rule, plus one.
+    RUBY_BLOCK_MIN_LINES = 3
+    RUBY_BLOCK = /\A\s*ruby:\s*\z/
+    CONTROL_RUN = /^( *)- .*\n\1- .*\n\1- /
     # `while x do` is valid Ruby that nobody writes.
     LOOP = /\A(?:while|until|for)\b/
+    END_KEYWORD = /\Aend\b/
     # Prism 1.x counts in a node's flags whether it starts a line.
     NEWLINE_FLAG = defined?(Prism::NodeFlags::NEWLINE) ? Prism::NodeFlags::NEWLINE : 0
     FIELDS_BY_NODE_CLASS = {}
@@ -69,6 +78,13 @@ module SuperSlim
       wrapped = @line_wrapper.call(formatted, parser:)
       return formatted if wrapped == formatted
 
+      # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block. A wrap Slim can't read is
+      # refused below.
+      if wrapped.match?(CONTROL_RUN)
+        wrapped_parser = parsed_template(wrapped).last
+        wrapped = layout(wrapped, wrapped_parser) if wrapped_parser
+      end
+
       wrapped_ruby = parsed_ruby(compiled_code(parsed_template(wrapped, outline: false).first))
       # Only Prism's tree vouches for a wrap: a compile error can read the same before and after it.
       return formatted unless wrapped_ruby.is_a?(Prism::ParseResult)
@@ -97,7 +113,12 @@ module SuperSlim
       indent_shift = 0
       previous_structure_lineno = nil
       blank_line_pending = false
+      # [depth, levels]: the children of a line whose inline tags were spread go that many levels deeper.
+      spread_levels = []
+      code_lines_by_lineno, rewritten_linenos = ruby_code_layout(lines, outline, parser, unformatted_linenos)
       lines.each.with_index(1) do |line, lineno|
+        next if rewritten_linenos.include?(lineno)
+
         info = outline[lineno]
         # Unformatted lines move with the directive above them, so that they stay inside its block.
         if unformatted_linenos.include?(lineno)
@@ -117,12 +138,27 @@ module SuperSlim
           # A block's first line comes right after the line that opens it.
           formatted.pop if blank_line_pending && previous_info && info.depth > previous_info.depth
           formatted << "" if previous_structure_lineno && previous_structure_lineno == locals_header_lineno && formatted.last != ""
-          indent = info.depth * INDENT_WIDTH
+          spread_levels.pop while spread_levels.last && info.depth <= spread_levels.last[0]
+          depth = info.depth + spread_levels.sum { |_depth, levels| levels }
+          indent = depth * INDENT_WIDTH
           indent_shift = indent_shift_by_lineno[lineno] = indent - indent_of(line)
-          content = structure(line, info)
-          # Code that goes on over more lines takes its `do` once the line wrapper joins it.
-          content = Formatter.with_do(content) if block_opening_linenos.include?(lineno) && !info.text && outline[lineno + 1]&.kind != :continuation
-          formatted << (" " * indent) + content
+          next_info = outline[lineno + 1]
+          if (code_lines = code_lines_by_lineno[lineno])
+            formatted.concat(code_lines.map { (" " * indent) + _1 })
+          elsif info.nested_tag_columns && !(goes_on?(outline, lineno) && next_info.kind != :continuation)
+            nested_lines = spread_nested_tags(line, info, depth)
+            levels = nested_lines.size - 1
+            spread_levels << [info.depth, levels]
+            # Attributes going on over the next lines belong to the last tag, and go as many levels deeper.
+            indent_shift_by_lineno[lineno] += levels * INDENT_WIDTH
+            formatted.concat(nested_lines)
+          else
+            content = structure(line, info)
+            # Code that goes on over more lines takes its `do` once the line wrapper joins it.
+            content = Formatter.with_do(content) if block_opening_linenos.include?(lineno) && !info.text && next_info&.kind != :continuation
+            content = unless_for_negated_if(content, lines, outline, lineno) if content.start_with?("- if !")
+            formatted << (" " * indent) + content
+          end
           previous_structure_lineno = lineno
           blank_line_pending = false
         else
@@ -134,6 +170,30 @@ module SuperSlim
       formatted.empty? ? "" : "#{formatted.join("\n")}\n"
     end
 
+    # `- if !condition` reads as `- unless condition` when the `!` covers the whole condition and no `else` follows,
+    # as RuboCop's Style/NegatedIf asks. A condition holding an operator, a ternary or a keyword keeps its `!`:
+    # `!a == b` compares `!a`.
+    def unless_for_negated_if(content, lines, outline, lineno)
+      condition = content[NEGATED_IF, 1]
+      return content if condition.nil? || condition.start_with?("(", "!") || condition.match?(COMPOUND_CONDITION)
+      return content if else_follows?(lines, outline, lineno)
+
+      "- unless #{condition}"
+    end
+
+    def else_follows?(lines, outline, lineno)
+      depth = outline[lineno].depth
+      ((lineno + 1)...outline.size).each do |next_lineno|
+        info = outline[next_lineno]
+        next unless info.kind == :structure && info.depth <= depth
+        # A comment between the `if` and its `else` renders nothing.
+        next if lines[next_lineno - 1].match?(Parser::CODE_COMMENT)
+
+        return info.depth == depth && lines[next_lineno - 1].match?(ELSE_LINE)
+      end
+      false
+    end
+
     def structure(line, info)
       content = with_output_spacing(line, info).lstrip
       content = content.rstrip unless info.text
@@ -142,6 +202,78 @@ module SuperSlim
       when OUTPUT then "#{$1}#{$2} #{$'}"
       when REDUNDANT_DIV then $'
       else content
+      end
+    end
+
+    # One threshold, both ways: `-` lines and `ruby:` blocks next to each other, at one depth, make one run of code
+    # lines; three lines or more go in a `ruby:` block, fewer go on `-` lines. Only lines of Ruby complete on their
+    # own move, with no block and no comment. Returns the lines that replace each run's first line, and the line
+    # numbers they replace.
+    def ruby_code_layout(lines, outline, parser, unformatted_linenos)
+      # [first line number, last line number, depth, code lines]
+      code_units = parser.line_by_node.filter_map do |node, lineno|
+        case node
+        when AST::Control
+          code = control_code(lines[lineno - 1]) if AST.empty?(node.children)
+          [lineno, lineno, outline[lineno].depth, [code]] if code && movable_code?(code) && !goes_on?(outline, lineno)
+        when AST::Embedded
+          next unless node.engine == "ruby" && lines[lineno - 1].match?(RUBY_BLOCK)
+
+          body_linenos = ((lineno + 1)...outline.size).take_while { outline[_1].owner == lineno }
+          body = body_linenos.map { lines[_1 - 1].strip }
+          [lineno, body_linenos.last, outline[lineno].depth, body] if body.any? && body_linenos.all? { outline[_1].kind == :text } && body.all? { movable_code?(_1) }
+        end
+      end
+      # `format off` keeps its lines as written.
+      code_units.reject! { |first_lineno, last_lineno| (first_lineno..last_lineno).any? { unformatted_linenos.include?(_1) } }
+      runs = code_units.sort_by!(&:first).chunk_while { |unit, next_unit| next_unit[0] == unit[1] + 1 && next_unit[2] == unit[2] }
+      code_lines_by_lineno = {}
+      rewritten_linenos = Set.new
+      runs.each do |run|
+        code_size = run.sum { _1[3].size }
+        ruby_blocks = run.count { _1[0] != _1[1] }
+        # Already in its layout: a lone `ruby:` block long enough, or `-` lines too few.
+        next if (run.size == 1 && ruby_blocks == 1 && code_size >= RUBY_BLOCK_MIN_LINES) || (ruby_blocks.zero? && code_size < RUBY_BLOCK_MIN_LINES)
+
+        # A line Prism can't read alone stays where it is, and splits the run.
+        run.chunk { |unit| unit[3].all? { Prism.parse(_1).success? } }.each do |parsable, units|
+          code = units.flat_map(&:last)
+          ruby_block = code.size >= RUBY_BLOCK_MIN_LINES
+          layout_changes = ruby_block || units.any? { _1[0] != _1[1] }
+          next unless parsable && layout_changes
+
+          code_lines_by_lineno[units.first[0]] = ruby_block ? ["ruby:", *code.map { (" " * INDENT_WIDTH) + _1 }] : code.map { "- #{_1}" }
+          rewritten_linenos.merge((units.first[0] + 1)..units.last[1])
+        end
+      end
+      [code_lines_by_lineno, rewritten_linenos]
+    end
+
+    def goes_on?(outline, lineno)
+      next_info = outline[lineno + 1]
+      next_info&.owner == lineno && next_info.kind != :blank
+    end
+
+    def control_code(line)
+      line[CONTROL_CODE, 1]&.rstrip
+    end
+
+    def movable_code?(code)
+      !code.include?("#") && !code.match?(Compiler::BLOCK_SELF_OPENING) && !code.match?(END_KEYWORD)
+    end
+
+    # `tr: td = total` nests each tag in the one before: one per line, whatever the line holds. A line whose text goes
+    # on over the next ones keeps its inline tags, so that the text stays where it belongs.
+    def spread_nested_tags(line, info, depth)
+      starts = [0, *info.nested_tag_columns.map(&:last)]
+      ends = [*info.nested_tag_columns.map(&:first), line.size]
+      starts.zip(ends).each_with_index.map do |(start, finish), level|
+        last = level == starts.size - 1
+        tag_info = info.dup.tap do |nested_info|
+          nested_info.text = nil unless last
+          nested_info.output_column = (last && info.output_column) ? info.output_column - start : nil
+        end
+        (" " * ((depth + level) * INDENT_WIDTH)) + structure(line[start...finish], tag_info)
       end
     end
 
@@ -239,7 +371,12 @@ module SuperSlim
         value = pending_values.pop
         case value
         when Prism::Node
-          return false unless value.instance_of?(other_value.class) && node_comparator(value).call(value, other_value, pending_values)
+          if value.instance_of?(other_value.class)
+            return false unless node_comparator(value).call(value, other_value, pending_values)
+          else
+            pairs = negated_if_pairs(value, other_value) or return false
+            pending_values.concat(pairs)
+          end
         when Array
           return false unless other_value.is_a?(Array) && value.size == other_value.size
 
@@ -253,6 +390,21 @@ module SuperSlim
         end
       end
       true
+    end
+
+    # `if !x` and `unless x` with no else run the same code, as RuboCop's Style/NegatedIf holds: the condition and the
+    # body still have to match. Only an object that redefines `!` tells them apart. Prism 0.19 names the else
+    # branch `consequent`.
+    def negated_if_pairs(node, other_node)
+      if_node, unless_node = node.is_a?(Prism::IfNode) ? [node, other_node] : [other_node, node]
+      return unless if_node.is_a?(Prism::IfNode) && unless_node.is_a?(Prism::UnlessNode)
+
+      negation = if_node.predicate
+      return unless negation.is_a?(Prism::CallNode) && negation.name == :! && negation.message == "!" && negation.arguments.nil?
+      return if if_node.respond_to?(:subsequent) ? if_node.subsequent : if_node.consequent
+      return if unless_node.respond_to?(:else_clause) ? unless_node.else_clause : unless_node.consequent
+
+      [negation.receiver, unless_node.predicate, if_node.statements, unless_node.statements]
     end
 
     def node_comparator(node)

@@ -11,6 +11,8 @@ module SuperSlim
       CONTINUATION_KINDS = %i[continuation text text_blank].freeze
       CLOSING_BRACKET_AT_START = /\A[)\]}]/
       NEW_WITHOUT_PARENTHESES = /\.new [^\s=]/
+      CHILD_OUTPUT = /\A==?[<>]* \S.*\z/
+      CHILD_TEXT = /\A\| ((?![^\s=]*\s*=)[\p{L}\p{N}&]\S*(?:\s.*\S)?)\z/
 
       # Templates attach ( and [ to their tag but set { apart, as a Ruby block: 6,097 public templates agree.
       OPENING_BY_ATTRIBUTE_DELIMITERS = {"()" => "(", "[]" => "[", "{}" => " {"}.freeze
@@ -35,20 +37,67 @@ module SuperSlim
         outline = parser.outline
         unformatted_linenos = Parser.unformatted_linenos(lines, outline)
         block_opening_linenos = Formatter.block_opening_linenos(parser)
+        single_child_tag_linenos = single_child_tag_linenos(parser)
         wrapped = []
         lineno = 1
         while lineno <= lines.size
           info = outline[lineno]
-          last_lineno = lineno
-          last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
+          last_lineno = structure_last_lineno(outline, lineno)
           structure_lines = lines[(lineno - 1)...last_lineno]
-          wrapped.concat(unformatted_linenos.include?(lineno) ? structure_lines : layout(structure_lines, info, outline, lineno, block_opening_linenos))
+          if unformatted_linenos.include?(lineno)
+            wrapped.concat(structure_lines)
+          else
+            laid_out = layout(structure_lines, info, outline, lineno, block_opening_linenos)
+            child_lineno = last_lineno + 1
+            if laid_out.size == 1 && single_child_tag_linenos.include?(lineno) && outline[child_lineno]&.kind == :structure &&
+                !unformatted_linenos.include?(child_lineno)
+              # The child is laid out first: code it spreads over lines may join into one.
+              child_last_lineno = structure_last_lineno(outline, child_lineno)
+              child_lines = layout(lines[(child_lineno - 1)...child_last_lineno], outline[child_lineno], outline, child_lineno, block_opening_linenos)
+              joined = with_child(laid_out.first, child_lines.first, info) if child_lines.size == 1
+            end
+            if joined
+              wrapped << joined
+              last_lineno = child_last_lineno
+            else
+              wrapped.concat(laid_out)
+            end
+            # A `while` keeps its locals from one turn to the next.
+            joined = nil
+          end
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
       end
 
       private
+
+      def structure_last_lineno(outline, lineno)
+        last_lineno = lineno
+        last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
+        last_lineno
+      end
+
+      # Tags whose content is one output or one text block.
+      def single_child_tag_linenos(parser)
+        parser.line_by_node.filter_map do |node, lineno|
+          next unless node.is_a?(AST::Tag) && node.content.is_a?(Array)
+
+          content = node.content.reject { _1 == AST::NEWLINE }
+          lineno if content.size == 1 && (content.first.is_a?(AST::Output) ? AST.empty?(content.first.children) : content.first.is_a?(AST::TextBlock))
+        end.to_set
+      end
+
+      # Text moves only when it starts with a letter, a digit or `&`, and its first word isn't followed by `=`: after a
+      # tag, anything else may read as an attribute.
+      def with_child(tag_line, child_line, info)
+        return if info.output_column || info.text || info.nested_tag_columns
+
+        child = child_line.lstrip
+        content = child[CHILD_OUTPUT] || child[CHILD_TEXT, 1]
+        joined = "#{tag_line} #{content}" if content
+        joined if joined && joined.size <= @max_line_length
+      end
 
       def layout(lines, info, outline, lineno, block_opening_linenos)
         return lines unless info.kind == :structure

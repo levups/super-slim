@@ -54,9 +54,12 @@ html lang="en"
     title = title
   body
     header#top.site-header.sticky
-      nav: ul.menu
-        li: a href="/" Home
-        li: a href="/about" About
+      nav
+        ul.menu
+          li
+            a href="/" Home
+          li
+            a href="/about" About
     .card
       #anonymous-id
       p.lead Lead paragraph

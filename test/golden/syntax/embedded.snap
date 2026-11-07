@@ -35,9 +35,8 @@ javascript:
 css:
   .a { color: red; }
   .b::before { content: "#{symbol}"; }
-ruby:
-  greeting = "Hello"
-  name = items.first
+- greeting = "Hello"
+- name = items.first
 p = "#{greeting} #{name}"
 javascript:
 ~~~~~~~~ super_slim: lint
