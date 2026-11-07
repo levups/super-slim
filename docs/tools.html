@@ -464,6 +464,15 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
 </details>
 <details class="rule">
+  <summary><span class="rule-name">AriaBooleanValue</span><span class="rule-message">Write <code>aria-atomic=&quot;true&quot;</code>: Slim renders <code>aria-atomic=true</code> without a value</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="kp">true</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="s">"true"</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
   <summary><span class="rule-name">AriaRole</span><span class="rule-message"><code>buton</code> is not an ARIA role</span></summary>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">role</span><span class="p">=</span><span class="s">"buton"</span>

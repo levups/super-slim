@@ -39,6 +39,29 @@ class FormatterTest < Minitest::Test
     assert_formats %(p title="Posts\n  and\n  comments"\n), %(p title="Posts\n  and  \n  comments"\n)
   end
 
+  def test_leaves_the_lines_between_format_off_and_on_as_written_shifted_with_their_block
+    source = "table\n    / super-slim:format off\n    tr: td  =  t(\".empty\")\n\n\n    tr: td  x\n    / super-slim:format on\n    tr: td  =  1\n"
+    expected = "table\n  / super-slim:format off\n  tr: td  =  t(\".empty\")\n\n\n  tr: td  x\n  / super-slim:format on\n  tr: td = 1\n"
+
+    assert_equal expected, SuperSlim::Formatter.call(source)
+    assert_equal expected, SuperSlim::Formatter.new(max_line_length: 20).call(source)
+  end
+
+  def test_format_off_without_on_leaves_the_rest_of_its_block_as_written
+    assert_formats "p = 1\n/ super-slim:format off\np  =  2\ndiv(a=\"1\"   b=\"2\")\n", "p  =  1\n/ super-slim:format off\np  =  2\ndiv(a=\"1\"   b=\"2\")\n"
+    assert_formats "div\n  div\n    / super-slim:format off\n    p    a\n  span\n    b = 1\n",
+      "div\n    div\n        / super-slim:format off\n        p    a\n    span\n        b  =  1\n"
+  end
+
+  def test_format_directives_deeper_than_the_off_are_left_as_written
+    assert_formats "div\n  / super-slim:format off\n  ul\n       li\n         / super-slim:format on\n         a x\n", "div\n    / super-slim:format off\n    ul\n         li\n           / super-slim:format on\n           a x\n"
+    assert_formats "/ super-slim:format off\ndiv\n  / super-slim:format off\n  p  =  1\nspan  =  2\n", "/ super-slim:format off\ndiv\n  / super-slim:format off\n  p  =  1\nspan  =  2\n"
+  end
+
+  def test_blank_lines_closing_a_format_off_block_are_formatted
+    assert_formats "div\n  / super-slim:format  off\n  p  a\n\nspan = 1\n", "div\n  / super-slim:format  off\n  p  a\n\n\n\nspan  =  1\n"
+  end
+
   def test_is_idempotent
     formatted = SuperSlim::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
 

@@ -360,6 +360,22 @@ module SuperSlim
         end
       end
 
+      # Slim renders `aria-atomic=true` as a bare `aria-atomic` and drops `aria-hidden=false`: ARIA reads the string.
+      class AriaBooleanValue < Rule
+        BOOLEAN_CODES = %w[true false].freeze
+
+        def offenses(document, _source)
+          enum_for(:each_tag, document).flat_map do |tag,|
+            tag.attributes.filter_map do |attribute|
+              next unless attribute.is_a?(AST::CodeAttribute) && attribute.name.start_with?("aria-")
+              next unless BOOLEAN_CODES.include?(value = attribute.code.strip)
+
+              offense(document, document.line_of(tag), "Write `#{attribute.name}=\"#{value}\"`: Slim renders `#{attribute.name}=#{value}` #{(value == "true") ? "without a value" : "as no attribute at all"}")
+            end
+          end
+        end
+      end
+
       class AriaRole < Rule
         ROLES = %w[alert alertdialog application article banner blockquote button caption cell checkbox code columnheader
           combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic

@@ -162,6 +162,17 @@ named twice goes, and the other attributes follow one order: `id`, `class`, what
 an attribute, and a tag with a `*splat` keeps its order. The formatter takes attribute values to have no side
 effects: reordering two Ruby values changes the order they run in.
 
+Lines the formatter should leave alone go between two comments. Without `on`, the rest of the block that holds the
+comment stays as written, the rest of the template at the top level. The lines keep their text and only move with
+their block, and the lint rules that `super-slim format` would fix stay quiet there:
+
+```slim
+table
+  / super-slim:format off
+  tr: td colspan=8 = t(".empty")
+  / super-slim:format on
+```
+
 ## Linter
 
 ```sh
@@ -184,7 +195,7 @@ linters, so most will look familiar:
 | LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
 | InstanceVariables (in partials) | haml-lint, Rails conventions | on |
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
-| DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
+| DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaBooleanValue (`aria-*=true` renders no value, `aria-*=false` no attribute), AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
 | ButtonType, InlineStyles | eslint-plugin-react, haml-lint | off |
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
@@ -221,6 +232,14 @@ linters:
 
 Every rule accepts `include:` and `exclude:`, lists of glob patterns matched against paths relative to
 `.super-slim.yml` (`**/` matches any number of directories).
+
+A comment silences rules on the next tag or code line, blank lines and comments skipped, and on the lines it goes on
+over. The linter reports a rule name it doesn't know:
+
+```slim
+/ super-slim:disable ButtonType, InlineStyles
+button style="all: unset" Close
+```
 
 The `bootstrap5` preset lists the classes and data attributes that Bootstrap 5.3 renamed, including the ones with
 breakpoints such as `text-md-right`. Its data attributes are only those of Bootstrap's own components

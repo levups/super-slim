@@ -56,10 +56,15 @@ module SuperSlim
       parser.call(source)
       lines = source.delete_prefix("﻿").split(/\r?\n/)
 
+      unformatted_linenos = Parser.unformatted_linenos(lines, parser.outline)
       formatted = []
       indent_shift_by_lineno = {}
+      indent_shift = 0
       lines.each.with_index(1) do |line, lineno|
         info = parser.outline[lineno]
+        # Unformatted lines move with the directive above them, so that they stay inside its block.
+        next formatted << shifted(line, indent_shift) if unformatted_linenos.include?(lineno)
+
         case info.kind
         when :blank
           formatted << "" unless formatted.empty? || formatted.last.empty?
@@ -67,7 +72,7 @@ module SuperSlim
           formatted << ""
         when :structure
           indent = info.depth * INDENT_WIDTH
-          indent_shift_by_lineno[lineno] = indent - indent_of(line)
+          indent_shift = indent_shift_by_lineno[lineno] = indent - indent_of(line)
           formatted << (" " * indent) + structure(line, info)
         else
           formatted << continuation(line, info, indent_shift_by_lineno.fetch(info.owner, 0))
@@ -94,6 +99,13 @@ module SuperSlim
       content = line.lstrip
       content = content.rstrip unless info.kind == :text || info.text
       (" " * indent) + content
+    end
+
+    def shifted(line, indent_shift)
+      line = expand_tabs(line)
+      return "" if line.strip.empty?
+
+      (" " * [line[/\A */].size + indent_shift, 0].max) + line.lstrip
     end
 
     def with_output_spacing(line, info)

@@ -61,6 +61,40 @@ module SuperSlim
     # What the formatter and the linter need to know about each source line, indexed by line number. A tag's
     # attribute list on one line is [first, last, [[first, last], …]], in columns of that line.
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists)
+    FORMAT_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:format\s+(off|on)\s*\z}
+    # A comment that renders nothing: not `/!` or `/[if IE]`.
+    CODE_COMMENT = %r{\A﻿?\s*/(?![!\[])}
+
+    # The lines after `/ super-slim:format off`, up to `/ super-slim:format on` at its depth or the end of the block
+    # that holds it. A directive deeper than the `off` is a line like the others; blank lines that close the block
+    # are not in it.
+    def self.unformatted_linenos(lines, outline)
+      unformatted_linenos = Set.new
+      return unformatted_linenos if lines.none? { _1.include?("super-slim:format") }
+
+      off_depth = nil
+      blank_linenos = []
+      lines.each.with_index(1) do |line, lineno|
+        info = outline[lineno]
+        if info.kind == :blank
+          blank_linenos << lineno if off_depth
+          next
+        end
+
+        if info.kind == :structure
+          off_depth = nil if off_depth && info.depth < off_depth
+          if (off_depth.nil? || info.depth == off_depth) && (directive = line[FORMAT_DIRECTIVE, 1])
+            off_depth = (directive == "off") ? info.depth : nil
+            blank_linenos.clear
+            next
+          end
+        end
+        unformatted_linenos.merge(blank_linenos) if off_depth
+        blank_linenos.clear
+        unformatted_linenos << lineno if off_depth
+      end
+      unformatted_linenos
+    end
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
