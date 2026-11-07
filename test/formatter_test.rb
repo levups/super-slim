@@ -321,7 +321,7 @@ class FormatterTest < Minitest::Test
 
   def formatter_wrapping_into(wrapped)
     formatter = SuperSlim::Formatter.new(max_line_length: 10)
-    formatter.instance_variable_set(:@line_wrapper, ->(_source) { wrapped })
+    formatter.instance_variable_set(:@line_wrapper, ->(*) { wrapped })
     formatter
   end
 

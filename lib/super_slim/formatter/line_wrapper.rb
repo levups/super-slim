@@ -26,10 +26,12 @@ module SuperSlim
         @attribute_arranger = AttributeArranger.new(tailwind_classes:)
       end
 
-      def call(source)
+      def call(source, parser: nil)
         lines = source.split("\n")
-        parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
-        parser.call(source)
+        unless parser
+          parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
+          parser.call(source)
+        end
         outline = parser.outline
         unformatted_linenos = Parser.unformatted_linenos(lines, outline)
         block_opening_linenos = Formatter.block_opening_linenos(parser)
