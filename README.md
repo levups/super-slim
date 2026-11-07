@@ -140,18 +140,19 @@ format:
 
 The formatter then gives each line one layout, whatever its author chose. Ruby code spread over several lines is
 joined back when it fits. A longer line spreads the arguments of its call, or the elements of its array or hash, one
-per line between brackets that close on a line of their own, each followed by a comma:
+per line, each line but the last ending with a comma:
 
 ```slim
-= render Card.new(
-    title: post.title,
-    body: post.body,
-  )
+= link_to "Read the whole post",
+  post_path(post),
+  class: "btn btn-primary"
 ```
 
-A call whose only argument is a call spreads that one, as `Card.new` above. Arguments go four spaces deep and the
-closing bracket two, two more when the line opens a block. Code spread by hand stays as it is when this layout
-would leave a line longer than the limit, and arguments to `new` go in parentheses.
+Slim, and so Brakeman, reads a line that ends with a comma or a backslash as going on, but not one that ends with an
+opening bracket. A call whose only argument is a call spreads that one: `= render Card.new(title: post.title,`. A
+first argument that would pass the limit goes to the next line, after a backslash. The lines after the first go two
+spaces deep, two more when the line opens a block. Code spread by hand stays as it is when this layout would leave a
+line longer than the limit, unless Slim can't read it, and arguments to `new` go in parentheses.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
@@ -187,6 +188,7 @@ linters, so most will look familiar:
 | ButtonType, InlineStyles | eslint-plugin-react, haml-lint | off |
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
+| SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text that should be translated) | erb_lint | off |
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
@@ -277,6 +279,9 @@ Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- r
 comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
 follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
 the line it is about.
+Slim still can't read such a template, and neither can Brakeman, which parses views with Slim: it reports the
+template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines; turn it off if you
+don't run Brakeman.
 
 ### Tailwind class names
 

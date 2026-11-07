@@ -48,7 +48,9 @@ module SuperSlim
       def layout(lines, info, outline, lineno)
         return lines unless info.kind == :structure
 
-        line = (lines.size > 1) ? joined_code(lines, info) || joined_attributes(lines, info) : lines.first
+        spread = lines.size > 1
+        code = joined_code(lines, info) if spread
+        line = spread ? code || joined_attributes(lines, info) : lines.first
         return lines unless line
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
@@ -57,14 +59,15 @@ module SuperSlim
         return [line] if line.size <= @max_line_length
 
         broken = wrap(line, info, children?(outline, lineno))
-        return ((lines.size > 1) ? lines : broken) if broken == [line]
+        kept = lines if spread && (code.nil? || Parser.slim_continuation?(lines))
+        return kept || broken if broken == [line]
 
         # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
         rejoined = joined_code(broken, info)
         return [rejoined] if rejoined && rejoined.size <= @max_line_length
 
         # A string continued with `\` comes back on one line, longer than the author's.
-        return lines if lines.size > 1 && broken.max_by(&:size).size > lines.max_by(&:size).size
+        return kept if kept && broken.max_by(&:size).size > lines.max_by(&:size).size
 
         broken
       end
@@ -121,10 +124,10 @@ module SuperSlim
         return lines unless code_start && lines.last.size > @max_line_length
 
         last_indent = lines.last[/\A */]
-        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, opens_block:, max_line_length: @max_line_length)
+        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, head: lines.last[0...code_start], opens_block:, max_line_length: @max_line_length)
         return lines unless code_lines
 
-        lines[0...-1] + [lines.last[0...code_start] + code_lines.first, *code_lines.drop(1)]
+        lines[0...-1] + code_lines
       end
 
       # A dynamic tag, `*{tag: name}` or `li: *{tag: name}`, has no name for its attribute list to follow.

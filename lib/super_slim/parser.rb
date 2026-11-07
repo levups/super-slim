@@ -32,6 +32,12 @@ module SuperSlim
     LINE_CONTINUATION = /[,\\]\z/
     BACKSLASH_AT_END = /\\\z/
     OPENING_BRACKET_AT_LINE_END = /[(\[{]\z/
+
+    # Whether Slim, and so Brakeman, reads these lines of code as one: it goes on after a comma or a backslash, not
+    # after an opening bracket.
+    def self.slim_continuation?(lines)
+      lines[0...-1].all? { _1.rstrip.match?(LINE_CONTINUATION) }
+    end
     MAX_NESTING = 500
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/

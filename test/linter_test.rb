@@ -136,6 +136,27 @@ class LinterTest < Minitest::Test
     assert_equal "`raw` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`", offenses[1].message
   end
 
+  def test_slim_syntax
+    linter = SuperSlim::Linter.new("SlimSyntax" => {"enabled" => true})
+    source = <<~SLIM
+      = link_to(
+          post.title,
+          post_path(post),
+        )
+      = render Card.new(post:) # rubocop:disable Some/Cop
+      p = post.title # the title
+      - if post.published? # only then
+        p Published
+      = link_to post.title,
+        post_path(post)
+      = "Post #1"
+    SLIM
+    offenses = linter.call("show.html.slim", source)
+
+    assert_equal ["SlimSyntax:1", "SlimSyntax:5", "SlimSyntax:6", "SlimSyntax:7"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
+    assert_equal "Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own", offenses[1].message
+  end
+
   def test_embedded_engines
     linter = SuperSlim::Linter.new("EmbeddedEngines" => {"enabled" => true, "forbidden_engines" => %w[javascript css]})
 
