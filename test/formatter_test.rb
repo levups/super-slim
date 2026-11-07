@@ -140,6 +140,14 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_moves_an_only_child_onto_its_tag_when_both_fit
+    assert_wraps "tr\n  td.muted = admin.name\n  td Total\n", "tr\n  td.muted\n    = admin.name\n  td\n    | Total\n"
+    assert_wraps "p Hello\ndiv\n", "p\n  | Hello\ndiv\n"
+    untouched = "p\n  | a = b\np\n  | Hello  \np\n  | href=\"x\" text\np\n  | .lead\ntd\n  = a\n  = b\np\n  | text\n    goes on\np\n  / comment\n  | text\n"
+    assert_wraps untouched, untouched
+    assert_wraps "p\n  = a_call_too_long\n", "p\n  = a_call_too_long\n", max_line_length: 15
+  end
+
   def test_nests_inline_tags_one_per_line
     assert_formats "table\n  tr\n    td colspan=8 = t(\".empty\")\n", "table\n  tr: td colspan=8 = t(\".empty\")\n"
     assert_formats ".a\n  .b\n    p = x\n      span\np after\n", "div.a : div.b: p  =  x\n  span\np after\n"

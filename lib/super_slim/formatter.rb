@@ -75,8 +75,12 @@ module SuperSlim
       wrapped = @line_wrapper.call(formatted, parser:)
       return formatted if wrapped == formatted
 
-      # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block.
-      wrapped = layout(wrapped, parsed_template(wrapped).last) if wrapped.match?(CONTROL_RUN)
+      # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block. A wrap Slim can't read is
+      # refused below.
+      if wrapped.match?(CONTROL_RUN)
+        wrapped_parser = parsed_template(wrapped).last
+        wrapped = layout(wrapped, wrapped_parser) if wrapped_parser
+      end
 
       wrapped_ruby = parsed_ruby(compiled_code(parsed_template(wrapped, outline: false).first))
       # Only Prism's tree vouches for a wrap: a compile error can read the same before and after it.
