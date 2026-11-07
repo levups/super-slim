@@ -3,9 +3,9 @@
 module SuperSlim
   class Parser
     # Read by hand, a line at a time: Prism would cost every process that renders templates its load time and memory.
-    # Misread, all rare after a bracket that ends its line or before a comment that ends the code: heredocs, `?(`, `$'`, a regexp after a method name or a
-    # keyword (`when /'/`), `%` glued to a value (`"%d"%[a]`), interpolation in a %-literal and %-literals between
-    # other delimiters (`%|a(|`).
+    # Misread, all rare after a bracket that ends its line or before a comment that ends the code: heredocs, `?(`,
+    # `$'`, a regexp after a method name or a keyword (`when /'/`), `%` glued to a value (`"%d"%[a]`), interpolation
+    # in a %-literal and %-literals between other delimiters (`%|a(|`).
     class RubyBrackets
       PLAIN_RUBY = /[^()\[\]{}"'`#%\/]+/
       QUOTED_TEXT_BY_DELIMITER = %w[" ` /].to_h { |delimiter| [delimiter, /(?:[^\\#{delimiter}#]|\\.|#(?!\{))*/m] }
@@ -18,19 +18,6 @@ module SuperSlim
       # `%w[a) b(]` nests only its own kind of bracket.
       PercentLiteral = Struct.new(:opening, :closing, :depth)
 
-      def initialize(code)
-        @scanner = StringScanner.new(code.dup)
-        # Whether each bracket still open ends its line.
-        @open_brackets = []
-        # The strings, regexps and %-literals the scanner is in, innermost last; an integer is an interpolation, the
-        # number of open brackets once its `#{` is counted.
-        @literals = []
-        read
-      end
-
-      # The byte offset of the comment that ends the code, if one does.
-      attr_reader :trailing_comment_offset
-
       # Where a comment that follows code on its line starts in code, nil when there is none. One alone on a line is
       # left out: a backslash before it carries the code on to that line.
       def self.code_comment_offset(code)
@@ -39,6 +26,19 @@ module SuperSlim
         offset = new(code).trailing_comment_offset or return
         code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
         offset unless code_before.empty? || code_before.end_with?("\n")
+      end
+
+      # The byte offset of the comment that ends the code, if one does.
+      attr_reader :trailing_comment_offset
+
+      def initialize(code)
+        @scanner = StringScanner.new(code.dup)
+        # Whether each bracket still open ends its line.
+        @open_brackets = []
+        # The strings, regexps and %-literals the scanner is in, innermost last; an integer is an interpolation, the
+        # number of open brackets once its `#{` is counted.
+        @literals = []
+        read
       end
 
       def <<(line)

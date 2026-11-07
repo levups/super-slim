@@ -142,7 +142,7 @@ class FormatterTest < Minitest::Test
 
   def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
     assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
-      %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
+      %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n), max_line_length: 40
     assert_wraps %(= render layout: "card",\n    locals: {post:} do\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
@@ -151,10 +151,38 @@ class FormatterTest < Minitest::Test
       %(p class=classes title="A long title" = format_date post.created_at, :long\n)
   end
 
+  def test_respreads_the_output_of_a_tag_after_its_attributes_in_a_layout_slim_cannot_read
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date(post.created_at,\n  :long)\n),
+      %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n), max_line_length: 32
+  end
+
   def test_joins_code_spread_over_lines_when_it_fits
     assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title,\n      post_path(post)\n), max_line_length: 40
     assert_wraps %(= link_to(post.title, post_path(post))\n), %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), max_line_length: 40
     assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title, \\\n  post_path(post)\n), max_line_length: 40
+  end
+
+  def test_joins_the_output_of_a_tag_after_its_attributes_when_it_fits
+    assert_wraps %(p class=classes title="A long title" = format_date post.created_at, :long\n),
+      %(p(\n  class=classes\n  title="A long title"\n) = format_date \\\n  post.created_at,\n  :long\n), max_line_length: 100
+    assert_wraps %(p class=classes title="A long title" = format_date(post.created_at, :long)\n),
+      %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n), max_line_length: 100
+  end
+
+  def test_keeps_code_spread_by_hand_when_joining_it_would_comment_out_the_rest
+    commented = %(= link_to(\n    post.title, # the title\n    post_path(post),\n  )\n)
+
+    assert_equal %(#{commented}= link_to post.title,\n  post_path(post),\n  class: "btn"\n),
+      SuperSlim::Formatter.new(max_line_length: 30).call(%(#{commented}= link_to post.title, post_path(post), class: "btn"\n))
+  end
+
+  def test_spreads_the_last_argument_when_what_closes_it_would_pass_the_limit
+    assert_wraps %(= link_to(post,\n  data: confirmation(post,\n    counts_by_id[post.id]))\n), %(= link_to(post, data: confirmation(post, counts_by_id[post.id]))\n), max_line_length: 49
+  end
+
+  def test_moves_a_block_that_would_pass_the_limit_after_a_backslash
+    assert_wraps %(= form_with model: post,\n    url: posts_path \\\n    do |form_builder, options|\n  = form_builder.text_field :title\n),
+      %(= form_with model: post, url: posts_path do |form_builder, options|\n  = form_builder.text_field :title\n)
   end
 
   def test_respreads_code_spread_by_hand
@@ -183,8 +211,8 @@ class FormatterTest < Minitest::Test
   def test_spreads_an_argument_that_passes_the_limit_one_element_per_line
     expected = %(= render "posts/card",\n  hint: ["Alice wrote this post.",\n    "Bob read it and replied."].join(" ")\n)
 
-    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.", "Bob read it and replied."].join(" ")\n), max_line_length: 40
-    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.",\n  "Bob read it and replied."].join(" ")\n), max_line_length: 40
+    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.", "Bob read it and replied."].join(" ")\n), max_line_length: 41
+    assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.",\n  "Bob read it and replied."].join(" ")\n), max_line_length: 41
   end
 
   def test_spreads_a_nested_array_spread_by_hand_one_element_per_line

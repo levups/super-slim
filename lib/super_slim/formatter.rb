@@ -39,7 +39,7 @@ module SuperSlim
     # comment, which `do` would land in.
     def self.with_do(content)
       code = content[CODE_LINE, 1]
-      return content unless code && !code.include?("#") && !code.end_with?("{", "|", ",", "\\", ";", "&&", "||")
+      return content if code.nil? || code.include?("#") || code.end_with?("{", "|", ",", "\\", ";", "&&", "||")
       return content if code.match?(Compiler::BLOCK_SELF_OPENING) || code.match?(LOOP)
 
       "#{content} do"
