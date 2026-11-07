@@ -23,6 +23,7 @@ module SuperSlim
     CONTROL_CODE = /\A\s*-\s*(\S.*)/
     # The threshold of the ConsecutiveControlStatements lint rule, plus one.
     RUBY_BLOCK_MIN_LINES = 3
+    SKIPPED_KINDS = %i[blank continuation].freeze
     RUBY_BLOCK = /\A\s*ruby:\s*\z/
     CONTROL_RUN = /^( *)- .*\n\1- .*\n\1- /
     # `while x do` is valid Ruby that nobody writes.
@@ -227,6 +228,7 @@ module SuperSlim
       # `format off` keeps its lines as written.
       code_units.reject! { |first_lineno, last_lineno| (first_lineno..last_lineno).any? { unformatted_linenos.include?(_1) } }
       runs = code_units.sort_by!(&:first).chunk_while { |unit, next_unit| next_unit[0] == unit[1] + 1 && next_unit[2] == unit[2] }
+      flat_control_linenos = parser.line_by_node.filter_map { |node, lineno| lineno if node.is_a?(AST::Control) && AST.empty?(node.children) }.to_set
       code_lines_by_lineno = {}
       rewritten_linenos = Set.new
       runs.each do |run|
@@ -241,12 +243,26 @@ module SuperSlim
           ruby_block = code.size >= RUBY_BLOCK_MIN_LINES
           layout_changes = ruby_block || units.any? { _1[0] != _1[1] }
           next unless parsable && layout_changes
+          # `-` lines the run can't take, a comment or code going on below, still count for ConsecutiveControlStatements.
+          next if !ruby_block && code.size + flat_controls_beside(units, outline, flat_control_linenos) >= RUBY_BLOCK_MIN_LINES
 
           code_lines_by_lineno[units.first[0]] = ruby_block ? ["ruby:", *code.map { (" " * INDENT_WIDTH) + _1 }] : code.map { "- #{_1}" }
           rewritten_linenos.merge((units.first[0] + 1)..units.last[1])
         end
       end
       [code_lines_by_lineno, rewritten_linenos]
+    end
+
+    # The `-` lines with no children right before and after the units, at their depth, blank lines aside: the lint
+    # counts them in the same run.
+    def flat_controls_beside(units, outline, flat_control_linenos)
+      depth = units.first[2]
+      [(units.first[0] - 1).downto(1), ((units.last[1] + 1)...outline.size).each].sum do |linenos|
+        linenos.lazy
+          .reject { SKIPPED_KINDS.include?(outline[_1].kind) }
+          .take_while { outline[_1].kind == :structure && outline[_1].depth == depth && flat_control_linenos.include?(_1) }
+          .count
+      end
     end
 
     def goes_on?(outline, lineno)
@@ -258,8 +274,11 @@ module SuperSlim
       line[CONTROL_CODE, 1]&.rstrip
     end
 
+    # A comment would end up after code on a `-` line, which Slim can't read; `#{}` in a string is no comment.
     def movable_code?(code)
-      !code.include?("#") && !code.match?(Compiler::BLOCK_SELF_OPENING) && !code.match?(END_KEYWORD)
+      return false if code.match?(Compiler::BLOCK_SELF_OPENING) || code.match?(END_KEYWORD)
+
+      !code.include?("#") || Prism.parse(code).comments.empty?
     end
 
     # `tr: td = total` nests each tag in the one before: one per line, whatever the line holds. A line whose text goes

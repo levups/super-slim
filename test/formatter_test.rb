@@ -187,6 +187,13 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_ruby_runs_never_leave_lines_the_lint_merges
+    assert_formats "ruby:\n  name = plan.name\n  page_title \"\#{name}\"\n  breadcrumb :edit\n",
+      "ruby:\n  name = plan.name\n- page_title \"\#{name}\"\n- breadcrumb :edit\n"
+    untouched = "ruby:\n  a = 1\n- b = 2 # two\n- c = 3\n"
+    assert_formats untouched, untouched
+  end
+
   def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
     assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n), max_line_length: 40
