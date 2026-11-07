@@ -157,6 +157,10 @@ first argument that would pass the limit goes to the next line, after a backslas
 spaces deep, two more when the line opens a block. Code spread by hand stays as it is when this layout would leave a
 line longer than the limit, unless Slim can't read it, and arguments to `new` go in parentheses.
 
+A tag whose only child is one `=` output or one line of `|` text takes it on its own line when both fit:
+`td = total`, `p Hello`. Text that starts with anything but a letter, a digit or `&`, or whose first word is followed
+by `=`, stays below, where it can't read as an attribute.
+
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
 named twice goes, and the other attributes follow one order: `id`, `class`, what the element is (`type`, `name`,
