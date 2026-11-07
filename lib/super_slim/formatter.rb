@@ -12,6 +12,9 @@ module SuperSlim
   class Formatter
     INDENT_WIDTH = 2
     CONTROL = /\A-\s*/
+    NEGATED_IF = /\A- if !(?!=)\s*(\S.*)\z/
+    COMPOUND_CONDITION = %r{[=<>+*/%&|^~#]|\?\s|\s-\s|:\s|\b(?:and|or|not|then|do)\b}
+    ELSE_LINE = /\A\s*-\s*(?:else|elsif)\b/
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
     REDUNDANT_DIV = /\Adiv(?=[.#][\p{Word}-])/
@@ -153,6 +156,7 @@ module SuperSlim
             content = structure(line, info)
             # Code that goes on over more lines takes its `do` once the line wrapper joins it.
             content = Formatter.with_do(content) if block_opening_linenos.include?(lineno) && !info.text && next_info&.kind != :continuation
+            content = unless_for_negated_if(content, lines, outline, lineno) if content.start_with?("- if !")
             formatted << (" " * indent) + content
           end
           previous_structure_lineno = lineno
@@ -164,6 +168,30 @@ module SuperSlim
       end
       formatted.pop while formatted.last&.empty?
       formatted.empty? ? "" : "#{formatted.join("\n")}\n"
+    end
+
+    # `- if !condition` reads as `- unless condition` when the `!` covers the whole condition and no `else` follows,
+    # as RuboCop's Style/NegatedIf asks. A condition holding an operator, a ternary or a keyword keeps its `!`:
+    # `!a == b` compares `!a`.
+    def unless_for_negated_if(content, lines, outline, lineno)
+      condition = content[NEGATED_IF, 1]
+      return content if condition.nil? || condition.start_with?("(", "!") || condition.match?(COMPOUND_CONDITION)
+      return content if else_follows?(lines, outline, lineno)
+
+      "- unless #{condition}"
+    end
+
+    def else_follows?(lines, outline, lineno)
+      depth = outline[lineno].depth
+      ((lineno + 1)...outline.size).each do |next_lineno|
+        info = outline[next_lineno]
+        next unless info.kind == :structure && info.depth <= depth
+        # A comment between the `if` and its `else` renders nothing.
+        next if lines[next_lineno - 1].match?(Parser::CODE_COMMENT)
+
+        return info.depth == depth && lines[next_lineno - 1].match?(ELSE_LINE)
+      end
+      false
     end
 
     def structure(line, info)
@@ -343,7 +371,12 @@ module SuperSlim
         value = pending_values.pop
         case value
         when Prism::Node
-          return false unless value.instance_of?(other_value.class) && node_comparator(value).call(value, other_value, pending_values)
+          if value.instance_of?(other_value.class)
+            return false unless node_comparator(value).call(value, other_value, pending_values)
+          else
+            pairs = negated_if_pairs(value, other_value) or return false
+            pending_values.concat(pairs)
+          end
         when Array
           return false unless other_value.is_a?(Array) && value.size == other_value.size
 
@@ -357,6 +390,21 @@ module SuperSlim
         end
       end
       true
+    end
+
+    # `if !x` and `unless x` with no else run the same code, as RuboCop's Style/NegatedIf holds: the condition and the
+    # body still have to match. Only an object that redefines `!` tells them apart. Prism 0.19 names the else
+    # branch `consequent`.
+    def negated_if_pairs(node, other_node)
+      if_node, unless_node = node.is_a?(Prism::IfNode) ? [node, other_node] : [other_node, node]
+      return unless if_node.is_a?(Prism::IfNode) && unless_node.is_a?(Prism::UnlessNode)
+
+      negation = if_node.predicate
+      return unless negation.is_a?(Prism::CallNode) && negation.name == :! && negation.message == "!" && negation.arguments.nil?
+      return if if_node.respond_to?(:subsequent) ? if_node.subsequent : if_node.consequent
+      return if unless_node.respond_to?(:else_clause) ? unless_node.else_clause : unless_node.consequent
+
+      [negation.receiver, unless_node.predicate, if_node.statements, unless_node.statements]
     end
 
     def node_comparator(node)
