@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-11-07
+
+One layout for inline tags, short children, `ruby:` blocks and negated conditions.
+
+**New**
+- `super-slim format` puts tags nested inline after a colon (`tr: td = total`) one per line, their children going as
+  many levels deeper. A line whose text goes on below keeps its inline tags.
+- `-` lines and `ruby:` blocks next to each other at one depth make one run of code: three lines or more go in a
+  `ruby:` block, as the ConsecutiveControlStatements rule asks, and fewer on `-` lines. Only lines of Ruby complete on
+  their own move.
+- With `max_line_length`, a tag whose only child is one `=` output or one line of `|` text takes it on its own line
+  when both fit: `td = total`, `p Hello`. Text that could read as an attribute stays below.
+- `- if !condition` becomes `- unless condition` when the `!` covers the whole condition and no `else` follows. The
+  formatter's check takes the two for the same code.
+- Lines under `/ super-slim:format off` stay out of these rules.
+
 ## [3.3.0] — 2026-11-07
 
 Formatted templates that Slim and Brakeman read, lines and rules you can opt out of, and a formatter about 30% faster.
@@ -222,7 +238,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/levups/super-slim/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/levups/super-slim/compare/v3.2.2...v3.3.0
 [3.2.2]: https://github.com/levups/super-slim/compare/v3.2.1...v3.2.2
 [3.2.1]: https://github.com/levups/super-slim/compare/v3.2.0...v3.2.1
