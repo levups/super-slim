@@ -27,6 +27,23 @@ module SuperSlim
       new(**).call(source)
     end
 
+    # Slim's own test for a block: children that render something, a comment alone opens none.
+    def self.block_opening_linenos(parser)
+      parser.line_by_node.filter_map do |node, lineno|
+        lineno if (node.is_a?(AST::Output) || node.is_a?(AST::Control)) && !AST.empty?(node.children)
+      end.to_set
+    end
+
+    # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a
+    # comment, which `do` would land in.
+    def self.with_do(content)
+      code = content[CODE_LINE, 1]
+      return content unless code && !code.include?("#") && !code.end_with?("{", "|", ",", "\\", ";", "&&", "||")
+      return content if code.match?(Compiler::BLOCK_SELF_OPENING) || code.match?(LOOP)
+
+      "#{content} do"
+    end
+
     def initialize(tailwind_classes: SuperSlim.tailwind_classes, max_line_length: nil, attribute_delimiters: "()")
       @tailwind_classes = tailwind_classes
       @line_wrapper = LineWrapper.new(max_line_length, tailwind_classes:, attribute_delimiters:) if max_line_length
@@ -41,9 +58,6 @@ module SuperSlim
       return formatted unless @line_wrapper
 
       wrapped = @line_wrapper.call(formatted)
-      # Code the wrapper joins onto one line can then take its `do`, which may push it past the limit.
-      with_do = layout(wrapped)
-      wrapped = @line_wrapper.call(with_do) unless with_do == wrapped
       return formatted if wrapped == formatted
 
       wrapped_ruby = compiled_ruby(wrapped)
@@ -67,10 +81,7 @@ module SuperSlim
       first_structure_lineno = (1...outline.size).find { outline[_1].kind == :structure }
       # A partial's signature reads like a method's: alone at the top, set apart from the body.
       locals_header_lineno = first_structure_lineno if first_structure_lineno && lines[first_structure_lineno - 1].match?(LOCALS_HEADER)
-      # Slim's own test for a block: children that render something, a comment alone opens none.
-      block_opening_linenos = parser.line_by_node.filter_map do |node, lineno|
-        lineno if (node.is_a?(AST::Output) || node.is_a?(AST::Control)) && !AST.empty?(node.children)
-      end.to_set
+      block_opening_linenos = Formatter.block_opening_linenos(parser)
       formatted = []
       indent_shift_by_lineno = {}
       previous_structure_lineno = nil
@@ -92,7 +103,8 @@ module SuperSlim
           indent = info.depth * INDENT_WIDTH
           indent_shift_by_lineno[lineno] = indent - indent_of(line)
           content = structure(line, info)
-          content = "#{content} do" if block_opening_linenos.include?(lineno) && implicit_do?(content, info, outline[lineno + 1])
+          # Code that goes on over more lines takes its `do` once the line wrapper joins it.
+          content = Formatter.with_do(content) if block_opening_linenos.include?(lineno) && !info.text && outline[lineno + 1]&.kind != :continuation
           formatted << (" " * indent) + content
           previous_structure_lineno = lineno
           blank_line_pending = false
@@ -114,16 +126,6 @@ module SuperSlim
       when REDUNDANT_DIV then $'
       else content
       end
-    end
-
-    # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a
-    # comment, which `do` would land in.
-    def implicit_do?(content, info, next_info)
-      code = content[CODE_LINE, 1]
-      return false unless code && !info.text && next_info&.kind != :continuation
-
-      !code.include?("#") && !code.end_with?("{", "|", ",", "\\", ";", "&&", "||") &&
-        !code.match?(Compiler::BLOCK_SELF_OPENING) && !code.match?(LOOP)
     end
 
     def continuation(line, info, indent_shift)
