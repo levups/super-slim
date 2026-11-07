@@ -34,16 +34,19 @@ module SuperSlim
         wrapped = []
         lineno = 1
         while lineno <= lines.size
-          info = outline[lineno]
           last_lineno = lineno
-          last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
-          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info))
+          last_lineno += 1 while continues?(outline[last_lineno + 1], lineno)
+          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], outline[lineno]))
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
       end
 
       private
+
+      def continues?(info, lineno)
+        info&.owner == lineno && CONTINUATION_KINDS.include?(info.kind)
+      end
 
       def layout(lines, info)
         return lines unless info.kind == :structure

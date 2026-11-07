@@ -95,7 +95,7 @@ module SuperSlim
           return node if items && items.size > 1
 
           # `[a, b].join(" ")` spreads its array.
-          (spreadable(items.first) if items) || (spreadable(node.receiver) if node.receiver.is_a?(Prism::ArrayNode) || node.receiver.is_a?(Prism::HashNode))
+          (items && spreadable(items.first)) || (spreadable(node.receiver) if node.receiver in Prism::ArrayNode | Prism::HashNode)
         when Prism::ArrayNode, Prism::HashNode
           # `%w[a b]` takes no commas.
           node if ["[", "{"].include?(node.opening) && node.elements.size > 1
