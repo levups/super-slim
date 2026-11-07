@@ -85,6 +85,9 @@ jobs:
     name: Corpus of public apps
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     timeout-minutes: 15
     steps:
       - name: Check out
@@ -118,11 +121,19 @@ jobs:
       # Compiles, formats and lints every template without rendering it: rendering would run their Ruby.
       - name: Check the templates with SuperSlim
         run: bundle exec rake corpus:check
+      # A pull request labeled "formatting change" means to format templates differently: the diff then lists them.
+      # The label is read when the job runs, so labeling and re-running the failed job is enough.
       - name: Compare the corpus with the base branch
         if: github.event_name == 'pull_request'
-        run: bundle exec rake corpus:diff BASE="origin/$BASE_BRANCH"
+        run: |
+          if gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name' | grep -qx "formatting change"; then
+            export FORMATTING_CHANGES=1
+          fi
+          bundle exec rake corpus:diff BASE="origin/$BASE_BRANCH"
         env:
           BASE_BRANCH: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
 
   docs:
     name: Highlighted docs

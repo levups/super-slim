@@ -94,7 +94,8 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 
 `super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
 where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
-newline. This template:
+newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
+body, and Ruby code with children ends with the `do` that Slim would add. This template:
 
 ```slim
 div.card
@@ -389,8 +390,9 @@ On top of that:
 Real templates come from 30 open-source apps, pinned to a commit in `corpus/manifest.yml`. `rake corpus:fetch`
 downloads only their `.slim` files, into `corpus/cache` (ignored by Git). `rake corpus:check` compiles, formats
 and lints each of them and compares the result with Slim. `rake corpus:diff BASE=rev` shows what a change does to
-them: compiled Ruby, formatting and lint offenses. These templates are never rendered, because rendering would run
-their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
+them: compiled Ruby, formatting and lint offenses. It fails when formatting changes, unless `FORMATTING_CHANGES=1`
+says the change means to; in CI, a pull request says so with the `formatting change` label. These templates are
+never rendered, because rendering would run their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
 
 ## Development
 
