@@ -31,14 +31,16 @@ module SuperSlim
         parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
         parser.call(source)
         outline = parser.outline
-        block_opening_linenos = Formatter.block_opening_linenos(parser)
+        # Only code joined from more lines needs to know: most templates have none.
+        block_opening_linenos = nil
+        opens_block_at = ->(lineno) { (block_opening_linenos ||= Formatter.block_opening_linenos(parser)).include?(lineno) }
         wrapped = []
         lineno = 1
         while lineno <= lines.size
           info = outline[lineno]
           last_lineno = lineno
           last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
-          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info, outline, lineno, block_opening_linenos))
+          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info, outline, lineno, opens_block_at))
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
@@ -46,13 +48,13 @@ module SuperSlim
 
       private
 
-      def layout(lines, info, outline, lineno, block_opening_linenos)
+      def layout(lines, info, outline, lineno, opens_block_at)
         return lines unless info.kind == :structure
 
         line = (lines.size > 1) ? joined_code(lines, info) || joined_attributes(lines, info) : lines.first
         return lines unless line
 
-        line = line[/\A */] + Formatter.with_do(line.lstrip) if lines.size > 1 && block_opening_linenos.include?(lineno)
+        line = line[/\A */] + Formatter.with_do(line.lstrip) if lines.size > 1 && opens_block_at.call(lineno)
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
         info = arranged_info || info

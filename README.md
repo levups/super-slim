@@ -95,7 +95,9 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 `super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
 where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
 newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
-body, and Ruby code with children ends with the `do` that Slim would add. This template:
+body, and Ruby code with children ends with the `do` that Slim would add. Tags nested inline (`tr: td`) go one per
+line, three `-` lines in a row or more make a `ruby:` block, and a `ruby:` block of one or two lines turns back into
+`-` lines. This template:
 
 ```slim
 div.card

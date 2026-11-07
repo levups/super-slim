@@ -46,7 +46,7 @@ class FormatterTest < Minitest::Test
 
   def test_wraps_attributes_one_per_line_inside_delimiters
     assert_wraps %(a.btn(\n  href="/posts/1"\n  data-turbo="false"\n) Edit\n), %(a.btn href="/posts/1" data-turbo="false" Edit\n)
-    assert_wraps %(li: a(\n  href=url\n  disabled\n) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
+    assert_wraps %(li\n  a(\n    href=url\n    disabled\n  ) = title\n), %(li: a{href=url disabled} = title\n), max_line_length: 20
   end
 
   def test_wraps_attributes_inside_the_configured_delimiters
@@ -104,6 +104,21 @@ class FormatterTest < Minitest::Test
     assert_formats "= link_to root_path do\n  = fa_icon \"bell\"\n- posts.each do\n  p\n", "= link_to root_path\n  = fa_icon \"bell\"\n- posts.each\n\n  p\n"
     assert_wraps "= foo(a, b) do\n  p\n", "= foo(a,\n  b)\n  p\n"
     untouched = "= f.label :name\n  / a comment opens no block\n- if x\n  p\n- while false\n  p\n= render Card.new # card\n  p\n= form_with(model: x) { |form|\n  = form.text\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_nests_inline_tags_one_per_line
+    assert_formats "table\n  tr\n    td colspan=8 = t(\".empty\")\n", "table\n  tr: td colspan=8 = t(\".empty\")\n"
+    assert_formats ".a\n  .b\n    p = x\n      span\np after\n", "div.a : div.b: p  =  x\n  span\np after\n"
+    assert_formats "td\n  a(href=\"/\"\n    class=\"x\") Link\n", "td: a(href=\"/\"\n  class=\"x\") Link\n"
+    untouched = "p: b text\n  continued text\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_three_ruby_lines_or_more_make_a_ruby_block_and_fewer_do_not
+    assert_formats "div\n  ruby:\n    a = 1\n    b = 2\n    c = 3\n\n  p = a\n", "div\n  - a = 1\n  - b = 2\n  - c = 3\n\n  p = a\n"
+    assert_formats "- page_title \"Edit\"\n- breadcrumb :form, @contract\np\n", "ruby:\n  page_title \"Edit\"\n  breadcrumb :form, @contract\np\n"
+    untouched = "- a = 1\n- b = 2\n- if a\n  p\n- c = 3\nruby:\n  x = [1,\n    2]\n- d = 1 # one\n- e = 2\n- f = 3\n"
     assert_formats untouched, untouched
   end
 

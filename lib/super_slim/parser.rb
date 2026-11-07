@@ -53,8 +53,9 @@ module SuperSlim
     CODE_END_BY_CLOSING = [nil, *DELIMITERS.values].to_h { |closing| [closing, /[\s#{Regexp.escape(closing.to_s)}]/] }.freeze
 
     # What the formatter and the linter need to know about each source line, indexed by line number. A tag's
-    # attribute list on one line is [first, last, [[first, last], …]], in columns of that line.
-    LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists)
+    # attribute list on one line is [first, last, [[first, last], …]], in columns of that line, and so is a tag nested
+    # inline after `:`, as [column of the `:`, column of the nested tag].
+    LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists, :nested_tag_columns)
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
@@ -466,6 +467,7 @@ module SuperSlim
       # Not `column`, which counts the spaces stripped from the end of a continuation line.
       output_column = @scanner_column + scanner_charpos if @outline
       if @scanner.skip(NESTED_TAG)
+        (@outline[@lineno].nested_tag_columns ||= []) << [output_column, @scanner_column + scanner_charpos] if @outline
         return [[parse_embedded(@scanner[1], @scanner[2], @scanner.rest)]] if @scanner.skip(ENGINE)
 
         (tag = scan_tag) || syntax_error!("Expected tag")
