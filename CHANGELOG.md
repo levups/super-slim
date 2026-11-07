@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [3.4.1] — 2026-11-07
+
+One fix: `super-slim format` no longer writes `-` lines that `super-slim lint` flags.
+
+**Fixed**
+- `super-slim format` no longer turns a one- or two-line `ruby:` block into `-` lines that make three in a row with
+  the ones around it, which ConsecutiveControlStatements then flagged and a format-then-lint commit hook refused.
+  `#{}` in a string no longer keeps a line out of a `ruby:` block.
+
 ## [3.4.0] — 2026-11-07
 
 One layout for inline tags, short children, `ruby:` blocks and negated conditions.
@@ -238,7 +247,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.4.1...HEAD
+[3.4.1]: https://github.com/levups/super-slim/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/levups/super-slim/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/levups/super-slim/compare/v3.2.2...v3.3.0
 [3.2.2]: https://github.com/levups/super-slim/compare/v3.2.1...v3.2.2
