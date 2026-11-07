@@ -32,12 +32,6 @@ module SuperSlim
     LINE_CONTINUATION = /[,\\]\z/
     BACKSLASH_AT_END = /\\\z/
     OPENING_BRACKET_AT_LINE_END = /[(\[{]\z/
-
-    # Whether Slim, and so Brakeman, reads these lines of code as one: it goes on after a comma or a backslash, not
-    # after an opening bracket.
-    def self.slim_continuation?(lines)
-      lines[0...-1].all? { _1.rstrip.match?(LINE_CONTINUATION) }
-    end
     MAX_NESTING = 500
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
@@ -64,6 +58,17 @@ module SuperSlim
     FORMAT_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:format\s+(off|on)\s*\z}
     # A comment that renders nothing: not `/!` or `/[if IE]`.
     CODE_COMMENT = %r{\A﻿?\s*/(?![!\[])}
+
+    # A string separator splits 6x faster than the regexp, which only templates with \r need.
+    def self.split_lines(source)
+      source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
+    end
+
+    # Whether Slim, and so Brakeman, reads these lines of code as one: it goes on after a comma or a backslash, not
+    # after an opening bracket.
+    def self.slim_continuation?(lines)
+      lines[0...-1].all? { _1.rstrip.match?(LINE_CONTINUATION) }
+    end
 
     # The lines after `/ super-slim:format off`, up to `/ super-slim:format on` at its depth or the end of the block
     # that holds it. A directive deeper than the `off` is a line like the others; blank lines that close the block
@@ -96,18 +101,14 @@ module SuperSlim
       unformatted_linenos
     end
 
+    attr_reader :outline, :line_by_node
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
-    attr_reader :outline, :line_by_node, :ruby_ranges
+    attr_reader :ruby_ranges
 
     def initialize(file: nil, outline: false, tailwind_classes: SuperSlim.tailwind_classes)
       @file = file
       @attribute_shortcut = tailwind_classes ? Shortcuts::TAILWIND_ATTRIBUTE_PATTERN : Shortcuts::ATTRIBUTE_PATTERN
       @record_outline = outline
-    end
-
-    # A string separator splits 6x faster than the regexp, which only templates with \r need.
-    def self.split_lines(source)
-      source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
     end
 
     def call(source)
@@ -574,15 +575,13 @@ module SuperSlim
         end
         break unless closing
 
-        if @scanner.skip(ATTRIBUTE_LIST_END_BY_CLOSING[closing])
-          break
-        else
-          @scanner.skip(WHITESPACE)
-          syntax_error!("Expected attribute") unless @scanner.eos?
-          @stacks.last << NEWLINE
-          syntax_error!("Expected closing delimiter #{closing}") if @lines.empty?
-          next_line
-        end
+        break if @scanner.skip(ATTRIBUTE_LIST_END_BY_CLOSING[closing])
+
+        @scanner.skip(WHITESPACE)
+        syntax_error!("Expected attribute") unless @scanner.eos?
+        @stacks.last << NEWLINE
+        syntax_error!("Expected closing delimiter #{closing}") if @lines.empty?
+        next_line
       end
       if outline && lineno == @lineno && !spans.empty?
         list_first = spans.first.first unless closing
