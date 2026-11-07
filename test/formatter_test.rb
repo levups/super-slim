@@ -148,6 +148,12 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_keeps_the_layout_when_a_wrap_slim_cannot_read_holds_three_ruby_lines
+    formatter = formatter_wrapping_into("- a = 1\n- b = 2\n- c = 3\n  p\n p\n")
+
+    assert_equal "p\n", formatter.call("p\n")
+  end
+
   def test_format_off_keeps_inline_tags_and_ruby_lines_as_written
     untouched = "table\n  / super-slim:format off\n  tr: td x\n  - a = 1\n  - b = 2\n  - c = 3\n  / super-slim:format on\n  tr\n    td y\n"
     assert_formats untouched, untouched
