@@ -537,6 +537,30 @@ module SuperSlim
         end
       end
 
+      # Brakeman parses views with Slim, which refuses these lines: it reports the template and checks nothing in it.
+      class SlimSyntax < Rule
+        MESSAGE = "Slim, and so Brakeman, cannot read"
+
+        def offenses(document, _source)
+          document.enum_for(:each_node).filter_map do |node, ancestors|
+            next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
+            next unless (reason = reason_of(node.code))
+
+            offense(document, line_near(document, node, ancestors), "#{MESSAGE} #{reason}")
+          end
+        end
+
+        private
+
+        def reason_of(code)
+          if !Parser.slim_continuation?(code.split("\n"))
+            "code continued after an opening bracket: end each line but the last with a comma"
+          elsif Parser::RubyBrackets.code_comment_offset(code)
+            "a comment after code: move it to a line of its own"
+          end
+        end
+      end
+
       # Ruby that a plainer line of Slim says better, after haml-lint.
 
       class UnnecessaryInterpolation < Rule
