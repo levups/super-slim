@@ -137,15 +137,15 @@ module SuperSlim
         return compile_children(output.children)
       end
 
-      result = new_variable
-      emit_code("#{result} = #{code}")
+      returned_value = new_variable
+      emit_code("#{returned_value} = #{code}")
       if @rails
         compile_children(output.children)
       else
         capture_into(new_variable) { compile_children(output.children) }
       end
       emit_code("end")
-      emit_output(result, output.escape)
+      emit_output(returned_value, output.escape)
     end
 
     def with_do(code, children)
@@ -248,9 +248,9 @@ module SuperSlim
     # separator, so nothing is joined at render time.
     def compile_class_attribute(values)
       values = values.reject { |parts| parts.all? { |kind, value| kind == :static && value.empty? } }
-      if values.empty?
-        nil
-      elsif literal_text?(values.first)
+      return if values.empty?
+
+      if literal_text?(values.first)
         emit_static(' class="')
         values.each_with_index { |parts, index| emit_class_value(parts, separator: index > 0) }
         emit_static('"')
@@ -377,8 +377,7 @@ module SuperSlim
 
     def compile_embedded(embedded)
       case embedded.engine
-      when "ruby"
-        compile_ruby(embedded.children)
+      when "ruby" then compile_ruby(embedded.children)
       when "javascript" then compile_tag(Tag.new("script", embedded.attributes, [TextBlock.new(embedded.children)]))
       when "css" then compile_tag(Tag.new("style", embedded.attributes, embedded.children))
       when "markdown" then compile_markdown(embedded.children)

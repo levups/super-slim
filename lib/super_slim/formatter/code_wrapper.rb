@@ -124,7 +124,7 @@ module SuperSlim
           backslash = head.match?(Parser::OPENING_BRACKET_AT_LINE_END) ? "\\" : " \\"
           first_lines = ["#{head.rstrip}#{backslash}", *item_lines(items.first, item_indent, item_indent, suffixes.first)]
         end
-        *lines, last_line = first_lines + items.drop(1).zip(suffixes.drop(1)).flat_map { |item, suffix| item_lines(item, item_indent, item_indent, suffix) }
+        *lines, last_line = first_lines + items.zip(suffixes).drop(1).flat_map { |item, suffix| item_lines(item, item_indent, item_indent, suffix) }
         lines + closing_lines(last_line, tail, item_indent)
       end
 
