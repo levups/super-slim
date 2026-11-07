@@ -46,6 +46,13 @@ module SuperSlim
         visits
       end
 
+      def self.children_of(node)
+        case node
+        when AST::Tag then node.content
+        when AST::Control, AST::Output, AST::TextBlock, AST::Comment, AST::InlineHtml, AST::Embedded then node.children
+        end
+      end
+
       def partial?
         File.basename(path.to_s).start_with?("_")
       end
@@ -60,13 +67,6 @@ module SuperSlim
 
       def each_node(&) = visits.each(&)
       def each_tag(&) = tag_visits.each(&)
-
-      def self.children_of(node)
-        case node
-        when AST::Tag then node.content
-        when AST::Control, AST::Output, AST::TextBlock, AST::Comment, AST::InlineHtml, AST::Embedded then node.children
-        end
-      end
     end
 
     CONFIG_FILE = ".super-slim.yml"

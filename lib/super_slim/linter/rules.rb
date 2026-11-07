@@ -13,12 +13,11 @@ module SuperSlim
 
       class Rule
         DEFAULTS = {enabled: true}.freeze
+        GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH
 
         def self.rule_name
           @rule_name ||= name.split("::").last
         end
-
-        GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH
 
         def initialize(options)
           @options = options
@@ -218,11 +217,11 @@ module SuperSlim
           sibling_lists = [document.nodes, *document.visits.filter_map { |node,| Document.children_of(node) }]
           sibling_lists.select! { |siblings| siblings.count { flat_control?(_1) } > options[:max] }
           sibling_lists.flat_map do |siblings|
-            siblings.chunk_while { |control, following| flat_control?(control) && flat_control?(following) }
-              .filter_map do
-                next unless _1.size > options[:max] && flat_control?(_1.first)
+            siblings.chunk_while { |node, following| flat_control?(node) && flat_control?(following) }
+              .filter_map do |run|
+                next unless run.size > options[:max] && flat_control?(run.first)
 
-                offense(document, document.line_of(_1.first), "Merge these #{_1.size} lines of Ruby into a `ruby:` block")
+                offense(document, document.line_of(run.first), "Merge these #{run.size} lines of Ruby into a `ruby:` block")
               end
           end
         end
@@ -280,7 +279,7 @@ module SuperSlim
       class DuplicateId < Rule
         def offenses(document, _source)
           branch_by_id = {}
-          enum_for(:each_tag, document).filter_map do |tag, ancestors|
+          enum_for(:each_tag, document).flat_map do |tag, ancestors|
             branch = ancestors.control
             literal_attributes(tag, "id").filter_map do |attribute|
               id = literal_value(attribute)
@@ -291,7 +290,7 @@ module SuperSlim
                 nil
               end
             end
-          end.flatten
+          end
         end
       end
 
