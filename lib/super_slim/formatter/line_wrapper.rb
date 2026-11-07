@@ -32,6 +32,7 @@ module SuperSlim
         parser.call(source)
         outline = parser.outline
         unformatted_linenos = Parser.unformatted_linenos(lines, outline)
+        block_opening_linenos = Formatter.block_opening_linenos(parser)
         wrapped = []
         lineno = 1
         while lineno <= lines.size
@@ -39,7 +40,7 @@ module SuperSlim
           last_lineno = lineno
           last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
           structure_lines = lines[(lineno - 1)...last_lineno]
-          wrapped.concat(unformatted_linenos.include?(lineno) ? structure_lines : layout(structure_lines, info, outline, lineno))
+          wrapped.concat(unformatted_linenos.include?(lineno) ? structure_lines : layout(structure_lines, info, outline, lineno, block_opening_linenos))
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
@@ -47,13 +48,15 @@ module SuperSlim
 
       private
 
-      def layout(lines, info, outline, lineno)
+      def layout(lines, info, outline, lineno, block_opening_linenos)
         return lines unless info.kind == :structure
 
         spread = lines.size > 1
         code = joined_code(lines, info) if spread
         line = spread ? code || joined_attributes(lines, info) : lines.first
         return lines unless line
+
+        line = line[/\A */] + Formatter.with_do(line.lstrip) if spread && block_opening_linenos.include?(lineno)
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
         info = arranged_info || info
