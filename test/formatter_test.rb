@@ -167,6 +167,19 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_negated_if_without_else_reads_as_unless
+    assert_formats "div\n  - unless @product.commercialized?\n    p Soon\n", "div\n  - if !@product.commercialized?\n    p Soon\n"
+    untouched = "- if !x\n  p a\n- else\n  p b\n- if !a && b\n  p\n- if !a == b\n  p\n- if !(a || b)\n  p\n- if !!x\n  p\n"
+    assert_formats untouched, untouched
+  end
+
+  def test_the_check_takes_a_negated_if_for_the_unless_it_reads_as
+    assert same_ruby?("- if !x\n  p\n", "- unless x\n  p\n")
+    refute same_ruby?("- if !x == y\n  p\n", "- unless x == y\n  p\n")
+    refute same_ruby?("- if !x\n  p\n- else\n  b\n", "- unless x\n  p\n- else\n  b\n")
+    refute same_ruby?("- if !x\n  p\n", "- unless y\n  p\n")
+  end
+
   def test_three_ruby_lines_or_more_make_a_ruby_block_and_fewer_do_not
     assert_formats "div\n  ruby:\n    a = 1\n    b = 2\n    c = 3\n\n  p = a\n", "div\n  - a = 1\n  - b = 2\n  - c = 3\n\n  p = a\n"
     assert_formats "- page_title \"Edit\"\n- breadcrumb :form, @contract\np\n", "ruby:\n  page_title \"Edit\"\n  breadcrumb :form, @contract\np\n"
@@ -351,6 +364,12 @@ class FormatterTest < Minitest::Test
   def assert_formats(expected, source)
     assert_equal expected, SuperSlim::Formatter.call(source)
     assert_equal expected, SuperSlim::Formatter.call(expected)
+  end
+
+  def same_ruby?(template, other_template)
+    formatter = SuperSlim::Formatter.new
+    rubies = [template, other_template].map { formatter.send(:parsed_ruby, formatter.send(:compiled_code, formatter.send(:parsed_template, _1).first)) }
+    formatter.send(:same_ruby?, *rubies)
   end
 
   def formatter_wrapping_into(wrapped)

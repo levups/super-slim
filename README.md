@@ -97,7 +97,8 @@ where a `.class` or `#id` is enough, no trailing whitespace unless it renders, s
 newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
 body, and Ruby code with children ends with the `do` that Slim would add. Tags nested inline (`tr: td`) go one per
 line, three `-` lines in a row or more make a `ruby:` block, and a `ruby:` block of one or two lines turns back into
-`-` lines. This template:
+`-` lines. `- if !condition` with no `else` reads as `- unless condition` when the `!` covers the whole condition.
+This template:
 
 ```slim
 div.card
