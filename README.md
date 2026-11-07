@@ -94,7 +94,8 @@ Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically,
 
 `super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
 where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
-newline. This template:
+newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
+body, and Ruby code with children ends with the `do` that Slim would add. This template:
 
 ```slim
 div.card
@@ -140,18 +141,19 @@ format:
 
 The formatter then gives each line one layout, whatever its author chose. Ruby code spread over several lines is
 joined back when it fits. A longer line spreads the arguments of its call, or the elements of its array or hash, one
-per line between brackets that close on a line of their own, each followed by a comma:
+per line, each line but the last ending with a comma:
 
 ```slim
-= render Card.new(
-    title: post.title,
-    body: post.body,
-  )
+= link_to "Read the whole post",
+  post_path(post),
+  class: "btn btn-primary"
 ```
 
-A call whose only argument is a call spreads that one, as `Card.new` above. Arguments go four spaces deep and the
-closing bracket two, two more when the line opens a block. Code spread by hand stays as it is when this layout
-would leave a line longer than the limit, and arguments to `new` go in parentheses.
+Slim, and so Brakeman, reads a line that ends with a comma or a backslash as going on, but not one that ends with an
+opening bracket. A call whose only argument is a call spreads that one: `= render Card.new(title: post.title,`. A
+first argument that would pass the limit goes to the next line, after a backslash. The lines after the first go two
+spaces deep, two more when the line opens a block. Code spread by hand stays as it is when this layout would leave a
+line longer than the limit, unless Slim can't read it, and arguments to `new` go in parentheses.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
@@ -160,6 +162,17 @@ named twice goes, and the other attributes follow one order: `id`, `class`, what
 `data-*`, then `aria-*` and `role`. Delimiters stay around a boolean attribute and before text that would read as
 an attribute, and a tag with a `*splat` keeps its order. The formatter takes attribute values to have no side
 effects: reordering two Ruby values changes the order they run in.
+
+Lines the formatter should leave alone go between two comments. Without `on`, the rest of the block that holds the
+comment stays as written, the rest of the template at the top level. The lines keep their text and only move with
+their block, and the lint rules that `super-slim format` would fix stay quiet there:
+
+```slim
+table
+  / super-slim:format off
+  tr: td colspan=8 = t(".empty")
+  / super-slim:format on
+```
 
 ## Linter
 
@@ -183,10 +196,11 @@ linters, so most will look familiar:
 | LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
 | InstanceVariables (in partials) | haml-lint, Rails conventions | on |
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
-| DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
+| DuplicateId, ImageAlt, IframeTitle, AnchorHref, NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaBooleanValue (`aria-*=true` renders no value, `aria-*=false` no attribute), AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
 | ButtonType, InlineStyles | eslint-plugin-react, haml-lint | off |
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
+| SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text that should be translated) | erb_lint | off |
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
@@ -219,6 +233,14 @@ linters:
 
 Every rule accepts `include:` and `exclude:`, lists of glob patterns matched against paths relative to
 `.super-slim.yml` (`**/` matches any number of directories).
+
+A comment silences rules on the next tag or code line, blank lines and comments skipped, and on the lines it goes on
+over. The linter reports a rule name it doesn't know:
+
+```slim
+/ super-slim:disable ButtonType, InlineStyles
+button style="all: unset" Close
+```
 
 The `bootstrap5` preset lists the classes and data attributes that Bootstrap 5.3 renamed, including the ones with
 breakpoints such as `text-md-right`. Its data attributes are only those of Bootstrap's own components
@@ -277,6 +299,9 @@ Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- r
 comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
 follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
 the line it is about.
+Slim still can't read such a template, and neither can Brakeman, which parses views with Slim: it reports the
+template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines; turn it off if you
+don't run Brakeman.
 
 ### Tailwind class names
 
@@ -365,8 +390,9 @@ On top of that:
 Real templates come from 30 open-source apps, pinned to a commit in `corpus/manifest.yml`. `rake corpus:fetch`
 downloads only their `.slim` files, into `corpus/cache` (ignored by Git). `rake corpus:check` compiles, formats
 and lints each of them and compares the result with Slim. `rake corpus:diff BASE=rev` shows what a change does to
-them: compiled Ruby, formatting and lint offenses. These templates are never rendered, because rendering would run
-their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
+them: compiled Ruby, formatting and lint offenses. It fails when formatting changes, unless `FORMATTING_CHANGES=1`
+says the change means to; in CI, a pull request says so with the `formatting change` label. These templates are
+never rendered, because rendering would run their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
 
 ## Development
 

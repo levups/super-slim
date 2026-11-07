@@ -52,7 +52,7 @@
 super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€¦]   <span class="c"># list the ones it would rewrite, exit 1 if any</span></code></pre>
       <p>One layout: two spaces per level, <code>- code</code> and <code>= output</code> spacing, <code>p = output</code> after a tag, no redundant <code>div</code>, no trailing whitespace unless it renders, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.</p>
       <p>Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.</p>
-      <p>With <code>format: max_line_length</code> in <code>.super-slim.yml</code>, each line gets one layout: Ruby code spread over several lines is joined back when it fits, and a longer line spreads the arguments of its call one per line between parentheses that close on their own line, each followed by a comma. Arguments go four spaces deep, six when the line opens a block. Code spread by hand stays as it is when this layout would leave a line longer than the limit. A tag&rsquo;s attributes stand without delimiters when they fit on its line, and one per line inside <code>attribute_delimiters</code> (<code>()</code> by default, or <code>[]</code>, <code>{}</code>) when they don&rsquo;t; a literal <code>id</code> or <code>class</code> becomes a shortcut, a class shortcut named twice goes, and the others follow one order: what the element is, what it does, then how it reads aloud. A layout is only kept when Prism reads the same compiled Ruby.</p>
+      <p>With <code>format: max_line_length</code> in <code>.super-slim.yml</code>, each line gets one layout: Ruby code spread over several lines is joined back when it fits, and a longer line spreads the arguments of its call one per line, each line but the last ending with a comma, the layout Slim and Brakeman read too. A first argument that would pass the limit goes to the next line, after a backslash. The lines after the first go two spaces deep, four when the line opens a block. Code spread by hand stays as it is when this layout would leave a line longer than the limit, unless Slim can&rsquo;t read it: code continued after an opening bracket. A tag&rsquo;s attributes stand without delimiters when they fit on its line, and one per line inside <code>attribute_delimiters</code> (<code>()</code> by default, or <code>[]</code>, <code>{}</code>) when they don&rsquo;t; a literal <code>id</code> or <code>class</code> becomes a shortcut, a class shortcut named twice goes, and the others follow one order: what the element is, what it does, then how it reads aloud. A layout is only kept when Prism reads the same compiled Ruby.</p>
 <pre><code class="language-slim"><span class="nt">a</span><span class="nc">.btn</span>(
   <span class="nt">href</span><span class="p">=</span><span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
   <span class="nt">data</span><span class="na">-turbo-frame</span><span class="p">=</span><span class="s">"modal"</span>
@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">33</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">34</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -344,6 +344,16 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
 </details>
 <details class="rule">
+  <summary><span class="rule-name">SlimSyntax</span><span class="rule-message">Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">=</span> <span class="n">render</span> <span class="no">Card</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">post</span><span class="p">:)</span> <span class="c1"># the card of the post</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/ The card of the post</span>
+<span class="p">=</span> <span class="n">render</span> <span class="no">Card</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">post</span><span class="p">:)</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
   <summary><span class="rule-name">EmbeddedEngines</span><span class="rule-default off">off by default</span><span class="rule-message">The <code>javascript:</code> engine is forbidden here: move this code to a file of its own</span></summary>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nd">javascript:
@@ -450,6 +460,15 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="s">"disabled"</span>
 </code></pre></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="kp">true</span>
+</code></pre></div>
+  </div>
+</details>
+<details class="rule">
+  <summary><span class="rule-name">AriaBooleanValue</span><span class="rule-message">Write <code>aria-atomic=&quot;true&quot;</code>: Slim renders <code>aria-atomic=true</code> without a value</span></summary>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="kp">true</span>
+</code></pre></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="s">"true"</span>
 </code></pre></div>
   </div>
 </details>

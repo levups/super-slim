@@ -162,4 +162,14 @@ p = %(
     alice
   ).strip
 ~~~~~~~~ super_slim: lint
-
+1: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+6: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+11: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+16: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+21: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+26: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+31: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+36: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+41: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+46: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+50: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma

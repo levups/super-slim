@@ -15,6 +15,10 @@ module SuperSlim
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
     REDUNDANT_DIV = /\Adiv(?=[.#][\p{Word}-])/
+    LOCALS_HEADER = %r{\A﻿?/#\s*locals:}
+    CODE_LINE = /\A(?:-|==?[<>]*) (.+)\z/
+    # `while x do` is valid Ruby that nobody writes.
+    LOOP = /\A(?:while|until|for)\b/
     # Prism 1.x counts in a node's flags whether it starts a line.
     NEWLINE_FLAG = defined?(Prism::NodeFlags::NEWLINE) ? Prism::NodeFlags::NEWLINE : 0
     FIELDS_BY_NODE_CLASS = {}
@@ -22,6 +26,23 @@ module SuperSlim
 
     def self.call(source, **)
       new(**).call(source)
+    end
+
+    # Slim's own test for a block: children that render something, a comment alone opens none.
+    def self.block_opening_linenos(parser)
+      parser.line_by_node.filter_map do |node, lineno|
+        lineno if (node.is_a?(AST::Output) || node.is_a?(AST::Control)) && !AST.empty?(node.children)
+      end.to_set
+    end
+
+    # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a
+    # comment, which `do` would land in.
+    def self.with_do(content)
+      code = content[CODE_LINE, 1]
+      return content unless code && !code.include?("#") && !code.end_with?("{", "|", ",", "\\", ";", "&&", "||")
+      return content if code.match?(Compiler::BLOCK_SELF_OPENING) || code.match?(LOOP)
+
+      "#{content} do"
     end
 
     def initialize(tailwind_classes: SuperSlim.tailwind_classes, max_line_length: nil, attribute_delimiters: "()")
@@ -32,11 +53,10 @@ module SuperSlim
     def call(source)
       parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
       nodes = parser.call(source)
-      outline = parser.outline
-      formatted = layout(source, outline)
+      formatted = layout(source, parser)
       unless formatted == source
         source_code = compiled_code(nodes)
-        nodes, outline = parsed_template(formatted)
+        nodes, parser = parsed_template(formatted)
         formatted_code = compiled_code(nodes)
         # Most templates the layout changes compile to the very same Ruby: only the others are parsed.
         unless source_code.is_a?(String) && source_code == formatted_code
@@ -46,7 +66,7 @@ module SuperSlim
       end
       return formatted unless @line_wrapper
 
-      wrapped = @line_wrapper.call(formatted, outline:)
+      wrapped = @line_wrapper.call(formatted, parser:)
       return formatted if wrapped == formatted
 
       wrapped_ruby = parsed_ruby(compiled_code(parsed_template(wrapped, outline: false).first))
@@ -62,24 +82,51 @@ module SuperSlim
 
     private
 
-    def layout(source, outline)
+    def layout(source, parser)
       source = source.delete_prefix("﻿")
       lines = Parser.split_lines(source)
 
+      outline = parser.outline
+      unformatted_linenos = Parser.unformatted_linenos(lines, outline)
+      first_structure_lineno = (1...outline.size).find { outline[_1].kind == :structure }
+      # A partial's signature reads like a method's: alone at the top, set apart from the body.
+      locals_header_lineno = first_structure_lineno if first_structure_lineno && lines[first_structure_lineno - 1].match?(LOCALS_HEADER)
+      block_opening_linenos = Formatter.block_opening_linenos(parser)
       formatted = []
       indent_shift_by_lineno = {}
+      indent_shift = 0
+      previous_structure_lineno = nil
+      blank_line_pending = false
       lines.each.with_index(1) do |line, lineno|
         info = outline[lineno]
+        # Unformatted lines move with the directive above them, so that they stay inside its block.
+        if unformatted_linenos.include?(lineno)
+          blank_line_pending = false
+          next formatted << shifted(line, indent_shift)
+        end
+
         case info.kind
         when :blank
           formatted << "" unless formatted.empty? || formatted.last.empty?
+          blank_line_pending = formatted.last == ""
         when :text_blank
           formatted << ""
+          blank_line_pending = false
         when :structure
+          previous_info = outline[previous_structure_lineno] if previous_structure_lineno
+          # A block's first line comes right after the line that opens it.
+          formatted.pop if blank_line_pending && previous_info && info.depth > previous_info.depth
+          formatted << "" if previous_structure_lineno && previous_structure_lineno == locals_header_lineno && formatted.last != ""
           indent = info.depth * INDENT_WIDTH
-          indent_shift_by_lineno[lineno] = indent - indent_of(line)
-          formatted << (" " * indent) + structure(line, info)
+          indent_shift = indent_shift_by_lineno[lineno] = indent - indent_of(line)
+          content = structure(line, info)
+          # Code that goes on over more lines takes its `do` once the line wrapper joins it.
+          content = Formatter.with_do(content) if block_opening_linenos.include?(lineno) && !info.text && outline[lineno + 1]&.kind != :continuation
+          formatted << (" " * indent) + content
+          previous_structure_lineno = lineno
+          blank_line_pending = false
         else
+          blank_line_pending = false
           formatted << continuation(line, info, indent_shift_by_lineno.fetch(info.owner, 0))
         end
       end
@@ -106,6 +153,13 @@ module SuperSlim
       (" " * indent) + content
     end
 
+    def shifted(line, indent_shift)
+      line = expand_tabs(line)
+      return "" if line.strip.empty?
+
+      (" " * [line[/\A */].size + indent_shift, 0].max) + line.lstrip
+    end
+
     def with_output_spacing(line, info)
       return line unless info.output_column && line[info.output_column..] =~ TAG_OUTPUT
 
@@ -123,10 +177,10 @@ module SuperSlim
       line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
-    # The template's nodes and outline; the error when it doesn't parse.
+    # The template's nodes and its parser, which holds the outline; the error when it doesn't parse.
     def parsed_template(template, outline: true)
       parser = Parser.new(outline:, tailwind_classes: @tailwind_classes)
-      [parser.call(template), parser.outline]
+      [parser.call(template), parser]
     rescue Error => exception
       [exception, nil]
     end

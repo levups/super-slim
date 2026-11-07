@@ -31,6 +31,16 @@ module SuperSlim
       # The byte offset of the comment that ends the code, if one does.
       attr_reader :trailing_comment_offset
 
+      # Where a comment that follows code on its line starts in code, nil when there is none. One alone on a line is
+      # left out: a backslash before it carries the code on to that line.
+      def self.code_comment_offset(code)
+        return unless code.include?("#")
+
+        offset = new(code).trailing_comment_offset or return
+        code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
+        offset unless code_before.empty? || code_before.end_with?("\n")
+      end
+
       def <<(line)
         @trailing_comment_offset = nil
         @scanner << "\n" << line

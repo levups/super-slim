@@ -157,12 +157,9 @@ module SuperSlim
     # parenthesis of an output or the `do` of a block. It never runs, so it is left out. One alone on a line
     # stays: a backslash before it carries the code on to that line.
     def without_trailing_comment(code)
-      return code unless code.include?("#")
+      comment_offset = Parser::RubyBrackets.code_comment_offset(code) or return code
 
-      comment_offset = Parser::RubyBrackets.new(code).trailing_comment_offset or return code
-
-      code_before = code.byteslice(0, comment_offset).sub(/[ \t]+\z/, "")
-      (code_before.empty? || code_before.end_with?("\n")) ? code : code_before
+      code.byteslice(0, comment_offset).sub(/[ \t]+\z/, "")
     end
 
     def compile_tag(tag)
