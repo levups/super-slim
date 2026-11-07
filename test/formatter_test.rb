@@ -90,10 +90,27 @@ class FormatterTest < Minitest::Test
     assert_wraps %(#{untouched}= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(#{untouched}= link_to post.title, post_path(post)\n)
   end
 
+  def test_starts_a_block_right_after_the_line_that_opens_it
+    assert_formats "= nicely_centered_content do\n  h1 = t(\".title\")\n\np\n", "= nicely_centered_content do\n\n  h1 = t(\".title\")\n\np\n"
+    assert_formats "p\n  | text\n\n    more\n", "p\n  | text\n\n    more\n"
+  end
+
+  def test_sets_a_partial_signature_apart_from_its_body
+    assert_formats "/# locals: (product:)\n\n- if product\n  p = product.name\n", "/# locals: (product:)\n- if product\n  p = product.name\n"
+    assert_formats "/# locals: (a:)\n\np = a\n", "\n/# locals: (a:)\np = a\n"
+  end
+
+  def test_writes_the_do_that_slim_adds_to_ruby_code_with_children
+    assert_formats "= link_to root_path do\n  = fa_icon \"bell\"\n- posts.each do\n  p\n", "= link_to root_path\n  = fa_icon \"bell\"\n- posts.each\n\n  p\n"
+    assert_wraps "= foo(a, b) do\n  p\n", "= foo(a,\n  b)\n  p\n"
+    untouched = "= f.label :name\n  / a comment opens no block\n- if x\n  p\n- while false\n  p\n= render Card.new # card\n  p\n= form_with(model: x) { |form|\n  = form.text\n"
+    assert_formats untouched, untouched
+  end
+
   def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
     assert_wraps %(= form_with(\n      model: post,\n      url: posts_path,\n    ) do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
-    assert_wraps %(= render(\n      layout: "card",\n      locals: {post:},\n    )\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
+    assert_wraps %(= render(\n      layout: "card",\n      locals: {post:},\n    ) do\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes
@@ -259,6 +276,7 @@ class FormatterTest < Minitest::Test
 
   def assert_formats(expected, source)
     assert_equal expected, SuperSlim::Formatter.call(source)
+    assert_equal expected, SuperSlim::Formatter.call(expected)
   end
 
   def formatter_wrapping_into(wrapped)
