@@ -149,10 +149,12 @@ such as Brakeman:
 ```
 
 A call whose only argument is a call spreads that one, as `Card.new` above, and an argument still longer than the
-limit spreads its own. Arguments go four spaces deep, a first argument too long to follow its call goes to the next
-line after a backslash, and arguments to `new` go in parentheses. Code spread by hand stays as it is when this layout
-would leave a longer line, unless Slim can't read it: SuperSlim's own layouts, such as a bracket that ends a line,
-are spread again.
+limit spreads its own. Arguments go four spaces deep, and arguments to `new` go in parentheses. A first argument too
+long to follow its call, or the brackets and the `do` that close the last one, go to the next line after a
+backslash. A call stays whole when spreading it would not shorten its longest line, as a chain of calls already past
+the limit before its last arguments. Code spread by hand stays as it is when it holds a comment, or when this layout
+would leave a longer line and Slim reads it: SuperSlim's own layouts, such as a bracket that ends a line, are spread
+again.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut

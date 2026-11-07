@@ -80,8 +80,7 @@ module SuperSlim
 
         argument_indent = @lead[/\A */] + (" " * 2 * INDENT_WIDTH)
         lines = spread(node, @lead, CODE_OFFSET, CODE_OFFSET + @code.bytesize, argument_indent)
-        # `a.sub(b).sub(c, d)`, past the limit before its last arguments, stays whole.
-        lines if lines && lines.first.size <= @max_line_length
+        lines if lines && longest(lines) < (@lead + @code).size
       end
 
       private
@@ -111,30 +110,46 @@ module SuperSlim
         return if items_end > CODE_OFFSET + @code.bytesize
 
         lines = first_item_lines(items.first, lead + slice(first, items.first.location.start_offset), indent)
-        items.drop(1).each { lines.concat(item_lines(_1, indent)) }
-        lines[-1] = lines.last.delete_suffix(",") + slice(items_end, last)
-        lines
+        items.drop(1).each { |item| lines.concat(item_lines(item, indent)) }
+        lines + closing_lines(lines.pop.delete_suffix(","), slice(items_end, last), indent)
       end
 
-      # A first item too long to follow its call goes to the next line, after a backslash.
+      # A first item that doesn't fit after its call starts the next line, after a backslash, when that line starts
+      # further left.
       def first_item_lines(item, lead, indent)
-        after_lead = item_lines(item, indent, lead)
-        return after_lead if after_lead.first.size <= @max_line_length
-
-        after_backslash = ["#{lead.rstrip} \\", *item_lines(item, indent)]
-        [after_lead, after_backslash].min_by { |lines| lines.map(&:size).max }
+        if "#{lead}#{code_of(item)},".size > @max_line_length && lead.size > indent.size
+          ["#{lead.rstrip} \\", *item_lines(item, indent)]
+        else
+          item_lines(item, indent, lead)
+        end
       end
 
       # The lines of lead then item and a comma; the items it spreads go deeper than indent.
       def item_lines(item, indent, lead = indent)
-        item_start = item.location.start_offset
-        item_end = self.class.end_offset(item)
-        line = "#{lead}#{slice(item_start, item_end)},"
+        line = "#{lead}#{code_of(item)},"
         return [line] if line.size <= @max_line_length
 
         nested = spreadable(item.is_a?(Prism::AssocNode) ? item.value : item)
-        lines = nested && spread(nested, lead, item_start, item_end, indent + (" " * INDENT_WIDTH))
+        lines = nested && spread(nested, lead, item.location.start_offset, self.class.end_offset(item), indent + (" " * INDENT_WIDTH))
         lines ? [*lines[0...-1], "#{lines.last},"] : [line]
+      end
+
+      # The last item's line then what closes it: brackets, a block, a method called on the spread array. When that
+      # would pass the limit, they go to the next line after a backslash.
+      def closing_lines(last_line, closing, indent)
+        on_one_line = [last_line + closing]
+        return on_one_line if closing.empty? || on_one_line.first.size <= @max_line_length
+
+        after_backslash = ["#{last_line} \\", indent + closing.lstrip]
+        (longest(after_backslash) < on_one_line.first.size) ? after_backslash : on_one_line
+      end
+
+      def code_of(item)
+        slice(item.location.start_offset, self.class.end_offset(item))
+      end
+
+      def longest(lines)
+        lines.map(&:size).max
       end
 
       def slice(first, last)

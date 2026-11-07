@@ -2,7 +2,6 @@
 
 require "minitest/autorun"
 require "super_slim"
-require "prism"
 require "slim"
 
 class FormatterTest < Minitest::Test
@@ -99,19 +98,41 @@ class FormatterTest < Minitest::Test
 
   def test_spreads_the_arguments_of_a_call_that_opens_a_block
     assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
-      %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
+      %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n), max_line_length: 40
     assert_wraps %(= render layout: "card",\n    locals: {post:}\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes
     assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date post.created_at,\n    :long\n),
       %(p class=classes title="A long title" = format_date post.created_at, :long\n), max_line_length: 32
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date(post.created_at,\n    :long)\n),
+      %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n), max_line_length: 32
   end
 
   def test_joins_code_spread_over_lines_when_it_fits
     assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title,\n      post_path(post)\n), max_line_length: 40
     assert_wraps %(= link_to(post.title, post_path(post))\n), %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), max_line_length: 40
     assert_wraps %(= link_to post.title, post_path(post)\n), %(= link_to post.title, \\\n  post_path(post)\n), max_line_length: 40
+    assert_wraps %(p class=classes title="A long title" = format_date post.created_at, :long\n),
+      %(p(\n  class=classes\n  title="A long title"\n) = format_date post.created_at,\n    :long\n), max_line_length: 100
+  end
+
+  def test_spreads_a_call_whose_first_argument_cannot_fit
+    assert_wraps %(- f(very_long_argument_name_xxxxxxxxxxxxxx,\n    b,\n    c)\n), %(- f(very_long_argument_name_xxxxxxxxxxxxxx, b, c)\n)
+    assert_wraps %(= [some_long_element_name_xxxxxxxxxxxxxxxx,\n    b,\n    c].join(", ")\n), %(= [some_long_element_name_xxxxxxxxxxxxxxxx, b, c].join(", ")\n)
+    assert_wraps %(= post.comments_by(author).sorted_by( \\\n    created_at,\n    title)\n), %(= post.comments_by(author).sorted_by(created_at, title)\n), max_line_length: 40
+  end
+
+  def test_moves_a_block_that_would_pass_the_limit_after_a_backslash
+    assert_wraps %(= form_with model: post,\n    url: posts_path \\\n    do |form_builder, options|\n  = form_builder.text_field :title\n),
+      %(= form_with model: post, url: posts_path do |form_builder, options|\n  = form_builder.text_field :title\n)
+  end
+
+  def test_keeps_code_spread_by_hand_when_joining_it_would_comment_out_the_rest
+    source = %(= link_to(\n    post.title, # the title\n    post_path(post),\n  )\n= link_to post.title, post_path(post), class: "btn"\n)
+    expected = %(= link_to(\n    post.title, # the title\n    post_path(post),\n  )\n= link_to post.title,\n    post_path(post),\n    class: "btn"\n)
+
+    assert_equal expected, SuperSlim::Formatter.new(max_line_length: 30).call(source)
   end
 
   def test_respreads_code_spread_by_hand
@@ -279,13 +300,31 @@ class FormatterTest < Minitest::Test
 
     assert_equal expected, formatter.call(source)
     assert_equal expected, formatter.call(expected)
-    assert_slim_reads expected unless expected == source
+    assert_slim_reads_the_same_code expected
   end
 
   # Tools built on Slim, such as Brakeman, read what the formatter writes.
-  def assert_slim_reads(template)
-    ruby = Slim::Engine.new.call(template)
+  def assert_slim_reads_the_same_code(template)
+    assert_equal ruby_code_of(SuperSlim::Parser.new.call(template)), ruby_code_of(Slim::Parser.new.call(template))
+  end
 
-    assert Prism.parse("#{SuperSlim::Formatter::CodeWrapper::TEMPLATE_METHOD}#{ruby}\nend").success?, "Slim compiles #{template.inspect} into invalid Ruby"
+  # The code of each control and output, line breaks aside, from SuperSlim's tree or Slim's.
+  def ruby_code_of(tree)
+    case tree
+    in SuperSlim::AST::Control | SuperSlim::AST::Output
+      [on_one_line(tree.code), *ruby_code_of(tree.children)]
+    in [:slim, :control, code, children]
+      [on_one_line(code), *ruby_code_of(children)]
+    in [:slim, :output, _escape, code, children]
+      [on_one_line(code), *ruby_code_of(children)]
+    in Array | Struct
+      tree.to_a.flat_map { ruby_code_of(_1) }
+    else
+      []
+    end
+  end
+
+  def on_one_line(code)
+    code.gsub(/\s*\\?\n\s*/, " ")
   end
 end

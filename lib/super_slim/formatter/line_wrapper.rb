@@ -50,26 +50,22 @@ module SuperSlim
 
         line = lines.first
         if lines.size > 1
-          code = joined_code(lines, info)
-          line = code || joined_attributes(lines, info)
+          attributes_end = attributes_end(lines, info)
+          code_lines = attributes_end ? lines.drop(attributes_end) : lines
+          line = attributes_end ? joined_attributes(lines, attributes_end) : joined_code(lines, info)
+          return lines unless line
         end
-        return lines unless line
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
         info = arranged_info || info
         line = with_new_parenthesized(line, info)
+        return lines unless lines.size == 1 || ruby_reads_joined?(line, info)
         return [line] if line.size <= @max_line_length
 
-        authors_layout_kept = lines.size > 1 && (code.nil? || continued_after_commas_or_backslashes?(lines))
         broken = wrap(line, info)
-        return (authors_layout_kept ? lines : broken) if broken == [line]
-
-        # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
-        rejoined = joined_code(broken, info)
-        return [rejoined] if rejoined && rejoined.size <= @max_line_length
-
-        # A string continued with `\` comes back on one line, longer than the author's.
-        return lines if authors_layout_kept && broken.max_by(&:size).size > lines.max_by(&:size).size
+        # The author's layout stays when Slim reads it and no spread shortens it: a string continued with `\`.
+        return lines if lines.size > 1 && continued_after_commas_or_backslashes?(code_lines) &&
+          (broken == [line] || longest(broken) > longest(lines))
 
         broken
       end
@@ -83,9 +79,29 @@ module SuperSlim
       # The code of a line continued after a comma, a backslash or an opening bracket, on one line; nil when the
       # continuation lines hold anything else, such as attributes or text.
       def joined_code(lines, info)
-        return unless info.text.nil? && code_start(lines.first, info.output_column) && lines.drop(1).none? { _1.strip.empty? }
+        continued(lines.first, lines.drop(1)) if info.text.nil? && code_start(lines.first, info.output_column)
+      end
 
-        lines.drop(1).reduce(lines.first.rstrip) do |joined, line|
+      # A tag whose attributes stand one per line inside delimiters, on one line, with the code that continues its
+      # closing line: `p(`, `title="A"`, `) = format_date post.created_at,`, `:long`.
+      def joined_attributes(lines, attributes_end)
+        tag = lines.first.rstrip + lines[1...attributes_end].map(&:strip).join(" ") + lines[attributes_end].strip
+        continued(tag, lines.drop(attributes_end + 1))
+      end
+
+      # The index of the line that closes the attributes of a tag spread one per line inside delimiters.
+      def attributes_end(lines, info)
+        return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
+        return unless lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
+
+        closing = lines.index { _1.strip.match?(CLOSING_BRACKET_AT_START) }
+        closing if closing && lines[1...closing].none? { _1.strip.empty? }
+      end
+
+      def continued(first_line, continuation_lines)
+        return if continuation_lines.any? { _1.strip.empty? }
+
+        continuation_lines.reduce(first_line.rstrip) do |joined, line|
           piece = line.strip
           joined = joined.delete_suffix("\\").rstrip
           if piece.match?(CLOSING_BRACKET_AT_START)
@@ -98,18 +114,19 @@ module SuperSlim
         end
       end
 
+      # A comment inside code spread by hand comments out the rest of the code once joined.
+      def ruby_reads_joined?(line, info)
+        start = code_start(line, info.output_column)
+        start.nil? || CodeWrapper.parse(line[start..])
+      end
+
+      def longest(lines)
+        lines.map(&:size).max
+      end
+
       # Slim continues a line of code only after a comma or a backslash, not after an opening bracket.
       def continued_after_commas_or_backslashes?(lines)
         lines[0...-1].all? { _1.rstrip.match?(Parser::LINE_CONTINUATION) }
-      end
-
-      # A tag whose attributes stand one per line inside delimiters, on one line: `p {` `title="A"` `} = text`.
-      def joined_attributes(lines, info)
-        return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
-        return unless lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
-        return unless lines.last.strip.match?(CLOSING_BRACKET_AT_START) && lines[1...-1].none? { _1.strip.empty? }
-
-        lines.first.rstrip + lines[1...-1].map(&:strip).join(" ") + lines.last.strip
       end
 
       def wrap(line, info)

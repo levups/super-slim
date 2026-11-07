@@ -28,6 +28,12 @@ class HostileTemplatesTest < Minitest::Test
     assert_fast { SuperSlim::Linter.new.call("t.slim", ("A: " * 200 + "b\n") * 200) }
   end
 
+  def test_deeply_nested_arguments_wrap_in_linear_time
+    nested = (1..40).reduce("x" * 40) { |inner, _depth| "[#{inner}, y]" }
+
+    assert_fast { SuperSlim::Formatter.new(max_line_length: 30).call("= f #{nested}, z\n") }
+  end
+
   def test_nesting_too_deep_for_the_stack_is_an_error
     exception = assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("#{"a: " * 5_000}b\n") }
     assert_equal "Tags nested more than 500 levels deep", exception.error
