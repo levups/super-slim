@@ -54,19 +54,24 @@ module SuperSlim
         return lines unless info.kind == :structure
 
         spread = lines.size > 1
-        code = joined_code(lines, info) if spread
-        line = spread ? code || joined_attributes(lines, info) : lines.first
-        return lines unless line
+        line = lines.first
+        if spread
+          attributes_end = attributes_end(lines, info)
+          code_lines = attributes_end ? lines.drop(attributes_end) : lines
+          line = attributes_end ? joined_attributes(lines, attributes_end) : joined_code(lines, info)
+          return lines unless line
+        end
 
         line = line[/\A */] + Formatter.with_do(line.lstrip) if spread && block_opening_linenos.include?(lineno)
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
         info = arranged_info || info
         line = with_new_parenthesized(line, info)
+        return lines if spread && !ruby_reads_joined?(line, info)
         return [line] if line.size <= @max_line_length
 
         broken = wrap(line, info, children?(outline, lineno))
-        kept = lines if spread && (code.nil? || Parser.slim_continuation?(lines))
+        kept = lines if spread && Parser.slim_continuation?(code_lines)
         return kept || broken if broken == [line]
 
         # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
@@ -88,9 +93,29 @@ module SuperSlim
       # The code of a line continued after a comma, a backslash or an opening bracket, on one line; nil when the
       # continuation lines hold anything else, such as attributes or text.
       def joined_code(lines, info)
-        return unless info.text.nil? && code_start(lines.first, info.output_column) && lines.drop(1).none? { _1.strip.empty? }
+        joined(lines.first, lines.drop(1)) if info.text.nil? && code_start(lines.first, info.output_column)
+      end
 
-        lines.drop(1).reduce(lines.first.rstrip) do |joined, line|
+      # A tag whose attributes stand one per line inside delimiters, on one line, with the code that continues its
+      # closing line: `p {`, `title="A"`, `} = format_date post.created_at,`, `:long`.
+      def joined_attributes(lines, attributes_end)
+        tag = lines.first.rstrip + lines[1...attributes_end].map(&:strip).join(" ") + lines[attributes_end].strip
+        joined(tag, lines.drop(attributes_end + 1))
+      end
+
+      # The index of the line that closes the attributes of a tag spread one per line inside delimiters.
+      def attributes_end(lines, info)
+        return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
+        return unless lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
+
+        closing = lines.index { _1.strip.match?(CLOSING_BRACKET_AT_START) }
+        closing if closing && lines[1...closing].none? { _1.strip.empty? }
+      end
+
+      def joined(first_line, continuation_lines)
+        return if continuation_lines.any? { _1.strip.empty? }
+
+        continuation_lines.reduce(first_line.rstrip) do |joined, line|
           piece = line.strip
           joined = joined.delete_suffix("\\").rstrip
           if piece.match?(CLOSING_BRACKET_AT_START)
@@ -103,13 +128,10 @@ module SuperSlim
         end
       end
 
-      # A tag whose attributes stand one per line inside delimiters, on one line: `p {` `title="A"` `} = text`.
-      def joined_attributes(lines, info)
-        return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
-        return unless lines.first.rstrip.match?(Parser::OPENING_BRACKET_AT_LINE_END)
-        return unless lines.last.strip.match?(CLOSING_BRACKET_AT_START) && lines[1...-1].none? { _1.strip.empty? }
-
-        lines.first.rstrip + lines[1...-1].map(&:strip).join(" ") + lines.last.strip
+      # A comment inside code spread by hand comments out the rest of the code once joined.
+      def ruby_reads_joined?(line, info)
+        start = code_start(line, info.output_column)
+        start.nil? || CodeWrapper.parse(line[start..])
       end
 
       def children?(outline, lineno)

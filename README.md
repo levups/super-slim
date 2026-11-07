@@ -151,9 +151,10 @@ per line, each line but the last ending with a comma:
 
 Slim, and so Brakeman, reads a line that ends with a comma or a backslash as going on, but not one that ends with an
 opening bracket. A call whose only argument is a call spreads that one: `= render Card.new(title: post.title,`. A
-first argument that would pass the limit goes to the next line, after a backslash. The lines after the first go two
-spaces deep, two more when the line opens a block. Code spread by hand stays as it is when this layout would leave a
-line longer than the limit, unless Slim can't read it, and arguments to `new` go in parentheses.
+first argument that would pass the limit goes to the next line after a backslash, and so do the brackets or the `do`
+that close the last one when they would. The lines after the first go two spaces deep, two more when the line opens a
+block. Code spread by hand stays as it is when it holds a comment, or when this layout would leave a line longer than
+the limit and Slim can read it. Arguments to `new` go in parentheses.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut

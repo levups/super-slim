@@ -116,29 +116,37 @@ module SuperSlim
         item_indent = indent + (" " * INDENT_WIDTH)
         head = prefix + slice(first, node.opening_loc&.end_offset || items.first.location.start_offset)
         tail = slice(node.closing_loc&.start_offset || self.class.end_offset(items.last), last)
-        commas = items.map { "," unless _1.equal?(items.last) }
-        first_lines = item_lines(items.first, head, item_indent, commas.first)
+        # The last item carries what closes the node: brackets, a block, a method called on the spread array.
+        suffixes = items.map { _1.equal?(items.last) ? tail : "," }
+        first_lines = item_lines(items.first, head, item_indent, suffixes.first)
         # A first item that passes the limit after the head goes to a line of its own, after a backslash.
         if first_lines.first.size > @max_line_length && !head.strip.empty?
           backslash = head.match?(Parser::OPENING_BRACKET_AT_LINE_END) ? "\\" : " \\"
-          first_lines = ["#{head.rstrip}#{backslash}", *item_lines(items.first, item_indent, item_indent, commas.first)]
+          first_lines = ["#{head.rstrip}#{backslash}", *item_lines(items.first, item_indent, item_indent, suffixes.first)]
         end
-        lines = first_lines + items.drop(1).zip(commas.drop(1)).flat_map { |item, comma| item_lines(item, item_indent, item_indent, comma) }
-        lines[-1] += tail
-        lines
+        *lines, last_line = first_lines + items.drop(1).zip(suffixes.drop(1)).flat_map { |item, suffix| item_lines(item, item_indent, item_indent, suffix) }
+        lines + closing_lines(last_line, tail, item_indent)
       end
 
-      # The lines of item after prefix, then comma.
-      def item_lines(item, prefix, indent, comma)
+      # What closes the last item goes to the next line after a backslash when the last line would pass the limit.
+      def closing_lines(last_line, tail, indent)
+        return [last_line] if tail.empty? || last_line.size <= @max_line_length
+
+        after_backslash = ["#{last_line.delete_suffix(tail)} \\", indent + tail.lstrip]
+        (after_backslash.map(&:size).max < last_line.size) ? after_backslash : [last_line]
+      end
+
+      # The lines of item after prefix, then suffix.
+      def item_lines(item, prefix, indent, suffix)
         item_end = self.class.end_offset(item)
-        line = "#{prefix}#{slice(item.location.start_offset, item_end)}#{comma}"
+        line = "#{prefix}#{slice(item.location.start_offset, item_end)}#{suffix}"
         return [line] if line.size <= @max_line_length
 
         nested = spreadable(item.is_a?(Prism::AssocNode) ? item.value : item)
         lines = nested && spread(nested, item.location.start_offset, item_end, prefix, indent)
         return [line] unless lines
 
-        lines[-1] += comma.to_s
+        lines[-1] += suffix
         lines
       end
 
