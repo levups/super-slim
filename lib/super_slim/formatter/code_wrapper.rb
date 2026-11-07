@@ -2,19 +2,20 @@
 
 module SuperSlim
   class Formatter
-    # Spreads a line of Ruby code over several: the arguments of its call, or the elements of its array or hash,
-    # one per line, each followed by a comma, between brackets that close on a line of their own. A call whose only
-    # argument is itself a call, an array or a hash spreads that argument instead: `render Card.new(…)`.
+    # Spreads a line of Ruby code over several: the arguments of its call, or the elements of its array or hash, one
+    # per line, each but the last followed by a comma, the only line ending besides a backslash after which Slim
+    # continues the code: `render "card",` then `post:`. A call whose only argument is itself a call, an array or a
+    # hash spreads that argument instead: `render Card.new(title:,`.
     class CodeWrapper
       METHOD_NAME = /\A[a-z_][a-zA-Z0-9_]*[?!]?\z/
       # Rails runs a template inside a method, where `yield` is valid.
       TEMPLATE_METHOD = "def template\n"
       CODE_OFFSET = TEMPLATE_METHOD.bytesize
 
-      # Returns the lines after the first one's indentation, or nil when the code has nothing to spread. An item
-      # still longer than max_line_length spreads its own arguments or elements.
-      def self.call(code, indent, opens_block:, max_line_length:)
-        new(code, indent, opens_block:, max_line_length:).call
+      # Returns the lines of lead, what precedes the code on its line, then the code; nil when the code has nothing
+      # to spread. An item still longer than max_line_length spreads its own arguments or elements.
+      def self.call(code, lead, max_line_length:)
+        new(code, lead, max_line_length:).call
       end
 
       # `render Card.new title:` reads as if title went to render: arguments to `new` go in parentheses.
@@ -68,20 +69,20 @@ module SuperSlim
         [node.location.end_offset, closing&.end_offset || 0, *child_ends].max
       end
 
-      # opens_block: whether the line has children, which Slim passes to its call as a block even without `do`.
-      def initialize(code, indent, opens_block:, max_line_length:)
+      def initialize(code, lead, max_line_length:)
         @code = code
-        @indent = indent
-        @opens_block = opens_block
+        @lead = lead
         @max_line_length = max_line_length
       end
 
       def call
-        statements, opens_block = self.class.parse(@code)
+        statements, _opens_block = self.class.parse(@code)
         return unless statements&.size == 1 && (node = spreadable(statements.first))
 
-        closing_indent = @indent + (" " * ((@opens_block || opens_block) ? 2 * INDENT_WIDTH : INDENT_WIDTH))
-        spread(node, CODE_OFFSET, CODE_OFFSET + @code.bytesize, closing_indent)
+        argument_indent = @lead[/\A */] + (" " * 2 * INDENT_WIDTH)
+        lines = spread(node, @lead, CODE_OFFSET, CODE_OFFSET + @code.bytesize, argument_indent)
+        # `a.sub(b).sub(c, d)`, past the limit before its last arguments, stays whole.
+        lines if lines && lines.first.size <= @max_line_length
       end
 
       private
@@ -103,39 +104,38 @@ module SuperSlim
         end
       end
 
-      # The lines of the code from first to last, node's items spread between them, the first line unindented.
-      def spread(node, first, last, closing_indent)
+      # The lines of lead then the code from first to last, with node's items at indent after the first.
+      def spread(node, lead, first, last, indent)
         items = node.is_a?(Prism::CallNode) ? self.class.arguments_of(node) : node.elements
         # `hint: -> do` ends past the line, with the children of the line.
         return if self.class.end_offset(items.last) > CODE_OFFSET + @code.bytesize
 
-        item_indent = closing_indent + (" " * INDENT_WIDTH)
-        head, tail =
-          if node.opening_loc
-            [slice(first, node.opening_loc.end_offset), slice(node.closing_loc.start_offset, last)]
-          else
-            ["#{slice(first, node.message_loc.end_offset)}(", ")#{slice(self.class.end_offset(items.last), last)}"]
-          end
-        item_lines = items.flat_map { spread_item(_1, item_indent) }
-        [head, *item_lines, closing_indent + tail]
+        lines = first_item_lines(items.first, lead + slice(first, items.first.location.start_offset), indent)
+        items.drop(1).each { lines.concat(item_lines(_1, indent, indent)) }
+        lines[-1] = lines.last.delete_suffix(",") + slice(self.class.end_offset(items.last), last)
+        lines
       end
 
-      def spread_item(item, indent)
-        # A comma after `&block` is a syntax error.
-        comma = "," unless item.is_a?(Prism::BlockArgumentNode)
-        item_end = self.class.end_offset(item)
-        line = "#{indent}#{slice(item.location.start_offset, item_end)}#{comma}"
+      # A first item too long to follow its call goes to the next line, after a backslash.
+      def first_item_lines(item, head, indent)
+        after_head = item_lines(item, head, indent)
+        return after_head if after_head.first.size <= @max_line_length
+
+        after_backslash = ["#{head.rstrip} \\", *item_lines(item, indent, indent)]
+        [after_head, after_backslash].min_by { |lines| lines.map(&:size).max }
+      end
+
+      # The lines of lead then item and a comma; the items it spreads go deeper than indent.
+      def item_lines(item, lead, indent)
+        line = "#{lead}#{slice(item.location.start_offset, self.class.end_offset(item))},"
         return [line] if line.size <= @max_line_length
 
         nested = spreadable(item.is_a?(Prism::AssocNode) ? item.value : item)
-        lines = nested && spread(nested, item.location.start_offset, item_end, indent)
-        return [line] unless lines
-
-        [indent + lines.first, *lines[1...-1], "#{lines.last}#{comma}"]
+        lines = nested && spread(nested, lead, item.location.start_offset, self.class.end_offset(item), indent + (" " * INDENT_WIDTH))
+        lines ? [*lines[0...-1], "#{lines.last},"] : [line]
       end
 
-      # From offsets in the parsed source, up to the end of the line by default.
-      def slice(first, last = CODE_OFFSET + @code.bytesize)
+      def slice(first, last)
         @code.byteslice((first - CODE_OFFSET)...(last - CODE_OFFSET))
       end
     end

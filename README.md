@@ -140,18 +140,19 @@ format:
 
 The formatter then gives each line one layout, whatever its author chose. Ruby code spread over several lines is
 joined back when it fits. A longer line spreads the arguments of its call, or the elements of its array or hash, one
-per line between brackets that close on a line of their own, each followed by a comma:
+per line, each but the last followed by a comma, the layout Slim itself reads, and with it the tools built on Slim,
+such as Brakeman:
 
 ```slim
-= render Card.new(
-    title: post.title,
-    body: post.body,
-  )
+= render Card.new(title: post.title,
+    body: post.body)
 ```
 
-A call whose only argument is a call spreads that one, as `Card.new` above. Arguments go four spaces deep and the
-closing bracket two, two more when the line opens a block. Code spread by hand stays as it is when this layout
-would leave a line longer than the limit, and arguments to `new` go in parentheses.
+A call whose only argument is a call spreads that one, as `Card.new` above, and an argument still longer than the
+limit spreads its own. Arguments go four spaces deep, a first argument too long to follow its call goes to the next
+line after a backslash, and arguments to `new` go in parentheses. Code spread by hand stays as it is when this layout
+would leave a longer line, unless Slim can't read it: SuperSlim's own layouts, such as a bracket that ends a line,
+are spread again.
 
 A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
 they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
@@ -269,7 +270,8 @@ an opening `(`, `[` or `{` at the end of a line, until the bracket is closed:
 ```
 
 A bracket opened in the middle of a line, as in `- items.each { |item|`, works as before: the lines below it are
-its children.
+its children. Tools built on Slim, such as Brakeman, can't read this layout: with `max_line_length`, `super-slim
+format` rewrites it into one they can.
 
 ### Comments after Ruby code
 

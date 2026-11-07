@@ -37,7 +37,7 @@ module SuperSlim
           info = outline[lineno]
           last_lineno = lineno
           last_lineno += 1 while outline[last_lineno + 1]&.owner == lineno && CONTINUATION_KINDS.include?(outline[last_lineno + 1].kind)
-          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info, outline, lineno))
+          wrapped.concat(layout(lines[(lineno - 1)...last_lineno], info))
           lineno = last_lineno + 1
         end
         "#{wrapped.join("\n")}\n"
@@ -45,10 +45,11 @@ module SuperSlim
 
       private
 
-      def layout(lines, info, outline, lineno)
+      def layout(lines, info)
         return lines unless info.kind == :structure
 
-        line = (lines.size > 1) ? joined_code(lines, info) || joined_attributes(lines, info) : lines.first
+        code = joined_code(lines, info) if lines.size > 1
+        line = (lines.size > 1) ? code || joined_attributes(lines, info) : lines.first
         return lines unless line
 
         line, arranged_info = @attribute_arranger.call(line, (info if line == lines.first))
@@ -56,15 +57,16 @@ module SuperSlim
         line = with_new_parenthesized(line, info)
         return [line] if line.size <= @max_line_length
 
-        broken = wrap(line, info, children?(outline, lineno))
-        return ((lines.size > 1) ? lines : broken) if broken == [line]
+        keepable = lines.size > 1 && (code.nil? || continued_as_slim_reads?(lines))
+        broken = wrap(line, info)
+        return (keepable ? lines : broken) if broken == [line]
 
         # Joined back, brackets lose the spaces inside them (`{ a: 1 }` becomes `{a: 1}`), which may now fit.
         rejoined = joined_code(broken, info)
         return [rejoined] if rejoined && rejoined.size <= @max_line_length
 
         # A string continued with `\` comes back on one line, longer than the author's.
-        return lines if lines.size > 1 && broken.max_by(&:size).size > lines.max_by(&:size).size
+        return lines if keepable && broken.max_by(&:size).size > lines.max_by(&:size).size
 
         broken
       end
@@ -93,6 +95,11 @@ module SuperSlim
         end
       end
 
+      # Slim continues a line of code only after a comma or a backslash, not after an opening bracket.
+      def continued_as_slim_reads?(lines)
+        lines[0...-1].all? { _1.rstrip.end_with?(",", "\\") }
+      end
+
       # A tag whose attributes stand one per line inside delimiters, on one line: `p {` `title="A"` `} = text`.
       def joined_attributes(lines, info)
         return unless info.text.nil? && lines.first.lstrip.match?(Shortcuts::TAG_PATTERN) && !code_start(lines.first, info.output_column)
@@ -102,12 +109,7 @@ module SuperSlim
         lines.first.rstrip + lines[1...-1].map(&:strip).join(" ") + lines.last.strip
       end
 
-      def children?(outline, lineno)
-        next_structure = outline[(lineno + 1)..].find { _1.kind == :structure }
-        next_structure && next_structure.depth > outline[lineno].depth
-      end
-
-      def wrap(line, info, opens_block)
+      def wrap(line, info)
         indent = line[/\A */]
         lists = info.attribute_lists
         head = line[0...lists.first.first].rstrip if lists&.size == 1
@@ -120,11 +122,8 @@ module SuperSlim
           end
         return lines unless code_start && lines.last.size > @max_line_length
 
-        last_indent = lines.last[/\A */]
-        code_lines = CodeWrapper.call(lines.last[code_start..], last_indent, opens_block:, max_line_length: @max_line_length)
-        return lines unless code_lines
-
-        lines[0...-1] + [lines.last[0...code_start] + code_lines.first, *code_lines.drop(1)]
+        code_lines = CodeWrapper.call(lines.last[code_start..], lines.last[0...code_start], max_line_length: @max_line_length)
+        code_lines ? lines[0...-1] + code_lines : lines
       end
 
       # A dynamic tag, `*{tag: name}` or `li: *{tag: name}`, has no name for its attribute list to follow.
