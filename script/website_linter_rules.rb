@@ -36,6 +36,7 @@ EXAMPLE_BY_RULE = {
   "DeprecatedAttributes" => Example.new("button data-toggle=\"modal\" type=\"button\" Open\n",
     "button data-bs-toggle=\"modal\" type=\"button\" Open\n"),
   "UnescapedOutput" => Example.new("p == post.intro\n", "p = t(\".intro_html\")\n"),
+  "SlimSyntax" => Example.new("= render Card.new(post:) # the card of the post\n", "/ The card of the post\n= render Card.new(post:)\n"),
   "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
   "HardcodedText" => Example.new("h1 Welcome\n", "h1 = t(\".welcome\")\n", "shop/show.html.slim"),
   "InlineStyles" => Example.new("p style=\"color: red\" Text\n", "p.text-danger Text\n"),
@@ -48,6 +49,7 @@ EXAMPLE_BY_RULE = {
   "NestedLinks" => Example.new("a href=\"/a\"\n  a href=\"/b\" B\n", "a href=\"/a\" A\na href=\"/b\" B\n"),
   "PositiveTabindex" => Example.new("button tabindex=\"3\" type=\"button\" Save\n", "button tabindex=\"0\" type=\"button\" Save\n"),
   "BooleanAttributeValue" => Example.new("input disabled=\"disabled\"\n", "input disabled=true\n"),
+  "AriaBooleanValue" => Example.new(".toast aria-atomic=true\n", ".toast aria-atomic=\"true\"\n"),
   "AriaRole" => Example.new("div role=\"buton\"\n", "div role=\"button\"\n"),
   "AriaAttribute" => Example.new("button aria-lable=\"Close\" type=\"button\"\n", "button aria-label=\"Close\" type=\"button\"\n"),
   "ButtonType" => Example.new("button Save\n", "button type=\"submit\" Save\n")
@@ -60,10 +62,10 @@ RULES_BY_GROUP = {
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
   "Ruby in templates, from haml-lint and erb_lint" =>
     %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles UnescapedOutput
-      EmbeddedEngines HardcodedText],
+      SlimSyntax EmbeddedEngines HardcodedText],
   "Rails conventions" => %w[InstanceVariables StrictLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
-    %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaRole AriaAttribute ButtonType]
+    %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaBooleanValue AriaRole AriaAttribute ButtonType]
 }.freeze
 
 rule_names = SuperSlim::Linter::Rules.constants.map(&:name) - ["Rule"]

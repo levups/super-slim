@@ -32,6 +32,12 @@ module SuperSlim
     LINE_CONTINUATION = /[,\\]\z/
     BACKSLASH_AT_END = /\\\z/
     OPENING_BRACKET_AT_LINE_END = /[(\[{]\z/
+
+    # Whether Slim, and so Brakeman, reads these lines of code as one: it goes on after a comma or a backslash, not
+    # after an opening bracket.
+    def self.slim_continuation?(lines)
+      lines[0...-1].all? { _1.rstrip.match?(LINE_CONTINUATION) }
+    end
     MAX_NESTING = 500
     WHITESPACE_MARKERS = /[<>']*/
     TEXT_LINE_INDICATOR = /([|'])([<>]{1,2}(?: |\z)| ?)/
@@ -56,6 +62,40 @@ module SuperSlim
     # attribute list on one line is [first, last, [[first, last], …]], in columns of that line, and so is a tag nested
     # inline after `:`, as [column of the `:`, column of the nested tag].
     LineInfo = Struct.new(:kind, :depth, :owner, :text, :output_column, :attribute_lists, :nested_tag_columns)
+    FORMAT_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:format\s+(off|on)\s*\z}
+    # A comment that renders nothing: not `/!` or `/[if IE]`.
+    CODE_COMMENT = %r{\A﻿?\s*/(?![!\[])}
+
+    # The lines after `/ super-slim:format off`, up to `/ super-slim:format on` at its depth or the end of the block
+    # that holds it. A directive deeper than the `off` is a line like the others; blank lines that close the block
+    # are not in it.
+    def self.unformatted_linenos(lines, outline)
+      unformatted_linenos = Set.new
+      return unformatted_linenos if lines.none? { _1.include?("super-slim:format") }
+
+      off_depth = nil
+      blank_linenos = []
+      lines.each.with_index(1) do |line, lineno|
+        info = outline[lineno]
+        if info.kind == :blank
+          blank_linenos << lineno if off_depth
+          next
+        end
+
+        if info.kind == :structure
+          off_depth = nil if off_depth && info.depth < off_depth
+          if (off_depth.nil? || info.depth == off_depth) && (directive = line[FORMAT_DIRECTIVE, 1])
+            off_depth = (directive == "off") ? info.depth : nil
+            blank_linenos.clear
+            next
+          end
+        end
+        unformatted_linenos.merge(blank_linenos) if off_depth
+        blank_linenos.clear
+        unformatted_linenos << lineno if off_depth
+      end
+      unformatted_linenos
+    end
 
     # Ruby code and interpolated text, as [kind, first, last] character offsets in the source: what the RuboCop plugin lints.
     attr_reader :outline, :line_by_node, :ruby_ranges
@@ -64,6 +104,11 @@ module SuperSlim
       @file = file
       @attribute_shortcut = tailwind_classes ? Shortcuts::TAILWIND_ATTRIBUTE_PATTERN : Shortcuts::ATTRIBUTE_PATTERN
       @record_outline = outline
+    end
+
+    # A string separator splits 6x faster than the regexp, which only templates with \r need.
+    def self.split_lines(source)
+      source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
     end
 
     def call(source)
@@ -75,8 +120,7 @@ module SuperSlim
       end
       normalized = normalize(source)
       @line_starts = line_starts(normalized, source.size - normalized.size) if @record_outline
-      # A string separator splits 6x faster than the regexp, which only templates with \r need.
-      @lines = normalized.include?("\r") ? normalized.split(/\r?\n/) : normalized.split("\n")
+      @lines = Parser.split_lines(normalized)
       @scanner = StringScanner.new("")
       @stacks = [root]
       @indents = []

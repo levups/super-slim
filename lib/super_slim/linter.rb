@@ -70,6 +70,9 @@ module SuperSlim
     end
 
     CONFIG_FILE = ".super-slim.yml"
+    DISABLE_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:disable\s+(\S.*?)\s*\z}
+    # The layout rules: what `super-slim format` rewrites.
+    LAYOUT_RULE_NAMES = %w[Indentation Tab TrailingWhitespace EmptyLines ControlStatementSpacing RedundantDiv].freeze
     GLOB_OPTIONS = %w[include exclude].freeze
 
     def self.load(directory = Dir.pwd)
@@ -114,11 +117,15 @@ module SuperSlim
       parser = Parser.new(file: path, outline: true)
       nodes = parser.call(source)
       visits = Document.visits_of(nodes, parser.line_by_node)
-      lines = source.include?("\r") ? source.split(/\r?\n/) : source.split("\n")
+      lines = Parser.split_lines(source)
       document = Document.new(path:, lines:, nodes:, outline: parser.outline, line_by_node: parser.line_by_node,
         visits:, tag_visits: visits.select { |node,| node.is_a?(AST::Tag) })
       relative_path = File.expand_path(path).delete_prefix(@root)
       offenses = @rules.select { _1.applies_to?(relative_path) }.flat_map { _1.offenses(document, source) }
+      disabled_rules_by_lineno, directive_offenses = disable_directives(document, source)
+      # The layout rules ask for what `super-slim format` would do, which format off turns down.
+      Parser.unformatted_linenos(lines, parser.outline).each { disabled_rules_by_lineno[_1].concat(LAYOUT_RULE_NAMES) }
+      offenses = offenses.reject { disabled_rules_by_lineno.fetch(_1.lineno, []).include?(_1.rule) } + directive_offenses
       # sort_by is not stable: the index keeps offenses of one line in rule order.
       offenses.each_with_index.sort_by { |offense, index| [offense.lineno.to_i, index] }.map(&:first)
     rescue SyntaxError => exception
@@ -126,6 +133,32 @@ module SuperSlim
     end
 
     private
+
+    # `/ super-slim:disable Rule, OtherRule` silences those rules on the next line of the template's structure, comments
+    # skipped, and the lines it goes on over: a Slim comment can't share a line with a tag. A directive that silences
+    # nothing, for a misspelt rule or at the end of the template, is reported.
+    def disable_directives(document, source)
+      disabled_rules_by_lineno = Hash.new { |hash, lineno| hash[lineno] = [] }
+      offenses = []
+      return [disabled_rules_by_lineno, offenses] unless source.include?("super-slim:disable")
+
+      structure_linenos = (1..document.lines.size).select { document.outline[_1]&.kind == :structure }
+      known_rule_names = Rules.all.map(&:rule_name)
+      structure_linenos.each_with_index do |lineno, index|
+        next unless (rule_names = document.lines[lineno - 1][DISABLE_DIRECTIVE, 1])
+
+        rule_names = rule_names.scan(/[^\s,]+/)
+        (rule_names - known_rule_names).each do |rule_name|
+          offenses << Offense.new(document.path, lineno, "Directive", "`#{rule_name}` is not a rule of super-slim lint")
+        end
+        target_index = (index + 1...structure_linenos.size).find { !document.lines[structure_linenos[_1] - 1].match?(Parser::CODE_COMMENT) }
+        next offenses << Offense.new(document.path, lineno, "Directive", "No line follows to silence") unless target_index
+
+        next_lineno = structure_linenos[target_index + 1] || (document.lines.size + 1)
+        (structure_linenos[target_index]...next_lineno).each { disabled_rules_by_lineno[_1].concat(rule_names) }
+      end
+      [disabled_rules_by_lineno, offenses]
+    end
 
     # The preset's table goes under the rule's own entries, where `~` drops one of the preset.
     def with_preset(rule_name, options)

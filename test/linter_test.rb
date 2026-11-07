@@ -136,6 +136,27 @@ class LinterTest < Minitest::Test
     assert_equal "`raw` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`", offenses[1].message
   end
 
+  def test_slim_syntax
+    linter = SuperSlim::Linter.new("SlimSyntax" => {"enabled" => true})
+    source = <<~SLIM
+      = link_to(
+          post.title,
+          post_path(post),
+        )
+      = render Card.new(post:) # rubocop:disable Some/Cop
+      p = post.title # the title
+      - if post.published? # only then
+        p Published
+      = link_to post.title,
+        post_path(post)
+      = "Post #1"
+    SLIM
+    offenses = linter.call("show.html.slim", source)
+
+    assert_equal ["SlimSyntax:1", "SlimSyntax:5", "SlimSyntax:6", "SlimSyntax:7"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
+    assert_equal "Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own", offenses[1].message
+  end
+
   def test_embedded_engines
     linter = SuperSlim::Linter.new("EmbeddedEngines" => {"enabled" => true, "forbidden_engines" => %w[javascript css]})
 
@@ -180,6 +201,36 @@ class LinterTest < Minitest::Test
     offenses = SuperSlim::Linter.new.call("show.html.slim", "img src=\"/#{"a" * 120}.png\"\n")
     assert_equal %w[LineLength ImageAlt], offenses.map(&:rule)
     assert_equal %w[Indentation Tab TrailingWhitespace], SuperSlim::Linter::Rules.all.first(3).map(&:rule_name)
+  end
+
+  def test_aria_true_and_false_render_no_value
+    offenses = SuperSlim::Linter.new.call("show.html.slim", ".toast aria-atomic=true aria-hidden=false aria-live=\"polite\" aria-busy=busy\n")
+
+    assert_equal ["Write `aria-atomic=\"true\"`: Slim renders `aria-atomic=true` without a value",
+      "Write `aria-hidden=\"false\"`: Slim renders `aria-hidden=false` as no attribute at all"], offenses.map(&:message)
+  end
+
+  def test_disable_directive_silences_its_rules_on_the_next_line_and_reports_unknown_ones
+    source = "﻿/ super-slim:disable ImageAlt, IframeTitle, Typo\n\nimg src=\"/a.webp\"\nimg src=\"/b.webp\"\n"
+    assert_offenses ["Directive:1", "ImageAlt:4"], source
+  end
+
+  def test_disable_directive_covers_the_lines_its_line_goes_on_over
+    source = "/ super-slim:disable ,LineLength\ndiv(\n  data-x=\"#{"x" * 130}\")\np\n  | #{"y" * 130}\n"
+    assert_offenses ["LineLength:5"], source
+  end
+
+  def test_disable_directive_skips_comments
+    assert_offenses [], "/ super-slim:disable ImageAlt\n/ Hero\nimg src=\"/a.webp\"\n"
+    assert_offenses [], "/ super-slim:disable ImageAlt\n/ super-slim:disable ButtonType\nimg src=\"/a.webp\"\nbutton Save\n"
+  end
+
+  def test_disable_directive_with_no_line_after_it_is_reported
+    assert_offenses ["Directive:2"], "p\n/ super-slim:disable ImageAlt\n"
+  end
+
+  def test_layout_rules_stay_quiet_where_format_is_off
+    assert_offenses ["Indentation:6"], "div\n  / super-slim:format off\n  p\n       span    a\nspan\n   em\n"
   end
 
   def test_syntax_errors_are_offenses

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "slim"
 require "super_slim"
 
 class FormatterTest < Minitest::Test
@@ -38,6 +39,29 @@ class FormatterTest < Minitest::Test
     assert_formats %(p title="Posts\n  and\n  comments"\n), %(p title="Posts\n  and  \n  comments"\n)
   end
 
+  def test_leaves_the_lines_between_format_off_and_on_as_written_shifted_with_their_block
+    source = "table\n    / super-slim:format off\n    tr: td  =  t(\".empty\")\n\n\n    tr: td  x\n    / super-slim:format on\n    tr: td  =  1\n"
+    expected = "table\n  / super-slim:format off\n  tr: td  =  t(\".empty\")\n\n\n  tr: td  x\n  / super-slim:format on\n  tr\n    td = 1\n"
+
+    assert_equal expected, SuperSlim::Formatter.call(source)
+    assert_equal expected, SuperSlim::Formatter.new(max_line_length: 20).call(source)
+  end
+
+  def test_format_off_without_on_leaves_the_rest_of_its_block_as_written
+    assert_formats "p = 1\n/ super-slim:format off\np  =  2\ndiv(a=\"1\"   b=\"2\")\n", "p  =  1\n/ super-slim:format off\np  =  2\ndiv(a=\"1\"   b=\"2\")\n"
+    assert_formats "div\n  div\n    / super-slim:format off\n    p    a\n  span\n    b = 1\n",
+      "div\n    div\n        / super-slim:format off\n        p    a\n    span\n        b  =  1\n"
+  end
+
+  def test_format_directives_deeper_than_the_off_are_left_as_written
+    assert_formats "div\n  / super-slim:format off\n  ul\n       li\n         / super-slim:format on\n         a x\n", "div\n    / super-slim:format off\n    ul\n         li\n           / super-slim:format on\n           a x\n"
+    assert_formats "/ super-slim:format off\ndiv\n  / super-slim:format off\n  p  =  1\nspan  =  2\n", "/ super-slim:format off\ndiv\n  / super-slim:format off\n  p  =  1\nspan  =  2\n"
+  end
+
+  def test_blank_lines_closing_a_format_off_block_are_formatted
+    assert_formats "div\n  / super-slim:format  off\n  p  a\n\nspan = 1\n", "div\n  / super-slim:format  off\n  p  a\n\n\n\nspan  =  1\n"
+  end
+
   def test_is_idempotent
     formatted = SuperSlim::Formatter.call("div\n   - if x\n      p=y\n   - else\n      |  a\n          b\n")
 
@@ -65,29 +89,38 @@ class FormatterTest < Minitest::Test
     source = %(td = link_to post.title, post_path(post) if post.published?\n)
 
     assert_equal source, SuperSlim::Formatter.new(max_line_length: 30).call(source)
-    assert_wraps %(= link_to(\n    post.title,\n    (post_path(post) if post.published?),\n  )\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
+    assert_wraps %(= link_to post.title,\n  (post_path(post) if post.published?)\n), %(= link_to post.title, (post_path(post) if post.published?)\n)
   end
 
-  def test_spreads_the_arguments_of_a_call_one_per_line_between_parentheses
-    assert_wraps %(= link_to(\n    "Edit, now",\n    edit_post_path(post, x: 1),\n    class: "btn",\n  )\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n),
+  def test_spreads_the_arguments_of_a_call_one_per_line_after_commas
+    assert_wraps %(= link_to "Edit, now",\n  edit_post_path(post, x: 1),\n  class: "btn"\n), %(= link_to "Edit, now", edit_post_path(post, x: 1), class: "btn"\n),
       max_line_length: 31
-    assert_wraps %(- links = [\n    root_path,\n    posts_path,\n  ]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
+    assert_wraps %(- links = [\\\n  root_path,\n  posts_path]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
+  end
+
+  def test_spreads_code_in_a_layout_slim_reads
+    assert_wraps %(= link_to "Read the whole post",\n  post_path(post),\n  class: "btn btn-primary"\n),
+      %(= link_to "Read the whole post", post_path(post), class: "btn btn-primary"\n), max_line_length: 40
+  end
+
+  def test_puts_a_first_argument_that_passes_the_limit_on_a_line_of_its_own
+    assert_wraps %(= some_long_helper_name \\\n  "first argument",\n  second\n), %(= some_long_helper_name "first argument", second\n), max_line_length: 40
   end
 
   def test_spreads_the_only_argument_when_it_is_a_call_or_a_hash
-    assert_wraps %(= render Card.new(\n    title: post.title,\n    body: post.body,\n  )\n), %(= render Card.new(title: post.title, body: post.body)\n)
-    assert_wraps %(= render({\n    partial: "a/partial",\n    locals: {post: post},\n  })\n), %(= render({partial: "a/partial", locals: {post: post}})\n), max_line_length: 20
+    assert_wraps %(= render Card.new(\\\n  title: post.title,\n  body: post.body)\n), %(= render Card.new(title: post.title, body: post.body)\n)
+    assert_wraps %(= render({\\\n  partial: "a/partial",\n  locals: {post: post}})\n), %(= render({partial: "a/partial", locals: {post: post}})\n), max_line_length: 20
   end
 
-  def test_spreads_a_block_argument_without_a_trailing_comma
-    assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n    &block\n  )\n), %(= link_to post.title, post_path(post), &block\n)
-    assert_wraps %(= link_to(\n    post.title,\n    data: post_data(&block),\n  )\n), %(= link_to post.title, data: post_data(&block)\n)
+  def test_spreads_a_block_argument_last
+    assert_wraps %(= link_to post.title,\n  post_path(post),\n  &block\n), %(= link_to post.title, post_path(post), &block\n)
+    assert_wraps %(= link_to post.title,\n  data: post_data(&block)\n), %(= link_to post.title, data: post_data(&block)\n)
   end
 
   def test_leaves_alone_the_lines_it_cannot_spread_and_wraps_the_others
     untouched = %(- words = %w[alpha bravo charlie delta]\n- list[first_key, second_key] = value\n= form.radio label: post.title, hint: -> do\n  p Hint\n)
 
-    assert_wraps %(#{untouched}= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(#{untouched}= link_to post.title, post_path(post)\n)
+    assert_wraps %(#{untouched}= link_to post.title,\n  post_path(post)\n), %(#{untouched}= link_to post.title, post_path(post)\n)
   end
 
   def test_starts_a_block_right_after_the_line_that_opens_it
@@ -115,6 +148,11 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_format_off_keeps_inline_tags_and_ruby_lines_as_written
+    untouched = "table\n  / super-slim:format off\n  tr: td x\n  - a = 1\n  - b = 2\n  - c = 3\n  / super-slim:format on\n  tr\n    td y\n"
+    assert_formats untouched, untouched
+  end
+
   def test_three_ruby_lines_or_more_make_a_ruby_block_and_fewer_do_not
     assert_formats "div\n  ruby:\n    a = 1\n    b = 2\n    c = 3\n\n  p = a\n", "div\n  - a = 1\n  - b = 2\n  - c = 3\n\n  p = a\n"
     assert_formats "- page_title \"Edit\"\n- breadcrumb :form, @contract\np\n", "ruby:\n  page_title \"Edit\"\n  breadcrumb :form, @contract\np\n"
@@ -123,13 +161,13 @@ class FormatterTest < Minitest::Test
   end
 
   def test_sets_apart_the_arguments_of_a_call_that_opens_a_block
-    assert_wraps %(= form_with(\n      model: post,\n      url: posts_path,\n    ) do |form, options|\n  = form.text_field :title\n),
+    assert_wraps %(= form_with model: post,\n    url: posts_path do |form, options|\n  = form.text_field :title\n),
       %(= form_with model: post, url: posts_path do |form, options|\n  = form.text_field :title\n)
-    assert_wraps %(= render(\n      layout: "card",\n      locals: {post:},\n    ) do\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
+    assert_wraps %(= render layout: "card",\n    locals: {post:} do\n  p Hello\n), %(= render layout: "card", locals: {post:}\n  p Hello\n)
   end
 
   def test_wraps_the_output_of_a_tag_after_its_attributes
-    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date(\n    post.created_at,\n    :long,\n  )\n),
+    assert_wraps %(p(\n  class=classes\n  title="A long title"\n) = format_date \\\n  post.created_at,\n  :long\n),
       %(p class=classes title="A long title" = format_date post.created_at, :long\n)
   end
 
@@ -140,13 +178,20 @@ class FormatterTest < Minitest::Test
   end
 
   def test_respreads_code_spread_by_hand
-    assert_wraps %(= link_to(\n    post.title,\n    post_path(post),\n  )\n), %(= link_to post.title,\n        post_path(post)\n)
+    assert_wraps %(= render Card.new(title: post.title,\n  data: {controller: "a-long-controller",\n    action: "click->a-long-controller#open"})\n),
+      %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n), max_line_length: 60
+    assert_wraps %(= link_to post.title,\n  post_path(post)\n), %(= link_to post.title,\n        post_path(post)\n)
   end
 
   def test_keeps_code_spread_by_hand_when_the_layout_would_pass_the_limit
-    source = %(= render Card.new(\n    title: post.title,\n    data: {\n      controller: "a-long-controller",\n      action: "click->a-long-controller#open",\n    },\n  )\n)
+    source = %(= render layout: "card",\n  locals: {post: "Alice wrote a long post"}\n  p Hello\n)
 
-    assert_wraps source, source, max_line_length: 60
+    assert_wraps source, source, max_line_length: 50
+  end
+
+  def test_respreads_code_spread_by_hand_in_a_layout_slim_cannot_read
+    assert_wraps %(= render Card.new(\\\n  title: "Alice wrote a post about Bob",\n  body: post.body)\n),
+      %(= render Card.new(\n    title: "Alice wrote a post about Bob",\n    body: post.body,\n  )\n), max_line_length: 50
   end
 
   def test_keeps_code_spread_by_hand_when_every_layout_passes_the_limit
@@ -156,14 +201,14 @@ class FormatterTest < Minitest::Test
   end
 
   def test_spreads_an_argument_that_passes_the_limit_one_element_per_line
-    expected = %(= render(\n    "posts/card",\n    hint: [\n      "Alice wrote this post.",\n      "Bob read it and replied.",\n    ].join(" "),\n  )\n)
+    expected = %(= render "posts/card",\n  hint: ["Alice wrote this post.",\n    "Bob read it and replied."].join(" ")\n)
 
     assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.", "Bob read it and replied."].join(" ")\n), max_line_length: 40
     assert_wraps expected, %(= render "posts/card", hint: ["Alice wrote this post.",\n  "Bob read it and replied."].join(" ")\n), max_line_length: 40
   end
 
   def test_spreads_a_nested_array_spread_by_hand_one_element_per_line
-    expected = %(= form.select(\n    :state,\n    collection: [\n      ["New", "new"],\n      ["Used", "used"],\n      ["Demo", "demo"],\n    ],\n    class: "x",\n  )\n)
+    expected = %(= form.select :state,\n  collection: [["New", "new"],\n    ["Used", "used"],\n    ["Demo", "demo"]],\n  class: "x"\n)
 
     assert_wraps expected, %(= form.select :state, collection: [["New", "new"], ["Used", "used"], ["Demo", "demo"]], class: "x"\n), max_line_length: 30
     assert_wraps expected, %(= form.select :state, collection: [["New", "new"], ["Used", "used"],\n    ["Demo", "demo"]], class: "x"\n), max_line_length: 30
@@ -223,11 +268,11 @@ class FormatterTest < Minitest::Test
   end
 
   def test_wraps_a_template_that_yields
-    assert_wraps %(= render(\n    "card",\n    body: yield(post),\n  )\n), %(= render "card", body: yield(post)\n)
+    assert_wraps %(= render "card",\n  body: yield(post)\n), %(= render "card", body: yield(post)\n)
   end
 
   def test_wraps_an_argument_that_is_an_if_expression
-    assert_wraps %(= submit_button(\n    :save,\n    if post.persisted? then "Save" else "Add" end,\n  )\n),
+    assert_wraps %(= submit_button :save,\n  if post.persisted? then "Save" else "Add" end\n),
       %(= submit_button :save, if post.persisted? then "Save" else "Add" end\n)
   end
 
@@ -296,7 +341,7 @@ class FormatterTest < Minitest::Test
 
   def formatter_wrapping_into(wrapped)
     formatter = SuperSlim::Formatter.new(max_line_length: 10)
-    formatter.instance_variable_set(:@line_wrapper, ->(_source) { wrapped })
+    formatter.instance_variable_set(:@line_wrapper, ->(*) { wrapped })
     formatter
   end
 
@@ -305,5 +350,26 @@ class FormatterTest < Minitest::Test
 
     assert_equal expected, formatter.call(source)
     assert_equal expected, formatter.call(expected)
+    # Brakeman reads templates with Slim: it must read the same code, not a continuation line as a tag.
+    assert_equal code_of(SuperSlim::Parser.new.call(expected)), slim_code_of(Slim::Parser.new.call(expected)), "Slim reads otherwise:\n#{expected}"
+  end
+
+  def code_of(nodes)
+    Array(nodes).flat_map do |node|
+      case node
+      when SuperSlim::AST::Output, SuperSlim::AST::Control then [node.code, *code_of(node.children)]
+      when SuperSlim::AST::Tag then code_of(node.content)
+      when Struct then node.members.flat_map { code_of(node[_1]) if node[_1].is_a?(Array) }.compact
+      else []
+      end
+    end
+  end
+
+  def slim_code_of(sexp)
+    return [] unless sexp.is_a?(Array)
+    return [sexp[3], *slim_code_of(sexp[4])] if sexp[0..1] == [:slim, :output]
+    return [sexp[2], *slim_code_of(sexp[3])] if sexp[0..1] == [:slim, :control]
+
+    sexp.flat_map { slim_code_of(_1) }
   end
 end

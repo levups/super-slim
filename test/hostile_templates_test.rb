@@ -34,7 +34,8 @@ class HostileTemplatesTest < Minitest::Test
     assert_equal "<a>" * 499 + "<b></b>" + "</a>" * 499, render("#{"a: " * 499}b\n")
 
     # How deep Prism goes before it exhausts the stack depends on the machine.
-    with_stack_overflow_in(:parse) { assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n= 1  \n") } }
+    # Blank lines change the compiled Ruby: identical Ruby would never reach Prism.
+    with_stack_overflow_in(:parse) { assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n\n\n= 1\n") } }
     assert_equal "p\n= #{"[" * 2_000}1#{"]" * 2_000}\n", SuperSlim::Formatter.new.call("p\n= #{"[" * 2_000}1#{"]" * 2_000}  \n")
   end
 

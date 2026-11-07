@@ -28,6 +28,7 @@ module SuperSlim
     # Prism 1.x counts in a node's flags whether it starts a line.
     NEWLINE_FLAG = defined?(Prism::NodeFlags::NEWLINE) ? Prism::NodeFlags::NEWLINE : 0
     FIELDS_BY_NODE_CLASS = {}
+    COMPARATOR_BY_NODE_CLASS = {}
 
     def self.call(source, **)
       new(**).call(source)
@@ -56,24 +57,33 @@ module SuperSlim
     end
 
     def call(source)
-      formatted = layout(source)
-      formatted_ruby = compiled_ruby(formatted) unless formatted == source
-      if formatted_ruby && !same_ruby?(compiled_ruby(source), formatted_ruby)
-        raise UnsafeFormattingError, "Formatting would change how this template renders"
+      parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
+      nodes = parser.call(source)
+      formatted = layout(source, parser)
+      unless formatted == source
+        source_code = compiled_code(nodes)
+        nodes, parser = parsed_template(formatted)
+        formatted_code = compiled_code(nodes)
+        # Most templates the layout changes compile to the very same Ruby: only the others are parsed.
+        unless source_code.is_a?(String) && source_code == formatted_code
+          formatted_ruby = parsed_ruby(formatted_code)
+          raise UnsafeFormattingError, "Formatting would change how this template renders" unless same_ruby?(parsed_ruby(source_code), formatted_ruby)
+        end
       end
       return formatted unless @line_wrapper
 
-      wrapped = @line_wrapper.call(formatted)
+      wrapped = @line_wrapper.call(formatted, parser:)
       return formatted if wrapped == formatted
 
       # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block.
-      wrapped = layout(wrapped) if wrapped.match?(CONTROL_RUN)
+      wrapped = layout(wrapped, parsed_template(wrapped).last) if wrapped.match?(CONTROL_RUN)
 
-      wrapped_ruby = compiled_ruby(wrapped)
+      wrapped_ruby = parsed_ruby(compiled_code(parsed_template(wrapped, outline: false).first))
       # Only Prism's tree vouches for a wrap: a compile error can read the same before and after it.
       return formatted unless wrapped_ruby.is_a?(Prism::ParseResult)
 
-      same_ruby?(formatted_ruby || compiled_ruby(formatted), wrapped_ruby) ? wrapped : formatted
+      formatted_ruby ||= parsed_ruby(formatted_code || compiled_code(nodes))
+      same_ruby?(formatted_ruby, wrapped_ruby) ? wrapped : formatted
     # Prism walks code recursively too: code nested thousands deep can't be checked, so it isn't formatted.
     rescue SystemStackError
       raise UnsafeFormattingError, "Code nested too deep to check that formatting changes nothing"
@@ -81,27 +91,34 @@ module SuperSlim
 
     private
 
-    def layout(source)
-      parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
-      parser.call(source)
-      lines = source.delete_prefix("﻿").split(/\r?\n/)
+    def layout(source, parser)
+      source = source.delete_prefix("﻿")
+      lines = Parser.split_lines(source)
 
       outline = parser.outline
+      unformatted_linenos = Parser.unformatted_linenos(lines, outline)
       first_structure_lineno = (1...outline.size).find { outline[_1].kind == :structure }
       # A partial's signature reads like a method's: alone at the top, set apart from the body.
       locals_header_lineno = first_structure_lineno if first_structure_lineno && lines[first_structure_lineno - 1].match?(LOCALS_HEADER)
       block_opening_linenos = Formatter.block_opening_linenos(parser)
       formatted = []
       indent_shift_by_lineno = {}
+      indent_shift = 0
       previous_structure_lineno = nil
       blank_line_pending = false
       # [depth, levels]: the children of a line whose inline tags were spread go that many levels deeper.
       spread_levels = []
-      code_lines_by_lineno, rewritten_linenos = ruby_code_layout(lines, outline, parser)
+      code_lines_by_lineno, rewritten_linenos = ruby_code_layout(lines, outline, parser, unformatted_linenos)
       lines.each.with_index(1) do |line, lineno|
         next if rewritten_linenos.include?(lineno)
 
         info = outline[lineno]
+        # Unformatted lines move with the directive above them, so that they stay inside its block.
+        if unformatted_linenos.include?(lineno)
+          blank_line_pending = false
+          next formatted << shifted(line, indent_shift)
+        end
+
         case info.kind
         when :blank
           formatted << "" unless formatted.empty? || formatted.last.empty?
@@ -117,7 +134,7 @@ module SuperSlim
           spread_levels.pop while spread_levels.last && info.depth <= spread_levels.last[0]
           depth = info.depth + spread_levels.sum { |_depth, levels| levels }
           indent = depth * INDENT_WIDTH
-          indent_shift_by_lineno[lineno] = indent - indent_of(line)
+          indent_shift = indent_shift_by_lineno[lineno] = indent - indent_of(line)
           next_info = outline[lineno + 1]
           if (code_lines = code_lines_by_lineno[lineno])
             formatted.concat(code_lines.map { (" " * indent) + _1 })
@@ -160,7 +177,7 @@ module SuperSlim
     # lines; three lines or more go in a `ruby:` block, fewer go on `-` lines. Only lines of Ruby complete on their
     # own move, with no block and no comment. Returns the lines that replace each run's first line, and the line
     # numbers they replace.
-    def ruby_code_layout(lines, outline, parser)
+    def ruby_code_layout(lines, outline, parser, unformatted_linenos)
       # [first line number, last line number, depth, code lines]
       code_units = parser.line_by_node.filter_map do |node, lineno|
         case node
@@ -175,6 +192,8 @@ module SuperSlim
           [lineno, body_linenos.last, outline[lineno].depth, body] if body.any? && body_linenos.all? { outline[_1].kind == :text } && body.all? { movable_code?(_1) }
         end
       end
+      # `format off` keeps its lines as written.
+      code_units.reject! { |first_lineno, last_lineno| (first_lineno..last_lineno).any? { unformatted_linenos.include?(_1) } }
       runs = code_units.sort_by!(&:first).chunk_while { |unit, next_unit| next_unit[0] == unit[1] + 1 && next_unit[2] == unit[2] }
       code_lines_by_lineno = {}
       rewritten_linenos = Set.new
@@ -234,6 +253,13 @@ module SuperSlim
       (" " * indent) + content
     end
 
+    def shifted(line, indent_shift)
+      line = expand_tabs(line)
+      return "" if line.strip.empty?
+
+      (" " * [line[/\A */].size + indent_shift, 0].max) + line.lstrip
+    end
+
     def with_output_spacing(line, info)
       return line unless info.output_column && line[info.output_column..] =~ TAG_OUTPUT
 
@@ -246,18 +272,35 @@ module SuperSlim
     end
 
     def expand_tabs(line)
+      return line unless line.include?("\t")
+
       line.sub(/\A[ \t]*/) { _1.gsub(Parser::TAB, "\\1#{" " * Parser::TAB_SIZE}") }
     end
 
+    # The template's nodes and its parser, which holds the outline; the error when it doesn't parse.
+    def parsed_template(template, outline: true)
+      parser = Parser.new(outline:, tailwind_classes: @tailwind_classes)
+      [parser.call(template), parser]
+    rescue Error => exception
+      [exception, nil]
+    end
+
+    # The Ruby the nodes compile to, their attributes sorted by name; the error when they don't parse or compile.
+    def compiled_code(nodes)
+      return nodes if nodes.is_a?(Error)
+
+      Compiler.new(format: :xml).call(with_attributes_sorted_by_name(nodes))
+    rescue Error => exception
+      exception
+    end
+
     # Prism's tree of the compiled Ruby; that Ruby with its separators folded when Prism can't read it; the error
-    # when the template doesn't compile.
-    def compiled_ruby(source)
-      nodes = Parser.new(tailwind_classes: @tailwind_classes).call(source)
-      code = Compiler.new(format: :xml).call(with_attributes_sorted_by_name(nodes))
+    # message when the template doesn't compile.
+    def parsed_ruby(code)
+      return code.message if code.is_a?(Error)
+
       parsed = Prism.parse("#{CodeWrapper::TEMPLATE_METHOD}#{code}\nend")
       parsed.success? ? parsed : code.gsub(/(?:\s*[;\n]\s*)+/, ";")
-    rescue Error => exception
-      exception.message
     end
 
     # A tag renders the same whatever the order of its attributes, and with a class shortcut named twice once: both
@@ -287,52 +330,78 @@ module SuperSlim
       same_node?(ruby.value, other_ruby.value) && comment_texts(ruby) == comment_texts(other_ruby)
     end
 
-    # Walks both trees with a stack of its own: deep code or a deep template would exhaust Ruby's.
+    # Walks both trees with a stack of its own, the two values of each pair pushed one after the other: deep code or
+    # a deep template would exhaust Ruby's.
     def same_node?(node, other_node)
-      pairs = [[node, other_node]]
-      until pairs.empty?
-        value, other_value = pairs.pop
+      pending_values = [node, other_node]
+      until pending_values.empty?
+        other_value = pending_values.pop
+        value = pending_values.pop
         case value
         when Prism::Node
-          return false unless value.instance_of?(other_value.class)
-          return false unless same_node_value?(value, other_value)
+          return false unless value.instance_of?(other_value.class) && node_comparator(value).call(value, other_value, pending_values)
         when Array
           return false unless other_value.is_a?(Array) && value.size == other_value.size
+
+          index = 0
+          while index < value.size
+            pending_values << value[index] << other_value[index]
+            index += 1
+          end
         else
           return false unless value == other_value
-
-          next
         end
-        pairs.concat(children_pairs(value, other_value).reverse)
       end
       true
     end
 
-    def same_node_value?(node, other_node)
-      # `__LINE__` holds no value in the tree: removing a blank line above it changes what it renders.
-      return node.location.start_line == other_node.location.start_line if node.is_a?(Prism::SourceLineNode)
-
-      field_names, located_names, flagged = node_fields(node)
-      return false if flagged && (node.send(:flags) & ~NEWLINE_FLAG) != (other_node.send(:flags) & ~NEWLINE_FLAG)
-      # 2026-11: Prism 0.19 (Ruby 3.3) keeps the value of an integer or a float out of its fields.
-      return node.value == other_node.value if field_names.empty? && (node.is_a?(Prism::IntegerNode) || node.is_a?(Prism::FloatNode))
-
-      located_names.all? { |name| same_name?(node.public_send(name), other_node.public_send(name)) }
+    def node_comparator(node)
+      COMPARATOR_BY_NODE_CLASS[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
     end
 
-    def children_pairs(value, other_value)
-      return value.zip(other_value) if value.is_a?(Array)
-      return [] if value.is_a?(Prism::SourceLineNode)
+    class << self
+      private
 
-      node_fields(value).first.map { |name| [value.public_send(name), other_value.public_send(name)] }
-    end
+      # Compares what two nodes of one class hold besides their children, and pushes their children on `pending_values`.
+      def comparator_for(node_class, field_names, located_names, flagged)
+        if node_class <= Prism::SourceLineNode
+          # `__LINE__` holds no value in the tree: removing a blank line above it changes what it renders.
+          ->(source_line, other_source_line, _pending_values) { source_line.location.start_line == other_source_line.location.start_line }
+        elsif field_names.empty? && (node_class <= Prism::IntegerNode || node_class <= Prism::FloatNode)
+          # 2026-11: Prism 0.19 (Ruby 3.3) keeps the value of an integer or a float out of its fields.
+          ->(number, other_number, _pending_values) { (!flagged || same_flags?(number, other_number)) && number.value == other_number.value }
+        else
+          clauses = []
+          clauses << "same_flags?(value, other_value)" if flagged
+          located_names.each { |name| clauses << "same_name?(value.#{name}, other_value.#{name})" }
+          pushes = field_names.map { |name| "pending_values << value.#{name} << other_value.#{name}" }
+          # Fields unrolled, without public_send: 2.5x faster with YJIT. The names come from Prism's own classes.
+          lambda_from(<<~LAMBDA)
+            ->(value, other_value, pending_values) do
+              #{"return false unless #{clauses.join(" && ")}" unless clauses.empty?}
+              #{pushes.join("\n")}
+              true
+            end
+          LAMBDA
+        end
+      end
 
-    # Beside a location, a field holds either a name or, from Prism 2 on, the source the location covers
-    # (`opening` beside `opening_loc`): only the name counts.
-    def same_name?(name, other_name)
-      return true unless name.is_a?(Symbol) || other_name.is_a?(Symbol)
+      # Evaluated here, the lambda holds no local but its own source.
+      def lambda_from(code)
+        eval(code, binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+      end
 
-      name == other_name
+      def same_flags?(node, other_node)
+        (node.send(:flags) & ~NEWLINE_FLAG) == (other_node.send(:flags) & ~NEWLINE_FLAG)
+      end
+
+      # Beside a location, a field holds either a name or, from Prism 2 on, the source the location covers
+      # (`opening` beside `opening_loc`): only the name counts.
+      def same_name?(name, other_name)
+        return true unless name.is_a?(Symbol) || other_name.is_a?(Symbol)
+
+        name == other_name
+      end
     end
 
     # 2026-11: Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each

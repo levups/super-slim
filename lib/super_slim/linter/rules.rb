@@ -360,6 +360,22 @@ module SuperSlim
         end
       end
 
+      # Slim renders `aria-atomic=true` as a bare `aria-atomic` and drops `aria-hidden=false`: ARIA reads the string.
+      class AriaBooleanValue < Rule
+        BOOLEAN_CODES = %w[true false].freeze
+
+        def offenses(document, _source)
+          enum_for(:each_tag, document).flat_map do |tag,|
+            tag.attributes.filter_map do |attribute|
+              next unless attribute.is_a?(AST::CodeAttribute) && attribute.name.start_with?("aria-")
+              next unless BOOLEAN_CODES.include?(value = attribute.code.strip)
+
+              offense(document, document.line_of(tag), "Write `#{attribute.name}=\"#{value}\"`: Slim renders `#{attribute.name}=#{value}` #{(value == "true") ? "without a value" : "as no attribute at all"}")
+            end
+          end
+        end
+      end
+
       class AriaRole < Rule
         ROLES = %w[alert alertdialog application article banner blockquote button caption cell checkbox code columnheader
           combobox complementary contentinfo definition deletion dialog document emphasis feed figure form generic
@@ -533,6 +549,30 @@ module SuperSlim
 
             excerpt = (text.length > EXCERPT_LENGTH) ? "#{text[0, EXCERPT_LENGTH]}…" : text
             offense(document, line_near(document, node, ancestors), "Translate `#{excerpt}` instead of writing it in the template")
+          end
+        end
+      end
+
+      # Brakeman parses views with Slim, which refuses these lines: it reports the template and checks nothing in it.
+      class SlimSyntax < Rule
+        MESSAGE = "Slim, and so Brakeman, cannot read"
+
+        def offenses(document, _source)
+          document.enum_for(:each_node).filter_map do |node, ancestors|
+            next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
+            next unless (reason = reason_of(node.code))
+
+            offense(document, line_near(document, node, ancestors), "#{MESSAGE} #{reason}")
+          end
+        end
+
+        private
+
+        def reason_of(code)
+          if !Parser.slim_continuation?(code.split("\n"))
+            "code continued after an opening bracket: end each line but the last with a comma"
+          elsif Parser::RubyBrackets.code_comment_offset(code)
+            "a comment after code: move it to a line of its own"
           end
         end
       end
