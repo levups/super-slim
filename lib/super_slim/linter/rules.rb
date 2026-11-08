@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "prism"
+
 module SuperSlim
   class Linter
     module Rules
@@ -75,6 +77,44 @@ module SuperSlim
 
         def literal_attributes(tag, name)
           tag.attributes.select { _1.respond_to?(:name) && _1.name == name && literal_value(_1) }
+        end
+
+        INTERPOLATION = /#\{\{?([^{}]*)\}?\}/
+
+        # Each piece of Ruby in the template, with the line it starts on: `-` and `=` lines, attribute values, splats,
+        # `ruby:` blocks, and the interpolations of text and quoted attributes.
+        def each_ruby(document)
+          document.each_node do |node, ancestors|
+            case node
+            when AST::Control, AST::Output then yield node.code, document.line_of(node)
+            when AST::Tag
+              node.attributes.each do |attribute|
+                case attribute
+                when AST::CodeAttribute, AST::Splat then yield attribute.code, document.line_of(node)
+                when AST::QuotedAttribute then attribute.text.scan(INTERPOLATION) { yield $1, document.line_of(node) }
+                end
+              end
+            when AST::Embedded
+              next unless node.engine == "ruby"
+
+              yield node.children.grep(AST::Text).map(&:text).join("\n"), document.line_of(node) + 1
+            when AST::Text
+              next if ancestors.last.is_a?(AST::Embedded) && ancestors.last.engine == "ruby"
+
+              node.text.scan(INTERPOLATION) { yield $1, line_near(document, node, ancestors) }
+            end
+          end
+        end
+
+        # Prism reads a `- if` or `- each do` line without its `end`, as it reads code with errors: the tree it gives
+        # holds the calls written.
+        def each_prism_node(code_or_node)
+          stack = [code_or_node.is_a?(String) ? Prism.parse(code_or_node).value : code_or_node]
+          until stack.empty?
+            node = stack.pop
+            yield node
+            stack.concat(node.compact_child_nodes)
+          end
         end
       end
 
@@ -271,6 +311,41 @@ module SuperSlim
           return [] if !document.partial? || document.lines.any? { _1.match?(%r{\A\s*/#\s*locals:}) }
 
           [offense(document, 1, "Declare the partial's locals: `/# locals: (name:)`")]
+        end
+      end
+
+      class UnusedLocals < Rule
+        SIGNATURE = %r{\A\s*/#\s*locals:\s*(\(.*\))\s*\z}
+
+        def offenses(document, _source)
+          return [] unless (lineno = document.lines.index { _1.match?(SIGNATURE) })
+
+          definition = Prism.parse("def _#{document.lines[lineno][SIGNATURE, 1]}; end").value.statements&.body&.first
+          return [] unless definition.is_a?(Prism::DefNode) && definition.parameters
+
+          declared = definition.parameters.keywords.map(&:name)
+          # A default can read another local: `(post:, title: post.title)`.
+          read = Set.new
+          definition.parameters.keywords.each { read.merge(names_read(_1.value)) if _1.respond_to?(:value) }
+          each_ruby(document) { |code,| read.merge(names_read(code)) }
+          return [] if read.include?(:local_assigns)
+
+          (declared - read.to_a).map { offense(document, lineno + 1, "The local `#{_1}` is declared but never read") }
+        end
+
+        private
+
+        # A partial reads its locals as methods without receiver nor arguments, the shorthand `post:` included, or as
+        # variables once code has assigned them.
+        def names_read(code_or_node)
+          names = Set.new
+          each_prism_node(code_or_node) do |node|
+            case node
+            when Prism::LocalVariableReadNode then names << node.name
+            when Prism::CallNode then names << node.name if node.receiver.nil? && node.arguments.nil?
+            end
+          end
+          names
         end
       end
 

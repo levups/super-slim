@@ -89,6 +89,21 @@ class LinterTest < Minitest::Test
     assert_offenses [], "p = @user.name\n", path: "app/views/show.html.slim"
   end
 
+  def test_unused_locals
+    assert_offenses ["UnusedLocals:1"], "/# locals: (post:, form:)\n\nh2 = post.title\n", path: "_card.html.slim"
+    read_everywhere = <<~SLIM
+      /# locals: (post:, form:, title: post.name, tags: [], note: nil, author: nil)
+
+      h2 title=title = render "card", form:
+      p class="\#{tags.join(" ")}" \#{note} text
+      ruby:
+        name = author
+    SLIM
+    assert_offenses [], read_everywhere, path: "_card.html.slim"
+    assert_offenses ["UnusedLocals:1"], "/# locals: (post:)\n\n= render \"card\", post: 1\n", path: "_card.html.slim"
+    assert_offenses [], "/# locals: (post:)\n\n= local_assigns[:post]\n", path: "_card.html.slim"
+  end
+
   def test_case_sensitive_xml_and_svg_tags
     assert_offenses [], "pubDate = date\n", path: "feed.rss.slim"
     assert_offenses [], "svg\n  linearGradient\n"

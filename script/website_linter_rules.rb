@@ -46,6 +46,7 @@ EXAMPLE_BY_RULE = {
     "select name=\"sort\" data-action=\"sort#submit\"\n"),
   "InstanceVariables" => Example.new("p = @post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
   "StrictLocals" => Example.new("p = post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
+  "UnusedLocals" => Example.new("/# locals: (post:, form:)\np = post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
   "DuplicateId" => Example.new("#menu\n#menu\n", "#menu\n#footer-menu\n"),
   "ImageAlt" => Example.new("img src=post.image_url\n", "img src=post.image_url alt=post.title\n"),
   "IframeTitle" => Example.new("iframe src=video_url\n", "iframe src=video_url title=\"Intro video\"\n"),
@@ -68,7 +69,7 @@ RULES_BY_GROUP = {
   "Ruby in templates, from haml-lint and erb_lint" =>
     %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput
       SlimSyntax EmbeddedEngines HardcodedText],
-  "Rails conventions" => %w[InstanceVariables StrictLocals],
+  "Rails conventions" => %w[InstanceVariables StrictLocals UnusedLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaBooleanValue AriaRole AriaAttribute ButtonType]
 }.freeze
@@ -114,6 +115,8 @@ WHY_BY_RULE = {
     "locals say what it needs. Checked in partials only.",
   "StrictLocals" => "With a `locals:` comment, Rails 7.1 and later raise when a partial gets a local it does not " \
     "declare, or misses a required one.",
+  "UnusedLocals" => "Callers keep passing a local the partial no longer reads, and Rails accepts it: " \
+    "the `locals:` comment stops describing the partial. A template that reads `local_assigns` is left alone.",
   "DuplicateId" => "An `id` names one element of the page: labels, anchors, ARIA references and " \
     "`getElementById` all find the first one only.",
   "ImageAlt" => "Screen readers read `alt` in place of the image, and the file name without it. " \
@@ -162,6 +165,7 @@ SUMMARY_BY_RULE = {
   "HardcodedText" => "Text goes through translations",
   "InstanceVariables" => "Partials take locals, not instance variables",
   "StrictLocals" => "Partials declare their locals",
+  "UnusedLocals" => "Partials read every local they declare",
   "DuplicateId" => "Each `id` once per template",
   "ImageAlt" => "Images have `alt`",
   "IframeTitle" => "Frames have `title`",
