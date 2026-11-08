@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">38</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">41</span> rules taken from slim-lint, haml-lint, erb_lint, RuboCop, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, conditionals, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -170,6 +170,10 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <tr><td><a href="#SlimSyntax">SlimSyntax</a></td><td>Only lines Slim and Brakeman can read</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#EmbeddedEngines">EmbeddedEngines</a></td><td>No <code>javascript:</code> or <code>css:</code> blocks you forbid</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#HardcodedText">HardcodedText</a></td><td>Text goes through translations</td><td class="off">off</td><td></td></tr>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">Conditionals, from RuboCop</th></tr>
+<tr><td><a href="#SoleNestedConditional">SoleNestedConditional</a></td><td><code>&amp;&amp;</code> rather than an <code>if</code> alone inside another</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#NegatedIfElseCondition">NegatedIfElseCondition</a></td><td>No <code>if !x</code> with an <code>else</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#UnlessElse">UnlessElse</a></td><td>No <code>unless</code> with an <code>else</code></td><td class="on">on</td><td></td></tr>
 <tr class="rule-index-group"><th colspan="4" scope="rowgroup">Rails conventions</th></tr>
 <tr><td><a href="#InstanceVariables">InstanceVariables</a></td><td>Partials take locals, not instance variables</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#StrictLocals">StrictLocals</a></td><td>Partials declare their locals</td><td class="off">off</td><td></td></tr>
@@ -515,6 +519,59 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 </code></pre></div>
   </div>
   <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+</section>
+<section class="rule-group"><h3>Conditionals, from RuboCop</h3>
+<article class="rule" id="SoleNestedConditional">
+  <h4><a href="#SoleNestedConditional">SoleNestedConditional</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Two nested conditionals with no other branch are one condition: <code>&amp;&amp;</code> says it in one line, one level of indentation less. RuboCop&#39;s Style/SoleNestedConditional cannot see <code>-</code> lines.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">published?</span>
+  <span class="p">-</span> <span class="k">if</span> <span class="n">current_user</span><span class="p">.</span><span class="nf">admin?</span>
+    <span class="p">=</span> <span class="n">link_to</span> <span class="s2">"Edit"</span><span class="p">,</span> <span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
+</code></pre><p class="rule-output">Merge this <code>if</code> into the one around it with <code>&amp;&amp;</code></p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">published?</span> <span class="o">&amp;&amp;</span> <span class="n">current_user</span><span class="p">.</span><span class="nf">admin?</span>
+  <span class="p">=</span> <span class="n">link_to</span> <span class="s2">"Edit"</span><span class="p">,</span> <span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="NegatedIfElseCondition">
+  <h4><a href="#NegatedIfElseCondition">NegatedIfElseCondition</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">With an <code>else</code>, the <code>!</code> can go: swapping the branches puts the positive case first. <code>super-slim format</code> already turns an <code>if !</code> with no <code>else</code> into <code>unless</code>.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="o">!</span><span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+  <span class="nt">p</span><span class="w"> </span>Published
+<span class="p">-</span> <span class="k">else</span>
+  <span class="nt">p</span><span class="w"> </span>Draft
+</code></pre><p class="rule-output">Write <code>if post.draft?</code> and swap the branches</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+  <span class="nt">p</span><span class="w"> </span>Draft
+<span class="p">-</span> <span class="k">else</span>
+  <span class="nt">p</span><span class="w"> </span>Published
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="UnlessElse">
+  <h4><a href="#UnlessElse">UnlessElse</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why"><code>unless â€¦ else</code> reads as a double negation: <code>if</code> with the branches swapped says the same, plainly.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">unless</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+  <span class="nt">p</span><span class="w"> </span>Published
+<span class="p">-</span> <span class="k">else</span>
+  <span class="nt">p</span><span class="w"> </span>Draft
+</code></pre><p class="rule-output">Write <code>if</code> instead of <code>unless</code>, and swap the branches</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+  <span class="nt">p</span><span class="w"> </span>Draft
+<span class="p">-</span> <span class="k">else</span>
+  <span class="nt">p</span><span class="w"> </span>Published
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
 </article>
 </section>
 <section class="rule-group"><h3>Rails conventions</h3>

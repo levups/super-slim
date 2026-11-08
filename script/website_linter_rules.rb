@@ -43,6 +43,12 @@ EXAMPLE_BY_RULE = {
   "SlimSyntax" => Example.new("= render Card.new(post:) # the card of the post\n", "/ The card of the post\n= render Card.new(post:)\n"),
   "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
   "HardcodedText" => Example.new("h1 Welcome\n", "h1 = t(\".welcome\")\n", "shop/show.html.slim"),
+  "SoleNestedConditional" => Example.new("- if post.published?\n  - if current_user.admin?\n    = link_to \"Edit\", edit_post_path(post)\n",
+    "- if post.published? && current_user.admin?\n  = link_to \"Edit\", edit_post_path(post)\n"),
+  "NegatedIfElseCondition" => Example.new("- if !post.draft?\n  p Published\n- else\n  p Draft\n",
+    "- if post.draft?\n  p Draft\n- else\n  p Published\n"),
+  "UnlessElse" => Example.new("- unless post.draft?\n  p Published\n- else\n  p Draft\n",
+    "- if post.draft?\n  p Draft\n- else\n  p Published\n"),
   "InlineStyles" => Example.new("p style=\"color: red\" Text\n", "p.text-danger Text\n"),
   "InlineEventHandlers" => Example.new("select name=\"sort\" onchange=\"this.form.requestSubmit()\"\n",
     "select name=\"sort\" data-action=\"sort#submit\"\n"),
@@ -71,6 +77,7 @@ RULES_BY_GROUP = {
   "Ruby in templates, from haml-lint and erb_lint" =>
     %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput DatabaseQueries
       SlimSyntax EmbeddedEngines HardcodedText],
+  "Conditionals, from RuboCop" => %w[SoleNestedConditional NegatedIfElseCondition UnlessElse],
   "Rails conventions" => %w[InstanceVariables StrictLocals UnusedLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaBooleanValue AriaRole AriaAttribute ButtonType]
@@ -116,6 +123,11 @@ WHY_BY_RULE = {
     "and blocked by a strict Content Security Policy.",
   "HardcodedText" => "Text written in the template cannot be translated. " \
     "Turn the rule on with `include:` for the parts of the app that are translated.",
+  "SoleNestedConditional" => "Two nested conditionals with no other branch are one condition: `&&` says it in one line, " \
+    "one level of indentation less. RuboCop's Style/SoleNestedConditional cannot see `-` lines.",
+  "NegatedIfElseCondition" => "With an `else`, the `!` can go: swapping the branches puts the positive case first. " \
+    "`super-slim format` already turns an `if !` with no `else` into `unless`.",
+  "UnlessElse" => "`unless … else` reads as a double negation: `if` with the branches swapped says the same, plainly.",
   "InstanceVariables" => "A partial that reads instance variables depends on the controller that renders it: " \
     "locals say what it needs. Checked in partials only.",
   "StrictLocals" => "With a `locals:` comment, Rails 7.1 and later raise when a partial gets a local it does not " \
@@ -169,6 +181,9 @@ SUMMARY_BY_RULE = {
   "SlimSyntax" => "Only lines Slim and Brakeman can read",
   "EmbeddedEngines" => "No `javascript:` or `css:` blocks you forbid",
   "HardcodedText" => "Text goes through translations",
+  "SoleNestedConditional" => "`&&` rather than an `if` alone inside another",
+  "NegatedIfElseCondition" => "No `if !x` with an `else`",
+  "UnlessElse" => "No `unless` with an `else`",
   "InstanceVariables" => "Partials take locals, not instance variables",
   "StrictLocals" => "Partials declare their locals",
   "UnusedLocals" => "Partials read every local they declare",

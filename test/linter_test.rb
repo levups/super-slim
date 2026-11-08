@@ -124,6 +124,47 @@ class LinterTest < Minitest::Test
     assert_empty SuperSlim::Linter.new.call("show.html.slim", source)
   end
 
+  def test_conditionals_rubocop_would_rewrite
+    source = <<~SLIM
+      - if post.published?
+        - if current_user.admin?
+          = link_to "Edit", edit_post_path(post)
+      - if !post.draft?
+        p Published
+      - else
+        p Draft
+      - unless post.draft?
+        p Published
+      - else
+        p Draft
+    SLIM
+    assert_offenses ["SoleNestedConditional:2", "NegatedIfElseCondition:4", "UnlessElse:8"], source
+  end
+
+  def test_conditionals_with_another_branch_or_a_compound_condition_pass
+    source = <<~SLIM
+      - if a
+        - if b
+          p
+      - else
+        p
+      - if a
+        - if b
+          p
+        - else
+          p
+      - if !a == b
+        p
+      - else
+        p
+      - if !a
+        p
+      - elsif b
+        p
+    SLIM
+    assert_offenses [], source
+  end
+
   def test_case_sensitive_xml_and_svg_tags
     assert_offenses [], "pubDate = date\n", path: "feed.rss.slim"
     assert_offenses [], "svg\n  linearGradient\n"

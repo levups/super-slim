@@ -212,6 +212,7 @@ linters, so most will look familiar:
 |---|---|---|
 | Indentation, Tab, TrailingWhitespace, EmptyLines, TrailingBlankLines, ControlStatementSpacing, RedundantDiv | slim-lint (`super-slim format` fixes them) | on |
 | LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
+| SoleNestedConditional, NegatedIfElseCondition, UnlessElse (conditionals spread over `-` lines, out of the RuboCop plugin's reach) | RuboCop | on |
 | InstanceVariables (in partials) | haml-lint, Rails conventions | on |
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
 | UnusedLocals (a local declared in `/# locals:` that the partial never reads) | Rails 7.1 strict locals | on |
