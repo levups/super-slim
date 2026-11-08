@@ -753,6 +753,78 @@ module SuperSlim
         end
       end
 
+      # Conditionals RuboCop would rewrite, but its plugin hands it each `-` line without the lines around it.
+
+      module Conditionals
+        CONDITIONAL = /\A\s*(?:if|unless)\s/
+        ELSE = /\A\s*else\s*\z/
+
+        private
+
+        # Each conditional `-` line, the line after it at its depth, comments skipped, and its sub-lines.
+        def each_conditional(document)
+          [document.nodes, *document.visits.filter_map { |node,| Document.children_of(node) }].each do |siblings|
+            lines = significant(siblings)
+            lines.each_with_index do |node, index|
+              yield node, lines[index + 1], significant(node.children) if node.is_a?(AST::Control) && node.code.match?(CONDITIONAL)
+            end
+          end
+        end
+
+        def significant(nodes)
+          (nodes || []).reject { _1 == AST::NEWLINE || (_1.is_a?(AST::Control) && _1.code.match?(/\A\s*#/)) }
+        end
+
+        def else?(node)
+          node.is_a?(AST::Control) && node.code.match?(ELSE)
+        end
+
+        def branch?(node)
+          node.is_a?(AST::Control) && node.code.match?(/\A\s*(?:else|elsif)\b/)
+        end
+      end
+
+      class SoleNestedConditional < Rule
+        include Conditionals
+
+        def offenses(document, _source)
+          enum_for(:each_conditional, document).filter_map do |_node, following, children|
+            next if branch?(following) || children.size != 1
+            next unless (inner = children.first).is_a?(AST::Control) && inner.code.match?(CONDITIONAL)
+
+            keyword = inner.code[/\w+/]
+            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it with `&&`")
+          end
+        end
+      end
+
+      class NegatedIfElseCondition < Rule
+        include Conditionals
+
+        NEGATED_IF = /\A\s*if\s+!(?!=)\s*(\S.*)\z/m
+
+        def offenses(document, _source)
+          enum_for(:each_conditional, document).filter_map do |node, following|
+            next unless else?(following) && (condition = node.code[NEGATED_IF, 1])
+            next if condition.match?(Formatter::COMPOUND_CONDITION)
+
+            offense(document, document.line_of(node), "Write `if #{condition.strip}` and swap the branches")
+          end
+        end
+      end
+
+      class UnlessElse < Rule
+        include Conditionals
+
+        def offenses(document, _source)
+          enum_for(:each_conditional, document).filter_map do |node, following|
+            next unless else?(following) && node.code.match?(/\A\s*unless\s/)
+
+            offense(document, document.line_of(node), "Write `if` instead of `unless`, and swap the branches")
+          end
+        end
+      end
+
       class Zwsp < Rule
         INVISIBLE = /[\u200B-\u200D\u2060\uFEFF]/
         # The zero-width joiner of 🐈‍⬛ or 👩🏻‍💻: between two pictographs, after an optional skin tone or emoji style.
