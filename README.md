@@ -46,6 +46,16 @@ Rails then renders every `.slim` view with SuperSlim, and the digest of a `cache
 renders changes. A partial whose name is computed needs a `/# Template Dependency: orders/line` comment, as in ERB.
 There is nothing to configure. Rails itself is optional, and SuperSlim is tested on Rails 8.0 and later.
 
+To keep Slim as your engine and use only the [linter](#linter), the [formatter](#formatter) or the
+[RuboCop plugin](#rubocop-plugin), add SuperSlim with `require: false`. Rails then never loads it and goes on
+rendering with Slim, while `super-slim lint`, `super-slim format` and `rubocop` still find it:
+
+```ruby
+gem "super-slim", require: false
+```
+
+They read templates as SuperSlim does, [additions](#additions-to-slim) included, which Slim can't render.
+
 Without Rails, `SuperSlim.compile` turns a template into Ruby code, which you evaluate where the template's
 variables and methods are defined:
 
