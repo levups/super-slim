@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">35</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">36</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -103,7 +103,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   <span class="na">ConsecutiveControlStatements</span><span class="pi">:</span>
     <span class="na">max</span><span class="pi">:</span> <span class="m">3</span>                   <span class="c1"># lines of `-` before asking for a ruby: block, default 2</span>
   <span class="na">ButtonType</span><span class="pi">:</span>
-    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, EmbeddedEngines, HardcodedText, InlineStyles, StrictLocals, UnescapedOutput</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, EmbeddedEngines, HardcodedText, InlineEventHandlers, InlineStyles, StrictLocals, UnescapedOutput</span>
   <span class="na">DeprecatedClasses</span><span class="pi">:</span>
     <span class="na">preset</span><span class="pi">:</span> <span class="s">bootstrap5</span>       <span class="c1"># Bootstrap 4 classes that Bootstrap 5.3 renamed or dropped</span>
     <span class="na">classes</span><span class="pi">:</span>
@@ -164,6 +164,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <tr><td><a href="#DeprecatedClasses">DeprecatedClasses</a></td><td>Classes your CSS framework renamed</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#DeprecatedAttributes">DeprecatedAttributes</a></td><td>Data attributes your framework renamed</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#InlineStyles">InlineStyles</a></td><td>No <code>style</code> attributes</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#InlineEventHandlers">InlineEventHandlers</a></td><td>No <code>onclick</code>, <code>onchange</code> and other <code>on*</code> attributes</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#UnescapedOutput">UnescapedOutput</a></td><td>No output that skips HTML escaping</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#SlimSyntax">SlimSyntax</a></td><td>Only lines Slim and Brakeman can read</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#EmbeddedEngines">EmbeddedEngines</a></td><td>No <code>javascript:</code> or <code>css:</code> blocks you forbid</td><td class="off">off</td><td></td></tr>
@@ -175,7 +176,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <tr><td><a href="#DuplicateId">DuplicateId</a></td><td>Each <code>id</code> once per template</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#ImageAlt">ImageAlt</a></td><td>Images have <code>alt</code></td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#IframeTitle">IframeTitle</a></td><td>Frames have <code>title</code></td><td class="on">on</td><td></td></tr>
-<tr><td><a href="#AnchorHref">AnchorHref</a></td><td>Links have <code>href</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#AnchorHref">AnchorHref</a></td><td>Links have <code>href</code>, and it goes somewhere</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#NestedLinks">NestedLinks</a></td><td>No link inside a link</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#PositiveTabindex">PositiveTabindex</a></td><td>No positive <code>tabindex</code></td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#BooleanAttributeValue">BooleanAttributeValue</a></td><td>Boolean attributes take <code>true</code> or <code>false</code></td><td class="on">on</td><td></td></tr>
@@ -435,6 +436,18 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   </div>
   <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
 </article>
+<article class="rule" id="InlineEventHandlers">
+  <h4><a href="#InlineEventHandlers">InlineEventHandlers</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">An <code>on*</code> attribute such as <code>onchange</code> runs JavaScript written in the page, which a strict Content Security Policy blocks: the handler silently does nothing.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">select</span><span class="w"> </span><span class="na">name</span><span class="p">=</span><span class="s">"sort"</span><span class="w"> </span><span class="na">onchange</span><span class="p">=</span><span class="s">"this.form.requestSubmit()"</span>
+</code></pre><p class="rule-output">Move the <code>onchange</code> handler to JavaScript: a strict Content Security Policy blocks it</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">select</span><span class="w"> </span><span class="na">name</span><span class="p">=</span><span class="s">"sort"</span><span class="w"> </span><span class="na">data-action</span><span class="p">=</span><span class="s">"sort#submit"</span>
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 <article class="rule" id="UnescapedOutput">
   <h4><a href="#UnescapedOutput">UnescapedOutput</a></h4>
   <p class="rule-badges"><span class="badge off">Off by default</span></p>
@@ -556,11 +569,11 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <article class="rule" id="AnchorHref">
   <h4><a href="#AnchorHref">AnchorHref</a></h4>
   <p class="rule-badges"><span class="badge on">On by default</span></p>
-  <p class="rule-why">A link without <code>href</code> cannot be reached with the keyboard and is not announced as a link.</p>
+  <p class="rule-why">A link without <code>href</code> cannot be reached with the keyboard and is not announced as a link. One to <code>#</code> or to a <code>javascript:</code> URL is a button in disguise: screen readers announce a link, and opening it in a new tab leads nowhere.</p>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span>Read<span class="w"> </span>more
-</code></pre><p class="rule-output">A link without <code>href</code> is not a link: use a <code>button</code> for actions</p></div>
-    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="n">post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span><span class="w"> </span>Read<span class="w"> </span>more
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"#"</span><span class="w"> </span><span class="na">data-action</span><span class="p">=</span><span class="s">"comments#add"</span><span class="w"> </span>Add<span class="w"> </span>a<span class="w"> </span>comment
+</code></pre><p class="rule-output"><code>href=&quot;#&quot;</code> goes nowhere: use a <code>button</code> for actions</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">data-action</span><span class="p">=</span><span class="s">"comments#add"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Add<span class="w"> </span>a<span class="w"> </span>comment
 </code></pre></div>
   </div>
   <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>

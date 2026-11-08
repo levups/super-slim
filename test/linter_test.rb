@@ -47,6 +47,21 @@ class LinterTest < Minitest::Test
       "BooleanAttributeValue:8", "AriaRole:9", "AriaAttribute:9", "DuplicateId:11"], source
   end
 
+  def test_anchor_href_reports_placeholders_for_a_click_handler
+    source = %(a href="#" Add\na href=" JavaScript:void(0)" Add\na href="#comments" Comments\na href=path Edit\n)
+    messages = SuperSlim::Linter.new.call("show.html.slim", source).map { |offense| "#{offense.lineno}: #{offense.message}" }
+    assert_equal ["1: `href=\"#\"` goes nowhere: use a `button` for actions",
+      "2: A `javascript:` URL goes nowhere: use a `button` for actions"], messages
+  end
+
+  def test_inline_event_handlers
+    linter = SuperSlim::Linter.new({"InlineEventHandlers" => {"enabled" => true}})
+    source = %(select name="sort" onchange="this.form.requestSubmit()"\nbutton onclick=handler type="button" data-onclick=1 Go\n)
+    assert_equal [1, 2], linter.call("show.html.slim", source).map(&:lineno)
+    assert_equal "Move the `onchange` handler to JavaScript: a strict Content Security Policy blocks it", linter.call("show.html.slim", source).first.message
+    assert_empty SuperSlim::Linter.new.call("show.html.slim", source)
+  end
+
   def test_string_output_inline_after_a_tag
     linter = SuperSlim::Linter.new
     messages = linter.call("show.html.slim", %(span.note = "(estimate)"\nspan = "Hello"\np\n  = "(alone)"\n)).map(&:message)

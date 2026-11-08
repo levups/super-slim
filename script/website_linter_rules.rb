@@ -42,12 +42,15 @@ EXAMPLE_BY_RULE = {
   "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
   "HardcodedText" => Example.new("h1 Welcome\n", "h1 = t(\".welcome\")\n", "shop/show.html.slim"),
   "InlineStyles" => Example.new("p style=\"color: red\" Text\n", "p.text-danger Text\n"),
+  "InlineEventHandlers" => Example.new("select name=\"sort\" onchange=\"this.form.requestSubmit()\"\n",
+    "select name=\"sort\" data-action=\"sort#submit\"\n"),
   "InstanceVariables" => Example.new("p = @post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
   "StrictLocals" => Example.new("p = post.title\n", "/# locals: (post:)\np = post.title\n", "_card.html.slim"),
   "DuplicateId" => Example.new("#menu\n#menu\n", "#menu\n#footer-menu\n"),
   "ImageAlt" => Example.new("img src=post.image_url\n", "img src=post.image_url alt=post.title\n"),
   "IframeTitle" => Example.new("iframe src=video_url\n", "iframe src=video_url title=\"Intro video\"\n"),
-  "AnchorHref" => Example.new("a Read more\n", "a href=post_path(post) Read more\n"),
+  "AnchorHref" => Example.new("a href=\"#\" data-action=\"comments#add\" Add a comment\n",
+    "button data-action=\"comments#add\" type=\"button\" Add a comment\n"),
   "NestedLinks" => Example.new("a href=\"/a\"\n  a href=\"/b\" B\n", "a href=\"/a\" A\na href=\"/b\" B\n"),
   "PositiveTabindex" => Example.new("button tabindex=\"3\" type=\"button\" Save\n", "button tabindex=\"0\" type=\"button\" Save\n"),
   "BooleanAttributeValue" => Example.new("input disabled=\"disabled\"\n", "input disabled=true\n"),
@@ -63,7 +66,7 @@ RULES_BY_GROUP = {
   "Template hygiene, from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
   "Ruby in templates, from haml-lint and erb_lint" =>
-    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles UnescapedOutput
+    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput
       SlimSyntax EmbeddedEngines HardcodedText],
   "Rails conventions" => %w[InstanceVariables StrictLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
@@ -97,6 +100,8 @@ WHY_BY_RULE = {
     "so a `data-toggle` left over from Bootstrap 4 no longer opens anything.",
   "InlineStyles" => "A `style` attribute cannot be reused or changed by a media query, " \
     "and a strict Content Security Policy blocks it.",
+  "InlineEventHandlers" => "An `on*` attribute such as `onchange` runs JavaScript written in the page, " \
+    "which a strict Content Security Policy blocks: the handler silently does nothing.",
   "UnescapedOutput" => "`==`, `html_safe`, `raw` and `\#{{}}` output a string as HTML: " \
     "if any of it comes from a user, it is a cross-site scripting hole.",
   "SlimSyntax" => "SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: " \
@@ -114,7 +119,8 @@ WHY_BY_RULE = {
   "ImageAlt" => "Screen readers read `alt` in place of the image, and the file name without it. " \
     "An empty `alt` tells them to skip a decorative image.",
   "IframeTitle" => "Screen readers announce a frame by its `title`, so that users know what is inside before entering it.",
-  "AnchorHref" => "A link without `href` cannot be reached with the keyboard and is not announced as a link.",
+  "AnchorHref" => "A link without `href` cannot be reached with the keyboard and is not announced as a link. " \
+    "One to `#` or to a `javascript:` URL is a button in disguise: screen readers announce a link, and opening it in a new tab leads nowhere.",
   "NestedLinks" => "HTML forbids a link inside a link: browsers close the first one early, " \
     "and the page is not built as written.",
   "PositiveTabindex" => "A positive `tabindex` moves the element ahead of everything else in keyboard order, " \
@@ -149,6 +155,7 @@ SUMMARY_BY_RULE = {
   "DeprecatedClasses" => "Classes your CSS framework renamed",
   "DeprecatedAttributes" => "Data attributes your framework renamed",
   "InlineStyles" => "No `style` attributes",
+  "InlineEventHandlers" => "No `onclick`, `onchange` and other `on*` attributes",
   "UnescapedOutput" => "No output that skips HTML escaping",
   "SlimSyntax" => "Only lines Slim and Brakeman can read",
   "EmbeddedEngines" => "No `javascript:` or `css:` blocks you forbid",
@@ -158,7 +165,7 @@ SUMMARY_BY_RULE = {
   "DuplicateId" => "Each `id` once per template",
   "ImageAlt" => "Images have `alt`",
   "IframeTitle" => "Frames have `title`",
-  "AnchorHref" => "Links have `href`",
+  "AnchorHref" => "Links have `href`, and it goes somewhere",
   "NestedLinks" => "No link inside a link",
   "PositiveTabindex" => "No positive `tabindex`",
   "BooleanAttributeValue" => "Boolean attributes take `true` or `false`",
