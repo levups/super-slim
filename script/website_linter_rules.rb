@@ -8,8 +8,10 @@ require "super_slim"
 require "super_slim/linter"
 
 PAGE_PATH = File.expand_path("../docs/tools.html", __dir__)
+abort "Linter::RULES_URL does not point at #{File.basename(PAGE_PATH)}" unless SuperSlim::Linter::RULES_URL.end_with?("/#{File.basename(PAGE_PATH)}")
 RULES_BLOCK = /(<!-- linter-rules -->\n).*(<!-- \/linter-rules -->)/m
 RULE_COUNT = %r{(<span id="rule-count">)\d+(</span>)}
+OFF_BY_DEFAULT = /(# off by default: )[A-Za-z]+(?:, [A-Za-z]+)*/
 
 Example = Data.define(:flagged, :clean, :path) do
   def initialize(flagged:, clean:, path: "show.html.slim") = super
@@ -18,7 +20,7 @@ end
 EXAMPLE_BY_RULE = {
   "Indentation" => Example.new("ul\n   li Home\n", "ul\n  li Home\n"),
   "Tab" => Example.new("ul\n\tli Home\n", "ul\n  li Home\n"),
-  "TrailingWhitespace" => Example.new("p Hello \n", "p Hello\n"),
+  "TrailingWhitespace" => Example.new("ul \n  li Home\n", "ul\n  li Home\n"),
   "EmptyLines" => Example.new("h1 Title\n\n\np Text\n", "h1 Title\n\np Text\n"),
   "TrailingBlankLines" => Example.new("p Text\n\n", "p Text\n"),
   "ControlStatementSpacing" => Example.new("-if admin?\n  p Admin\n", "- if admin?\n  p Admin\n"),
@@ -68,13 +70,91 @@ RULES_BY_GROUP = {
     %w[DuplicateId ImageAlt IframeTitle AnchorHref NestedLinks PositiveTabindex BooleanAttributeValue AriaBooleanValue AriaRole AriaAttribute ButtonType]
 }.freeze
 
-rule_names = SuperSlim::Linter::Rules.constants.map(&:name) - ["Rule"]
+# Why the rule exists, in one or two sentences: the message says what to do, this says what goes wrong otherwise.
+WHY_BY_RULE = {
+  "Indentation" => "Slim reads a template's structure from its indentation: one width everywhere keeps the nesting easy to see.",
+  "Tab" => "A tab is as wide as each editor wants, so nesting that looks right in one looks wrong in another.",
+  "TrailingWhitespace" => "Invisible characters that only show up in diffs. At the end of text, Slim outputs them: " \
+    "`super-slim format` leaves those, and the rule asks to write the space with `'` or `>`.",
+  "EmptyLines" => "One empty line is enough to separate two blocks.",
+  "TrailingBlankLines" => "A file ends with one newline: empty lines after it only show up in diffs.",
+  "ControlStatementSpacing" => "`- if` then reads like `= value` and `| text`: the marker, a space, the content.",
+  "RedundantDiv" => "A `.class` or `#id` shortcut without a tag name already makes a `div`.",
+  "LineLength" => "The end of a long line hides past the edge of the editor and of a diff. " \
+    "`super-slim format` wraps attribute lists when `format.max_line_length` is set.",
+  "CommentControlStatement" => "A `- #` comment goes into the compiled Ruby, while a `/` comment is dropped at compile time.",
+  "EmptyControlStatement" => "A lone `-` runs nothing: it is a leftover from an edit.",
+  "ConsecutiveControlStatements" => "A run of `-` lines is a block of Ruby: a `ruby:` block shows it as one, " \
+    "and makes it plain when it belongs in a helper.",
+  "TagCase" => "HTML tag names are lowercase by convention. SVG tags such as `foreignObject` are left alone.",
+  "Zwsp" => "Zero-width characters, often pasted from a document, are invisible in the editor but break searches, " \
+    "links and line wrapping. The joiners inside emoji such as 👩🏻‍💻 are left alone.",
+  "UnnecessaryInterpolation" => "`\#{}` around the whole text is an output in disguise: `=` says it plainly.",
+  "UnnecessaryStringOutput" => "Outputting a string literal runs Ruby for text that `|` writes as it is.",
+  "DeprecatedClasses" => "A class your CSS framework renamed or dropped stops styling the page without an error. " \
+    "List them under `classes:`, or start from the `bootstrap5` preset.",
+  "DeprecatedAttributes" => "The same for data attributes: Bootstrap 5 reads `data-bs-toggle`, " \
+    "so a `data-toggle` left over from Bootstrap 4 no longer opens anything.",
+  "InlineStyles" => "A `style` attribute cannot be reused or changed by a media query, " \
+    "and a strict Content Security Policy blocks it.",
+  "UnescapedOutput" => "`==`, `html_safe`, `raw` and `\#{{}}` output a string as HTML: " \
+    "if any of it comes from a user, it is a cross-site scripting hole.",
+  "SlimSyntax" => "SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: " \
+    "it reports such a template as an error and checks none of its Ruby.",
+  "EmbeddedEngines" => "Inline JavaScript and CSS are sent again with every page, cached nowhere, " \
+    "and blocked by a strict Content Security Policy.",
+  "HardcodedText" => "Text written in the template cannot be translated. " \
+    "Turn the rule on with `include:` for the parts of the app that are translated.",
+  "InstanceVariables" => "A partial that reads instance variables depends on the controller that renders it: " \
+    "locals say what it needs. Checked in partials only.",
+  "StrictLocals" => "With a `locals:` comment, Rails 7.1 and later raise when a partial gets a local it does not " \
+    "declare, or misses a required one.",
+  "DuplicateId" => "An `id` names one element of the page: labels, anchors, ARIA references and " \
+    "`getElementById` all find the first one only.",
+  "ImageAlt" => "Screen readers read `alt` in place of the image, and the file name without it. " \
+    "An empty `alt` tells them to skip a decorative image.",
+  "IframeTitle" => "Screen readers announce a frame by its `title`, so that users know what is inside before entering it.",
+  "AnchorHref" => "A link without `href` cannot be reached with the keyboard and is not announced as a link.",
+  "NestedLinks" => "HTML forbids a link inside a link: browsers close the first one early, " \
+    "and the page is not built as written.",
+  "PositiveTabindex" => "A positive `tabindex` moves the element ahead of everything else in keyboard order, " \
+    "away from where it stands on the screen.",
+  "BooleanAttributeValue" => "In Slim, `true` renders a boolean attribute and `false` leaves it out, " \
+    "while any string renders it: `disabled=\"false\"` disables.",
+  "AriaBooleanValue" => "ARIA states are the strings `\"true\"` and `\"false\"`: Slim renders `aria-*=true` " \
+    "without a value and leaves out `aria-*=false`.",
+  "AriaRole" => "Assistive technologies ignore a role they do not know, so a typo drops the meaning you added.",
+  "AriaAttribute" => "Assistive technologies ignore an `aria-*` attribute they do not know, so a typo does nothing.",
+  "ButtonType" => "A `button` without `type` submits its form: saying `button` or `submit` avoids a submission " \
+    "nobody meant."
+}.freeze
+
+# What each option of a rule's DEFAULTS holds, printed beside its default value.
+NOTE_BY_OPTION = {
+  "LineLength.max" => "characters per line",
+  "ConsecutiveControlStatements.max" => "lines of `-` in a row before asking for a `ruby:` block",
+  "DeprecatedClasses.classes" => "old: new, or old-*: new-* for a prefix; ~ drops an entry of the preset",
+  "DeprecatedAttributes.attributes" => "old: new; ~ drops an entry of the preset",
+  "EmbeddedEngines.forbidden_engines" => "for example [javascript, css]"
+}.freeze
+
+rule_names = SuperSlim::Linter::Rules.all.map(&:rule_name)
 undocumented = rule_names - EXAMPLE_BY_RULE.keys
 abort "Rules without an example: #{undocumented.join(", ")}" if undocumented.any?
 ungrouped = EXAMPLE_BY_RULE.keys - RULES_BY_GROUP.values.flatten
 abort "Rules without a group: #{ungrouped.join(", ")}" if ungrouped.any?
+unexplained = rule_names - WHY_BY_RULE.keys
+abort "Rules without a why: #{unexplained.join(", ")}" if unexplained.any?
 
-off_by_default = rule_names.reject { SuperSlim::Linter::Rules.const_get(_1)::DEFAULTS[:enabled] }
+rule_class_by_name = SuperSlim::Linter::Rules.all.to_h { [_1.rule_name, _1] }
+options_by_rule = rule_class_by_name.transform_values { _1::DEFAULTS.except(:enabled).transform_keys(&:to_s) }
+unnoted = options_by_rule.flat_map { |rule, options| options.keys.map { "#{rule}.#{_1}" } } - NOTE_BY_OPTION.keys
+abort "Options without a note: #{unnoted.join(", ")}" if unnoted.any?
+presets_by_rule = SuperSlim::Linter::PRESETS.each_with_object(Hash.new { |hash, key| hash[key] = [] }) do |(preset, options_by_rule_name), presets|
+  options_by_rule_name.each_key { presets[_1] << preset }
+end
+
+off_by_default = rule_names.reject { rule_class_by_name.fetch(_1)::DEFAULTS[:enabled] }
 linter = SuperSlim::Linter.new(
   off_by_default.to_h { [_1, {"enabled" => true}] }.merge(
     "DeprecatedClasses" => {"classes" => {"text-muted" => "text-body-secondary"}},
@@ -92,7 +172,34 @@ message_by_rule = EXAMPLE_BY_RULE.to_h do |rule, example|
   [rule, flagged.message]
 end
 
+# Measured, not declared: the rule is fixed by the formatter when the formatted flagged example passes it.
+formatter = SuperSlim::Formatter.new
+fixed_by_format = EXAMPLE_BY_RULE.select do |rule, example|
+  linter.call(example.path, formatter.call(example.flagged)).none? { _1.rule == rule }
+rescue SuperSlim::Error
+  false
+end.keys
+layout_rules = RULES_BY_GROUP.fetch("Layout, fixed by <code>super-slim format</code>")
+abort "In the layout group but not fixed by super-slim format: #{(layout_rules - fixed_by_format).join(", ")}" unless (layout_rules - fixed_by_format).empty?
+
 def escape(text) = CGI.escapeHTML(text)
+
+def with_code(text) = escape(text).gsub(/`([^`]+)`/) { "<code>#{$1}</code>" }
+
+def yaml_value(value)
+  case value
+  when true, false, Integer then value.to_s
+  when Hash, Array then value.empty? ? value.inspect : abort("No YAML for a non-empty default: #{value.inspect}")
+  else abort "No YAML for #{value.inspect}"
+  end
+end
+
+def configuration(rule, enabled, options, presets)
+  lines = ["linters:", "  #{rule}:", "    enabled: #{enabled}"]
+  lines.concat(options.map { |option, value| "    #{option}: #{yaml_value(value)} # #{NOTE_BY_OPTION.fetch("#{rule}.#{option}")}" })
+  lines << "    # preset: #{presets.join(" | ")}" if presets.any?
+  lines.join("\n") << "\n"
+end
 
 def visible_source(rule, source)
   source = source.gsub(/ +$/) { "·" * _1.size } if rule == "TrailingWhitespace"
@@ -102,15 +209,19 @@ end
 rules_html = RULES_BY_GROUP.map do |title, rules|
   items = rules.map do |rule|
     example = EXAMPLE_BY_RULE.fetch(rule)
-    default = off_by_default.include?(rule) ? %(<span class="rule-default off">off by default</span>) : ""
-    message = escape(message_by_rule.fetch(rule)).gsub(/`([^`]+)`/) { "<code>#{$1}</code>" }
+    enabled = !off_by_default.include?(rule)
+    tags = [("off by default" unless enabled), ("fixed by format" if fixed_by_format.include?(rule))].compact
+    tags_html = tags.empty? ? "" : %(<span class="rule-tags">#{tags.join(" · ")}</span>)
+    yaml = configuration(rule, enabled, options_by_rule.fetch(rule), presets_by_rule[rule])
     <<~HTML
-      <details class="rule">
-        <summary><span class="rule-name">#{rule}</span>#{default}<span class="rule-message">#{message}</span></summary>
+      <details class="rule" id="#{rule}">
+        <summary><span class="rule-name">#{rule}</span>#{tags_html}<span class="rule-message">#{with_code(message_by_rule.fetch(rule))}</span></summary>
+        <p class="rule-why">#{with_code(WHY_BY_RULE.fetch(rule))} <a class="rule-link" href="##{rule}" aria-label="Link to #{rule}">#</a></p>
         <div class="rule-examples">
           <div><p class="example-label">Flagged</p><pre><code class="language-slim">#{escape(visible_source(rule, example.flagged))}</code></pre></div>
           <div><p class="example-label">Clean</p><pre><code class="language-slim">#{escape(example.clean)}</code></pre></div>
         </div>
+        <div class="rule-configuration"><p class="example-label">In <code>.super-slim.yml</code>, with its defaults</p><pre><code class="language-yaml">#{escape(yaml)}</code></pre></div>
       </details>
     HTML
   end
@@ -120,6 +231,8 @@ end.join
 page = File.read(PAGE_PATH)
 abort "No <!-- linter-rules --> block in #{PAGE_PATH}" unless page.match?(RULES_BLOCK)
 abort "No rule-count span in #{PAGE_PATH}" unless page.match?(RULE_COUNT)
+abort "No `# off by default:` comment in #{PAGE_PATH}" unless page.match?(OFF_BY_DEFAULT)
 page = page.sub(RULES_BLOCK) { "#{$1}#{rules_html}#{$2}" }.sub(RULE_COUNT) { "#{$1}#{EXAMPLE_BY_RULE.size}#{$2}" }
+  .sub(OFF_BY_DEFAULT) { "#{$1}#{off_by_default.sort.join(", ")}" }
 File.write(PAGE_PATH, page)
 puts "#{EXAMPLE_BY_RULE.size} rules written to #{PAGE_PATH}"

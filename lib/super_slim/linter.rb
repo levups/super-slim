@@ -70,6 +70,8 @@ module SuperSlim
     end
 
     CONFIG_FILE = ".super-slim.yml"
+    # Each rule has an entry there, its name as the fragment: `rake docs` writes them.
+    RULES_URL = "https://levups.github.io/super-slim/tools.html"
     DISABLE_DIRECTIVE = %r{\A﻿?\s*/\s*super-slim:disable\s+(\S.*?)\s*\z}
     # The layout rules: what `super-slim format` rewrites.
     LAYOUT_RULE_NAMES = %w[Indentation Tab TrailingWhitespace EmptyLines ControlStatementSpacing RedundantDiv].freeze

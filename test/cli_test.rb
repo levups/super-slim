@@ -20,6 +20,17 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_lint_links_each_rule_it_reports_to_its_entry_on_the_website_on_stderr
+    in_templates("ul \n  li Home\n") do
+      File.write(template_name(1), "/ super-slim:disable Nothing\np Hello \n")
+
+      _, _, errors = run_cli_with_errors("lint", ".")
+
+      url = "https://levups.github.io/super-slim/tools.html"
+      assert_equal ["TrailingWhitespace: #{url}#TrailingWhitespace"], errors.lines(chomp: true)
+    end
+  end
+
   def test_lint_passes_clean_templates
     in_templates("p Hello\n") { assert_equal [0, ""], run_cli("lint", ".") }
   end
@@ -165,11 +176,15 @@ class CLITest < Minitest::Test
   end
 
   def run_cli(*arguments)
-    stdout = $stdout
-    $stdout = StringIO.new
+    run_cli_with_errors(*arguments).first(2)
+  end
+
+  def run_cli_with_errors(*arguments)
+    stdout, stderr = $stdout, $stderr
+    $stdout, $stderr = StringIO.new, StringIO.new
     status = SuperSlim::CLI.new.call(arguments)
-    [status, $stdout.string]
+    [status, $stdout.string, $stderr.string]
   ensure
-    $stdout = stdout
+    $stdout, $stderr = stdout, stderr
   end
 end

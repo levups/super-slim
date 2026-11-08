@@ -83,14 +83,19 @@ td.number, th.number { text-align: right; font-variant-numeric: tabular-nums; }
 .rule summary::-webkit-details-marker { display: none; }
 @media (min-width: 44rem) { .rule summary { grid-template-columns: 15rem 1fr; } }
 .rule-name { font-weight: 600; }
-.rule-default { font-size: 0.8125rem; color: var(--muted); margin-left: 0.5rem; font-weight: 400; }
-@media (min-width: 44rem) { .rule-default { grid-row: 2; grid-column: 1; margin-left: 0; } }
+.rule-tags { font-size: 0.8125rem; color: var(--muted); margin-left: 0.5rem; font-weight: 400; }
+@media (min-width: 44rem) { .rule-tags { grid-row: 2; grid-column: 1; margin-left: 0; } }
 .rule-message { color: var(--muted); }
 .rule[open] .rule-name { color: var(--accent); }
 .rule-examples { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); padding: 0.25rem 0 1rem; }
 .example-label { margin: 0 0 0.3rem; font-size: 0.8125rem; font-weight: 600; }
 .rule-examples div:first-child .example-label { color: var(--flagged); }
 .rule-examples div:last-child .example-label { color: var(--clean); }
+.rule-why { margin: 0 0 0.75rem; max-width: var(--measure); }
+.rule-link { color: var(--muted); text-decoration: none; }
+.rule-link:hover, .rule-link:focus-visible { color: var(--accent); }
+.rule-configuration { padding-bottom: 1rem; }
+.rule { scroll-margin-top: 1rem; }
 
 .left-out { max-width: var(--measure); padding-left: 1.25rem; }
 

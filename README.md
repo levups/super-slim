@@ -224,8 +224,9 @@ linters, so most will look familiar:
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
 | Zwsp (invisible characters) | slim-lint | on |
 
-The website shows [each rule with an example](https://levups.github.io/super-slim/tools.html). A configuration
-file looks like this:
+The website gives [each rule](https://levups.github.io/super-slim/tools.html#rules) its own entry: why it exists,
+an example, its settings with their defaults, and whether `super-slim format` fixes it. `super-slim lint` prints
+the link to each rule it reports, on stderr. A configuration file looks like this:
 
 ```yaml
 # .super-slim.yml
