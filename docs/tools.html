@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">37</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">38</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -103,7 +103,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
   <span class="na">ConsecutiveControlStatements</span><span class="pi">:</span>
     <span class="na">max</span><span class="pi">:</span> <span class="m">3</span>                   <span class="c1"># lines of `-` before asking for a ruby: block, default 2</span>
   <span class="na">ButtonType</span><span class="pi">:</span>
-    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, EmbeddedEngines, HardcodedText, InlineEventHandlers, InlineStyles, StrictLocals, UnescapedOutput</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="kc">true</span>            <span class="c1"># off by default: ButtonType, DatabaseQueries, EmbeddedEngines, HardcodedText, InlineEventHandlers, InlineStyles, StrictLocals, UnescapedOutput</span>
   <span class="na">DeprecatedClasses</span><span class="pi">:</span>
     <span class="na">preset</span><span class="pi">:</span> <span class="s">bootstrap5</span>       <span class="c1"># Bootstrap 4 classes that Bootstrap 5.3 renamed or dropped</span>
     <span class="na">classes</span><span class="pi">:</span>
@@ -166,6 +166,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <tr><td><a href="#InlineStyles">InlineStyles</a></td><td>No <code>style</code> attributes</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#InlineEventHandlers">InlineEventHandlers</a></td><td>No <code>onclick</code>, <code>onchange</code> and other <code>on*</code> attributes</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#UnescapedOutput">UnescapedOutput</a></td><td>No output that skips HTML escaping</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#DatabaseQueries">DatabaseQueries</a></td><td>No <code>where</code>, <code>find_by</code>, <code>pluck</code> or <code>Model.all</code> in templates</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#SlimSyntax">SlimSyntax</a></td><td>Only lines Slim and Brakeman can read</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#EmbeddedEngines">EmbeddedEngines</a></td><td>No <code>javascript:</code> or <code>css:</code> blocks you forbid</td><td class="off">off</td><td></td></tr>
 <tr><td><a href="#HardcodedText">HardcodedText</a></td><td>Text goes through translations</td><td class="off">off</td><td></td></tr>
@@ -457,6 +458,22 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span><span class="o">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">intro</span>
 </code></pre><p class="rule-output"><code>==</code> skips HTML escaping: output with <code>=</code>, or render HTML from a translation key ending in <code>_html</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">t</span><span class="p">(</span><span class="s2">".intro_html"</span><span class="p">)</span>
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="DatabaseQueries">
+  <h4><a href="#DatabaseQueries">DatabaseQueries</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">A query written in a template runs while the page renders, out of sight of the controller, and is easily repeated for each item of a list. Calls are matched by name, so a few may run on arrays: turn the rule on with <code>include:</code>, or silence a line with the disable comment.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>
+  <span class="p">-</span> <span class="no">Tag</span><span class="p">.</span><span class="nf">order</span><span class="p">(</span><span class="ss">:name</span><span class="p">).</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">tag</span><span class="o">|</span>
+    <span class="nt">li</span><span class="w"> </span><span class="p">=</span> <span class="n">tag</span><span class="p">.</span><span class="nf">name</span>
+</code></pre><p class="rule-output"><code>Tag.order</code> queries the database from the template: load the records in the controller</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
+  <span class="p">-</span> <span class="n">tags</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">tag</span><span class="o">|</span>
+    <span class="nt">li</span><span class="w"> </span><span class="p">=</span> <span class="n">tag</span><span class="p">.</span><span class="nf">name</span>
 </code></pre></div>
   </div>
   <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
