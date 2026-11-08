@@ -219,6 +219,7 @@ linters, so most will look familiar:
 | ButtonType, InlineStyles, InlineEventHandlers (`onclick` and other `on*` attributes) | eslint-plugin-react, haml-lint | off |
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
+| DatabaseQueries (`where`, `find_by`, `pluck`, `exists?`, `Model.all`, `Model.order`… in a template) | Rails guides | off |
 | SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text that should be translated) | erb_lint | off |

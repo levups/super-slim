@@ -37,6 +37,8 @@ EXAMPLE_BY_RULE = {
   "DeprecatedClasses" => Example.new("p.text-muted Text\n", "p.text-body-secondary Text\n"),
   "DeprecatedAttributes" => Example.new("button data-toggle=\"modal\" type=\"button\" Open\n",
     "button data-bs-toggle=\"modal\" type=\"button\" Open\n"),
+  "DatabaseQueries" => Example.new("ul\n  - Tag.order(:name).each do |tag|\n    li = tag.name\n",
+    "ul\n  - tags.each do |tag|\n    li = tag.name\n"),
   "UnescapedOutput" => Example.new("p == post.intro\n", "p = t(\".intro_html\")\n"),
   "SlimSyntax" => Example.new("= render Card.new(post:) # the card of the post\n", "/ The card of the post\n= render Card.new(post:)\n"),
   "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
@@ -67,7 +69,7 @@ RULES_BY_GROUP = {
   "Template hygiene, from slim-lint" =>
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
   "Ruby in templates, from haml-lint and erb_lint" =>
-    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput
+    %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput DatabaseQueries
       SlimSyntax EmbeddedEngines HardcodedText],
   "Rails conventions" => %w[InstanceVariables StrictLocals UnusedLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
@@ -105,6 +107,9 @@ WHY_BY_RULE = {
     "which a strict Content Security Policy blocks: the handler silently does nothing.",
   "UnescapedOutput" => "`==`, `html_safe`, `raw` and `\#{{}}` output a string as HTML: " \
     "if any of it comes from a user, it is a cross-site scripting hole.",
+  "DatabaseQueries" => "A query written in a template runs while the page renders, out of sight of the controller, " \
+    "and is easily repeated for each item of a list. Calls are matched by name, so a few may run on arrays: " \
+    "turn the rule on with `include:`, or silence a line with the disable comment.",
   "SlimSyntax" => "SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: " \
     "it reports such a template as an error and checks none of its Ruby.",
   "EmbeddedEngines" => "Inline JavaScript and CSS are sent again with every page, cached nowhere, " \
@@ -160,6 +165,7 @@ SUMMARY_BY_RULE = {
   "InlineStyles" => "No `style` attributes",
   "InlineEventHandlers" => "No `onclick`, `onchange` and other `on*` attributes",
   "UnescapedOutput" => "No output that skips HTML escaping",
+  "DatabaseQueries" => "No `where`, `find_by`, `pluck` or `Model.all` in templates",
   "SlimSyntax" => "Only lines Slim and Brakeman can read",
   "EmbeddedEngines" => "No `javascript:` or `css:` blocks you forbid",
   "HardcodedText" => "Text goes through translations",

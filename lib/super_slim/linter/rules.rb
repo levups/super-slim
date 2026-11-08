@@ -97,7 +97,7 @@ module SuperSlim
             when AST::Embedded
               next unless node.engine == "ruby"
 
-              yield node.children.grep(AST::Text).map(&:text).join("\n"), document.line_of(node) + 1
+              yield node.children.grep(AST::Text).map(&:text).join, document.line_of(node) + 1
             when AST::Text
               next if ancestors.last.is_a?(AST::Embedded) && ancestors.last.engine == "ruby"
 
@@ -647,6 +647,45 @@ module SuperSlim
 
             excerpt = (text.length > EXCERPT_LENGTH) ? "#{text[0, EXCERPT_LENGTH]}…" : text
             offense(document, line_near(document, node, ancestors), "Translate `#{excerpt}` instead of writing it in the template")
+          end
+        end
+      end
+
+      # Matched by method name: an off-by-default rule, since a few of these also run on arrays.
+      class DatabaseQueries < Rule
+        DEFAULTS = {enabled: false}.freeze
+        QUERY_METHODS = %i[where find_by find_by! pluck pick exists? find_each find_in_batches in_batches].to_set.freeze
+        # Called on a constant, these read a model's table: `Tag.order(:name)`.
+        MODEL_METHODS = %i[all order find first last count limit includes joins sum minimum maximum].to_set.freeze
+
+        def offenses(document, _source)
+          calls_by_lineno = Hash.new { |hash, lineno| hash[lineno] = [] }
+          each_ruby(document) do |code, lineno|
+            next unless lineno
+
+            each_prism_node(code) do |node|
+              next unless node.is_a?(Prism::CallNode) && (call = query(node))
+
+              calls_by_lineno[lineno + node.location.start_line - 1] << [node.message_loc.start_offset, call]
+            end
+          end
+          # One offense a line, its calls in the order they are written: the tree is walked from the outermost.
+          calls_by_lineno.keys.sort!.map! do |lineno|
+            calls = calls_by_lineno[lineno].sort.map!(&:last).uniq
+            offense(document, lineno, "#{calls.map { "`#{_1}`" }.join(", ")} #{(calls.size == 1) ? "queries" : "query"} " \
+              "the database from the template: load the records in the controller")
+          end
+        end
+
+        private
+
+        def query(node)
+          return unless node.receiver
+
+          if node.receiver.is_a?(Prism::ConstantReadNode) || node.receiver.is_a?(Prism::ConstantPathNode)
+            "#{node.receiver.slice}.#{node.name}" if MODEL_METHODS.include?(node.name) || QUERY_METHODS.include?(node.name)
+          elsif QUERY_METHODS.include?(node.name)
+            node.name.to_s
           end
         end
       end

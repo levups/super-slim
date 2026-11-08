@@ -104,6 +104,26 @@ class LinterTest < Minitest::Test
     assert_offenses [], "/# locals: (post:)\n\n= local_assigns[:post]\n", path: "_card.html.slim"
   end
 
+  def test_database_queries
+    linter = SuperSlim::Linter.new({"DatabaseQueries" => {"enabled" => true}})
+    source = <<~SLIM
+      - if post.comments.where(approved: true).exists?
+        = render post.comments.where(approved: true)
+      ul
+        - Tag.order(:name).each do |tag|
+          li = tag.name
+      p = items.first
+      ruby:
+        count = 1
+
+        latest = Admin::Post.last
+      p title="\#{Post.find(1).title}"
+    SLIM
+    messages = linter.call("show.html.slim", source).map { |offense| "#{offense.lineno}: #{offense.message.split(" quer").first}" }
+    assert_equal ["1: `where`, `exists?`", "2: `where`", "4: `Tag.order`", "10: `Admin::Post.last`", "11: `Post.find`"], messages
+    assert_empty SuperSlim::Linter.new.call("show.html.slim", source)
+  end
+
   def test_case_sensitive_xml_and_svg_tags
     assert_offenses [], "pubDate = date\n", path: "feed.rss.slim"
     assert_offenses [], "svg\n  linearGradient\n"
