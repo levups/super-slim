@@ -55,6 +55,10 @@ module SuperSlim
         [Linter::Offense.new(path, 0, "Error", "#{exception.class}: #{exception.message.lines.first&.strip}")]
       end.flatten
       offenses.each { |offense| puts printable("#{offense.path}:#{offense.lineno}: [#{offense.rule}] #{offense.message}") }
+      # On stderr, so that stdout stays one offense per line for the tools that read it.
+      $stdout.flush
+      reported = offenses.to_set(&:rule)
+      Linter::Rules.all.each { |rule| warn("#{rule.rule_name}: #{Linter::RULES_URL}##{rule.rule_name}") if reported.include?(rule.rule_name) }
       offenses.empty? ? 0 : 1
     end
 

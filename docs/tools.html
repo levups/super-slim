@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATH�
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATH…]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">34</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">35</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -138,127 +138,206 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATH�
 
   <section id="rules" aria-labelledby="rules-title">
     <h2 id="rules-title">Rules</h2>
-    <p class="note">Each example below is run through the linter when the page is generated: the flagged one must be flagged, the clean one must pass.</p>
+    <p class="note">Every example runs through the linter when this page is generated: the flagged one must be flagged and the clean one must pass. &ldquo;Fixed by format&rdquo; means <code>super-slim format</code> fixed the flagged example. Every rule also takes <code>include:</code> and <code>exclude:</code> globs, and <code>super-slim lint</code> links each rule it reports to its entry here.</p>
 <!-- linter-rules -->
-<section class="rule-group"><h3>Layout, fixed by <code>super-slim format</code></h3>
-<details class="rule">
-  <summary><span class="rule-name">Indentation</span><span class="rule-message">Indent with 2 spaces, not 3</span></summary>
+<table class="rule-index">
+<thead><tr><th scope="col">Rule</th><th scope="col">Checks</th><th scope="col">Default</th><th scope="col">Fixed by format</th></tr></thead>
+<tbody>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">Layout</th></tr>
+<tr><td><a href="#Indentation">Indentation</a></td><td>Two spaces per level</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#Tab">Tab</a></td><td>No tabs in indentation</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#TrailingWhitespace">TrailingWhitespace</a></td><td>No whitespace at the end of a line</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#EmptyLines">EmptyLines</a></td><td>No more than one empty line in a row</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#TrailingBlankLines">TrailingBlankLines</a></td><td>No empty lines at the end of the file</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#ControlStatementSpacing">ControlStatementSpacing</a></td><td>A space after <code>-</code></td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#RedundantDiv">RedundantDiv</a></td><td>No <code>div</code> before a <code>.class</code> or <code>#id</code> shortcut</td><td class="on">on</td><td>yes</td></tr>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">Template hygiene, from slim-lint</th></tr>
+<tr><td><a href="#LineLength">LineLength</a></td><td>Lines of at most 120 characters, by default</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#CommentControlStatement">CommentControlStatement</a></td><td>Comments with <code>/</code>, not <code>- #</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#EmptyControlStatement">EmptyControlStatement</a></td><td>No lone <code>-</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#ConsecutiveControlStatements">ConsecutiveControlStatements</a></td><td>A <code>ruby:</code> block for runs of <code>-</code> lines</td><td class="on">on</td><td>yes</td></tr>
+<tr><td><a href="#TagCase">TagCase</a></td><td>Lowercase tag names</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#Zwsp">Zwsp</a></td><td>No invisible zero-width characters</td><td class="on">on</td><td></td></tr>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">Ruby in templates, from haml-lint and erb_lint</th></tr>
+<tr><td><a href="#UnnecessaryInterpolation">UnnecessaryInterpolation</a></td><td><code>=</code> rather than text that only interpolates</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#UnnecessaryStringOutput">UnnecessaryStringOutput</a></td><td><code>|</code> rather than outputting a string literal</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#DeprecatedClasses">DeprecatedClasses</a></td><td>Classes your CSS framework renamed</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#DeprecatedAttributes">DeprecatedAttributes</a></td><td>Data attributes your framework renamed</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#InlineStyles">InlineStyles</a></td><td>No <code>style</code> attributes</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#UnescapedOutput">UnescapedOutput</a></td><td>No output that skips HTML escaping</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#SlimSyntax">SlimSyntax</a></td><td>Only lines Slim and Brakeman can read</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#EmbeddedEngines">EmbeddedEngines</a></td><td>No <code>javascript:</code> or <code>css:</code> blocks you forbid</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#HardcodedText">HardcodedText</a></td><td>Text goes through translations</td><td class="off">off</td><td></td></tr>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">Rails conventions</th></tr>
+<tr><td><a href="#InstanceVariables">InstanceVariables</a></td><td>Partials take locals, not instance variables</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#StrictLocals">StrictLocals</a></td><td>Partials declare their locals</td><td class="off">off</td><td></td></tr>
+<tr class="rule-index-group"><th colspan="4" scope="rowgroup">HTML and accessibility, from Herb and jsx-a11y</th></tr>
+<tr><td><a href="#DuplicateId">DuplicateId</a></td><td>Each <code>id</code> once per template</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#ImageAlt">ImageAlt</a></td><td>Images have <code>alt</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#IframeTitle">IframeTitle</a></td><td>Frames have <code>title</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#AnchorHref">AnchorHref</a></td><td>Links have <code>href</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#NestedLinks">NestedLinks</a></td><td>No link inside a link</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#PositiveTabindex">PositiveTabindex</a></td><td>No positive <code>tabindex</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#BooleanAttributeValue">BooleanAttributeValue</a></td><td>Boolean attributes take <code>true</code> or <code>false</code></td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#AriaBooleanValue">AriaBooleanValue</a></td><td>ARIA states are strings</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#AriaRole">AriaRole</a></td><td>Roles that exist</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#AriaAttribute">AriaAttribute</a></td><td><code>aria-*</code> attributes that exist</td><td class="on">on</td><td></td></tr>
+<tr><td><a href="#ButtonType">ButtonType</a></td><td>Buttons have <code>type</code></td><td class="off">off</td><td></td></tr>
+</tbody>
+</table>
+<section class="rule-group"><h3>Layout</h3>
+<article class="rule" id="Indentation">
+  <h4><a href="#Indentation">Indentation</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">Slim reads a template&#39;s structure from its indentation: one width everywhere keeps the nesting easy to see.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>
    <span class="nt">li</span><span class="w"> </span>Home
-</code></pre></div>
+</code></pre><p class="rule-output">Indent with 2 spaces, not 3</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
   <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">Tab</span><span class="rule-message">Indent with spaces, not tabs</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="Tab">
+  <h4><a href="#Tab">Tab</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">A tab is as wide as each editor wants, so nesting that looks right in one looks wrong in another.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>
 <span class="err">→   </span><span class="nt">li</span><span class="w"> </span>Home
-</code></pre></div>
+</code></pre><p class="rule-output">Indent with spaces, not tabs</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
   <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">TrailingWhitespace</span><span class="rule-message">Trailing whitespace renders: write it with <code>&#39;</code> or <code>&gt;</code> instead</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="TrailingWhitespace">
+  <h4><a href="#TrailingWhitespace">TrailingWhitespace</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">Invisible characters that only show up in diffs. At the end of text, Slim outputs them: <code>super-slim format</code> leaves those, and the rule asks to write the space with <code>&#39;</code> or <code>&gt;</code>.</p>
   <div class="rule-examples">
-    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello·
-</code></pre></div>
-    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">ul</span>·
+  <span class="nt">li</span><span class="w"> </span>Home
+</code></pre><p class="rule-output">Remove trailing whitespace</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">ul</span>
+  <span class="nt">li</span><span class="w"> </span>Home
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">EmptyLines</span><span class="rule-message">Remove this extra empty line</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="EmptyLines">
+  <h4><a href="#EmptyLines">EmptyLines</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">One empty line is enough to separate two blocks.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
 
 
 <span class="nt">p</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output">Remove this extra empty line</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Title
 
 <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">TrailingBlankLines</span><span class="rule-message">Remove the empty lines at the end of the file</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="TrailingBlankLines">
+  <h4><a href="#TrailingBlankLines">TrailingBlankLines</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">A file ends with one newline: empty lines after it only show up in diffs.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 
-</code></pre></div>
+</code></pre><p class="rule-output">Remove the empty lines at the end of the file</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">ControlStatementSpacing</span><span class="rule-message">Put a space after <code>-</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="ControlStatementSpacing">
+  <h4><a href="#ControlStatementSpacing">ControlStatementSpacing</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why"><code>- if</code> then reads like <code>= value</code> and <code>| text</code>: the marker, a space, the content.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span><span class="k">if</span> <span class="n">admin?</span>
   <span class="nt">p</span><span class="w"> </span>Admin
-</code></pre></div>
+</code></pre><p class="rule-output">Put a space after <code>-</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">admin?</span>
   <span class="nt">p</span><span class="w"> </span>Admin
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">RedundantDiv</span><span class="rule-message"><code>div</code> is implied by the <code>.class</code> or <code>#id</code> shortcut</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="RedundantDiv">
+  <h4><a href="#RedundantDiv">RedundantDiv</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">A <code>.class</code> or <code>#id</code> shortcut without a tag name already makes a <code>div</code>.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">div</span><span class="nc">.card</span>
   <span class="nt">p</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output"><code>div</code> is implied by the <code>.class</code> or <code>#id</code> shortcut</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.card</span>
   <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 </section>
 <section class="rule-group"><h3>Template hygiene, from slim-lint</h3>
-<details class="rule">
-  <summary><span class="rule-name">LineLength</span><span class="rule-message">Line is too long [127/120]</span></summary>
+<article class="rule" id="LineLength">
+  <h4><a href="#LineLength">LineLength</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">The end of a long line hides past the edge of the editor and of a diff. <code>super-slim format</code> wraps attribute lists when <code>format.max_line_length</code> is set.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>word<span class="w"> </span>
-</code></pre></div>
+</code></pre><p class="rule-output">Line is too long [127/120]</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span>
   <span class="p">|</span> word word word word word word word word word word
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">CommentControlStatement</span><span class="rule-message">Write comments with <code>/</code>, not <code>- #</code>: they cost nothing at render time</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr><tr><td><code>max</code></td><td><code>120</code></td><td>the longest line, in characters</td></tr></tbody></table>
+</article>
+<article class="rule" id="CommentControlStatement">
+  <h4><a href="#CommentControlStatement">CommentControlStatement</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A <code>- #</code> comment goes into the compiled Ruby, while a <code>/</code> comment is dropped at compile time.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="c1"># TODO</span>
 <span class="nt">p</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output">Write comments with <code>/</code>, not <code>- #</code>: they cost nothing at render time</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/ TODO</span>
 <span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">EmptyControlStatement</span><span class="rule-message">Remove this empty <code>-</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="EmptyControlStatement">
+  <h4><a href="#EmptyControlStatement">EmptyControlStatement</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A lone <code>-</code> runs nothing: it is a leftover from an edit.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span>
 <span class="nt">p</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output">Remove this empty <code>-</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">ConsecutiveControlStatements</span><span class="rule-message">Merge these 3 lines of Ruby into a <code>ruby:</code> block</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="ConsecutiveControlStatements">
+  <h4><a href="#ConsecutiveControlStatements">ConsecutiveControlStatements</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span><span class="badge">Fixed by <code>super-slim format</code></span></p>
+  <p class="rule-why">A run of <code>-</code> lines is a block of Ruby: a <code>ruby:</code> block shows it as one, and makes it plain when it belongs in a helper.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="p">-</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="p">-</span> <span class="n">c</span> <span class="o">=</span> <span class="mi">3</span>
 <span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Merge these 3 lines of Ruby into a <code>ruby:</code> block</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nd">ruby:
 </span>  <span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
   <span class="n">b</span> <span class="o">=</span> <span class="mi">2</span>
@@ -266,239 +345,312 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATH�
 <span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">TagCase</span><span class="rule-message">Write <code>p</code> in lowercase</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr><tr><td><code>max</code></td><td><code>2</code></td><td>lines of <code>-</code> in a row before asking for a <code>ruby:</code> block</td></tr></tbody></table>
+</article>
+<article class="rule" id="TagCase">
+  <h4><a href="#TagCase">TagCase</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">HTML tag names are lowercase by convention. SVG tags such as <code>foreignObject</code> are left alone.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">P</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output">Write <code>p</code> in lowercase</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">Zwsp</span><span class="rule-message">Remove the invisible zero-width character</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="Zwsp">
+  <h4><a href="#Zwsp">Zwsp</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Zero-width characters, often pasted from a document, are invisible in the editor but break searches, links and line wrapping. The joiners inside emoji such as 👩🏻‍💻 are left alone.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello\u200Bworld
-</code></pre></div>
+</code></pre><p class="rule-output">Remove the invisible zero-width character</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span>Hello<span class="w"> </span>world
 </code></pre></div>
   </div>
-</details>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 </section>
 <section class="rule-group"><h3>Ruby in templates, from haml-lint and erb_lint</h3>
-<details class="rule">
-  <summary><span class="rule-name">UnnecessaryInterpolation</span><span class="rule-message">Write <code>= post.title</code> instead of interpolating it alone</span></summary>
+<article class="rule" id="UnnecessaryInterpolation">
+  <h4><a href="#UnnecessaryInterpolation">UnnecessaryInterpolation</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why"><code>#{}</code> around the whole text is an output in disguise: <code>=</code> says it plainly.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="si">#{</span><span class="n">post</span><span class="p">.</span><span class="nf">title</span><span class="si">}</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Write <code>= post.title</code> instead of interpolating it alone</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">UnnecessaryStringOutput</span><span class="rule-message">Write the text <code>| Hello</code> instead of outputting a string</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="UnnecessaryStringOutput">
+  <h4><a href="#UnnecessaryStringOutput">UnnecessaryStringOutput</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Outputting a string literal runs Ruby for text that <code>|</code> writes as it is.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span>
   <span class="p">=</span> <span class="s2">"Hello"</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Write the text <code>| Hello</code> instead of outputting a string</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span>
   <span class="p">|</span> Hello
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">DeprecatedClasses</span><span class="rule-message"><code>text-muted</code> is deprecated: use <code>text-body-secondary</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="DeprecatedClasses">
+  <h4><a href="#DeprecatedClasses">DeprecatedClasses</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A class your CSS framework renamed or dropped stops styling the page without an error. List them under <code>classes:</code>, or start from the <code>bootstrap5</code> preset.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-muted</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output"><code>text-muted</code> is deprecated: use <code>text-body-secondary</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-body-secondary</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">DeprecatedAttributes</span><span class="rule-message"><code>data-toggle</code> is deprecated: use <code>data-bs-toggle</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr><tr><td><code>classes</code></td><td><code>{}</code></td><td><code>old: new</code>, or <code>old-*: new-*</code> for a prefix; <code>old: ~</code> drops an entry of the preset</td></tr><tr><td><code>preset</code></td><td><code>none</code></td><td>adds a list under your own entries: <code>bootstrap5</code></td></tr></tbody></table>
+</article>
+<article class="rule" id="DeprecatedAttributes">
+  <h4><a href="#DeprecatedAttributes">DeprecatedAttributes</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">The same for data attributes: Bootstrap 5 reads <code>data-bs-toggle</code>, so a <code>data-toggle</code> left over from Bootstrap 4 no longer opens anything.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">data-toggle</span><span class="p">=</span><span class="s">"modal"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Open
-</code></pre></div>
+</code></pre><p class="rule-output"><code>data-toggle</code> is deprecated: use <code>data-bs-toggle</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">data-bs-toggle</span><span class="p">=</span><span class="s">"modal"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Open
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">InlineStyles</span><span class="rule-default off">off by default</span><span class="rule-message">Move inline styles to a stylesheet</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr><tr><td><code>attributes</code></td><td><code>{}</code></td><td><code>old: new</code>; <code>old: ~</code> drops an entry of the preset</td></tr><tr><td><code>preset</code></td><td><code>none</code></td><td>adds a list under your own entries: <code>bootstrap5</code></td></tr></tbody></table>
+</article>
+<article class="rule" id="InlineStyles">
+  <h4><a href="#InlineStyles">InlineStyles</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">A <code>style</code> attribute cannot be reused or changed by a media query, and a strict Content Security Policy blocks it.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="na">style</span><span class="p">=</span><span class="s">"color: red"</span><span class="w"> </span>Text
-</code></pre></div>
+</code></pre><p class="rule-output">Move inline styles to a stylesheet</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="nc">.text-danger</span><span class="w"> </span>Text
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">UnescapedOutput</span><span class="rule-default off">off by default</span><span class="rule-message"><code>==</code> skips HTML escaping: output with <code>=</code>, or render HTML from a translation key ending in <code>_html</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="UnescapedOutput">
+  <h4><a href="#UnescapedOutput">UnescapedOutput</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why"><code>==</code>, <code>html_safe</code>, <code>raw</code> and <code>#{{}}</code> output a string as HTML: if any of it comes from a user, it is a cross-site scripting hole.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span><span class="o">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">intro</span>
-</code></pre></div>
+</code></pre><p class="rule-output"><code>==</code> skips HTML escaping: output with <code>=</code>, or render HTML from a translation key ending in <code>_html</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">t</span><span class="p">(</span><span class="s2">".intro_html"</span><span class="p">)</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">SlimSyntax</span><span class="rule-message">Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="SlimSyntax">
+  <h4><a href="#SlimSyntax">SlimSyntax</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: it reports such a template as an error and checks none of its Ruby.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">=</span> <span class="n">render</span> <span class="no">Card</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">post</span><span class="p">:)</span> <span class="c1"># the card of the post</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/ The card of the post</span>
 <span class="p">=</span> <span class="n">render</span> <span class="no">Card</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="n">post</span><span class="p">:)</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">EmbeddedEngines</span><span class="rule-default off">off by default</span><span class="rule-message">The <code>javascript:</code> engine is forbidden here: move this code to a file of its own</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="EmbeddedEngines">
+  <h4><a href="#EmbeddedEngines">EmbeddedEngines</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">Inline JavaScript and CSS are sent again with every page, cached nowhere, and blocked by a strict Content Security Policy.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nd">javascript:
 </span>  <span class="nf">track</span><span class="p">(</span><span class="dl">"</span><span class="s2">view</span><span class="dl">"</span><span class="p">)</span>
-</code></pre></div>
+</code></pre><p class="rule-output">The <code>javascript:</code> engine is forbidden here: move this code to a file of its own</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">data-controller</span><span class="p">=</span><span class="s">"tracking"</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">HardcodedText</span><span class="rule-default off">off by default</span><span class="rule-message">Translate <code>Welcome</code> instead of writing it in the template</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr><tr><td><code>forbidden_engines</code></td><td><code>[]</code></td><td>the engines to flag, such as <code>[javascript, css]</code></td></tr></tbody></table>
+</article>
+<article class="rule" id="HardcodedText">
+  <h4><a href="#HardcodedText">HardcodedText</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">Text written in the template cannot be translated. Turn the rule on with <code>include:</code> for the parts of the app that are translated.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span>Welcome
-</code></pre></div>
+</code></pre><p class="rule-output">Translate <code>Welcome</code> instead of writing it in the template</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">h1</span><span class="w"> </span><span class="p">=</span> <span class="n">t</span><span class="p">(</span><span class="s2">".welcome"</span><span class="p">)</span>
 </code></pre></div>
   </div>
-</details>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 </section>
 <section class="rule-group"><h3>Rails conventions</h3>
-<details class="rule">
-  <summary><span class="rule-name">InstanceVariables</span><span class="rule-message">Pass <code>@post</code> to the partial as a local</span></summary>
+<article class="rule" id="InstanceVariables">
+  <h4><a href="#InstanceVariables">InstanceVariables</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A partial that reads instance variables depends on the controller that renders it: locals say what it needs. Checked in partials only.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="vi">@post</span><span class="p">.</span><span class="nf">title</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Pass <code>@post</code> to the partial as a local</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/# locals: (post:)</span>
 <span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">StrictLocals</span><span class="rule-default off">off by default</span><span class="rule-message">Declare the partial&#39;s locals: <code>/# locals: (name:)</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="StrictLocals">
+  <h4><a href="#StrictLocals">StrictLocals</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">With a <code>locals:</code> comment, Rails 7.1 and later raise when a partial gets a local it does not declare, or misses a required one.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Declare the partial&#39;s locals: <code>/# locals: (name:)</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/# locals: (post:)</span>
 <span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
 </code></pre></div>
   </div>
-</details>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 </section>
 <section class="rule-group"><h3>HTML and accessibility, from Herb and jsx-a11y</h3>
-<details class="rule">
-  <summary><span class="rule-name">DuplicateId</span><span class="rule-message">The id <code>menu</code> is already used in this template</span></summary>
+<article class="rule" id="DuplicateId">
+  <h4><a href="#DuplicateId">DuplicateId</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">An <code>id</code> names one element of the page: labels, anchors, ARIA references and <code>getElementById</code> all find the first one only.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nf">#menu</span>
 <span class="nf">#menu</span>
-</code></pre></div>
+</code></pre><p class="rule-output">The id <code>menu</code> is already used in this template</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nf">#menu</span>
 <span class="nf">#footer-menu</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">ImageAlt</span><span class="rule-message">Describe the image with <code>alt</code>, or mark it decorative with <code>alt=&quot;&quot;</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="ImageAlt">
+  <h4><a href="#ImageAlt">ImageAlt</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Screen readers read <code>alt</code> in place of the image, and the file name without it. An empty <code>alt</code> tells them to skip a decorative image.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Describe the image with <code>alt</code>, or mark it decorative with <code>alt=&quot;&quot;</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span><span class="w"> </span><span class="na">alt</span><span class="p">=</span><span class="n">post</span><span class="nc">.title</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">IframeTitle</span><span class="rule-message">Name the frame with <code>title</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="IframeTitle">
+  <h4><a href="#IframeTitle">IframeTitle</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Screen readers announce a frame by its <code>title</code>, so that users know what is inside before entering it.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">iframe</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">video_url</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Name the frame with <code>title</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">iframe</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">video_url</span><span class="w"> </span><span class="na">title</span><span class="p">=</span><span class="s">"Intro video"</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">AnchorHref</span><span class="rule-message">A link without <code>href</code> is not a link: use a <code>button</code> for actions</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="AnchorHref">
+  <h4><a href="#AnchorHref">AnchorHref</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A link without <code>href</code> cannot be reached with the keyboard and is not announced as a link.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span>Read<span class="w"> </span>more
-</code></pre></div>
+</code></pre><p class="rule-output">A link without <code>href</code> is not a link: use a <code>button</code> for actions</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="n">post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span><span class="w"> </span>Read<span class="w"> </span>more
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">NestedLinks</span><span class="rule-message">Links cannot contain links</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="NestedLinks">
+  <h4><a href="#NestedLinks">NestedLinks</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">HTML forbids a link inside a link: browsers close the first one early, and the page is not built as written.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/a"</span>
   <span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/b"</span><span class="w"> </span>B
-</code></pre></div>
+</code></pre><p class="rule-output">Links cannot contain links</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/a"</span><span class="w"> </span>A
 <span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="s">"/b"</span><span class="w"> </span>B
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">PositiveTabindex</span><span class="rule-message">A positive <code>tabindex</code> breaks the reading order: use 0 or -1</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="PositiveTabindex">
+  <h4><a href="#PositiveTabindex">PositiveTabindex</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">A positive <code>tabindex</code> moves the element ahead of everything else in keyboard order, away from where it stands on the screen.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">tabindex</span><span class="p">=</span><span class="s">"3"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Save
-</code></pre></div>
+</code></pre><p class="rule-output">A positive <code>tabindex</code> breaks the reading order: use 0 or -1</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">tabindex</span><span class="p">=</span><span class="s">"0"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span><span class="w"> </span>Save
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">BooleanAttributeValue</span><span class="rule-message">Write <code>disabled=true</code>, or <code>disabled</code> alone inside an attribute list</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="BooleanAttributeValue">
+  <h4><a href="#BooleanAttributeValue">BooleanAttributeValue</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">In Slim, <code>true</code> renders a boolean attribute and <code>false</code> leaves it out, while any string renders it: <code>disabled=&quot;false&quot;</code> disables.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="s">"disabled"</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Write <code>disabled=true</code>, or <code>disabled</code> alone inside an attribute list</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">input</span><span class="w"> </span><span class="na">disabled</span><span class="p">=</span><span class="kp">true</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">AriaBooleanValue</span><span class="rule-message">Write <code>aria-atomic=&quot;true&quot;</code>: Slim renders <code>aria-atomic=true</code> without a value</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="AriaBooleanValue">
+  <h4><a href="#AriaBooleanValue">AriaBooleanValue</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">ARIA states are the strings <code>&quot;true&quot;</code> and <code>&quot;false&quot;</code>: Slim renders <code>aria-*=true</code> without a value and leaves out <code>aria-*=false</code>.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="kp">true</span>
-</code></pre></div>
+</code></pre><p class="rule-output">Write <code>aria-atomic=&quot;true&quot;</code>: Slim renders <code>aria-atomic=true</code> without a value</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nc">.toast</span><span class="w"> </span><span class="na">aria-atomic</span><span class="p">=</span><span class="s">"true"</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">AriaRole</span><span class="rule-message"><code>buton</code> is not an ARIA role</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="AriaRole">
+  <h4><a href="#AriaRole">AriaRole</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Assistive technologies ignore a role they do not know, so a typo drops the meaning you added.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">role</span><span class="p">=</span><span class="s">"buton"</span>
-</code></pre></div>
+</code></pre><p class="rule-output"><code>buton</code> is not an ARIA role</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">div</span><span class="w"> </span><span class="na">role</span><span class="p">=</span><span class="s">"button"</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">AriaAttribute</span><span class="rule-message"><code>aria-lable</code> is not an ARIA attribute</span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="AriaAttribute">
+  <h4><a href="#AriaAttribute">AriaAttribute</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Assistive technologies ignore an <code>aria-*</code> attribute they do not know, so a typo does nothing.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">aria-lable</span><span class="p">=</span><span class="s">"Close"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span>
-</code></pre></div>
+</code></pre><p class="rule-output"><code>aria-lable</code> is not an ARIA attribute</p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">aria-label</span><span class="p">=</span><span class="s">"Close"</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"button"</span>
 </code></pre></div>
   </div>
-</details>
-<details class="rule">
-  <summary><span class="rule-name">ButtonType</span><span class="rule-default off">off by default</span><span class="rule-message">Say what the button does with <code>type=&quot;button&quot;</code> or <code>type=&quot;submit&quot;</code></span></summary>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="ButtonType">
+  <h4><a href="#ButtonType">ButtonType</a></h4>
+  <p class="rule-badges"><span class="badge off">Off by default</span></p>
+  <p class="rule-why">A <code>button</code> without <code>type</code> submits its form: saying <code>button</code> or <code>submit</code> avoids a submission nobody meant.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span>Save
-</code></pre></div>
+</code></pre><p class="rule-output">Say what the button does with <code>type=&quot;button&quot;</code> or <code>type=&quot;submit&quot;</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="nt">button</span><span class="w"> </span><span class="na">type</span><span class="p">=</span><span class="s">"submit"</span><span class="w"> </span>Save
 </code></pre></div>
   </div>
-</details>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
 </section>
 <!-- /linter-rules -->
   </section>
