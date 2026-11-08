@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [3.5.0] — 2026-11-08
+
+Six lint rules and a page that documents every rule. Four of the new rules are on by default, so `super-slim lint` may
+report lines it passed before.
+
+**New**
+- The website gives each lint rule its own entry: why it exists, a flagged and a clean example, its settings with
+  their defaults, and whether `super-slim format` fixes it. `super-slim lint` prints the link to each rule it reports,
+  on stderr.
+- `AnchorHref` also flags `href="#"` and `javascript:` URLs, links that stand in for a button.
+- `UnusedLocals`, on by default, flags a local declared in `/# locals:` that the partial never reads. The shorthand
+  `render "card", post:` counts as a read; a template that reads `local_assigns` is left alone.
+- `SoleNestedConditional`, `NegatedIfElseCondition` and `UnlessElse`, on by default, flag an `if` alone inside
+  another, `- if !x` with an `else`, and `- unless` with an `else`: RuboCop's cops for these can't see `-` lines.
+- `InlineEventHandlers`, off by default, flags `onclick`, `onchange` and the other `on*` attributes, which a strict
+  Content Security Policy blocks.
+- `DatabaseQueries`, off by default, flags `where`, `find_by`, `pluck`, `exists?` and the like, and `Model.all`,
+  `Model.order` and the like, written in a template.
+
 ## [3.4.1] — 2026-11-07
 
 One fix: `super-slim format` no longer writes `-` lines that `super-slim lint` flags.
@@ -247,7 +266,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.4.1...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/levups/super-slim/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/levups/super-slim/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/levups/super-slim/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/levups/super-slim/compare/v3.2.2...v3.3.0
