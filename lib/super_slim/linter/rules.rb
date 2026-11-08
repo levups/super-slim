@@ -306,9 +306,20 @@ module SuperSlim
         end
       end
 
+      # After eslint-plugin-jsx-a11y's anchor-is-valid: `href="#"` and `javascript:` only stand in for a click handler.
       class AnchorHref < Rule
+        PLACEHOLDER = /\A\s*(?:#|javascript:.*)\z/im
+
         def offenses(document, _source)
-          missing_attribute(document, "a", "href", "A link without `href` is not a link: use a `button` for actions")
+          placeholders = enum_for(:each_tag, document, "a").flat_map do |tag,|
+            literal_attributes(tag, "href").filter_map do |attribute|
+              next unless (href = literal_value(attribute)).match?(PLACEHOLDER)
+
+              target = href.strip.start_with?("#") ? '`href="#"`' : "A `javascript:` URL"
+              offense(document, document.line_of(tag), "#{target} goes nowhere: use a `button` for actions")
+            end
+          end
+          missing_attribute(document, "a", "href", "A link without `href` is not a link: use a `button` for actions") + placeholders
         end
       end
 
@@ -477,6 +488,19 @@ module SuperSlim
         def offenses(document, _source)
           enum_for(:each_tag, document).filter_map do |tag,|
             offense(document, document.line_of(tag), "Move inline styles to a stylesheet") if literal_attributes(tag, "style").any?
+          end
+        end
+      end
+
+      class InlineEventHandlers < Rule
+        DEFAULTS = {enabled: false}.freeze
+        HANDLER = /\Aon[a-z]+\z/
+
+        def offenses(document, _source)
+          enum_for(:each_tag, document).flat_map do |tag,|
+            attribute_names(tag).grep(HANDLER).map do |name|
+              offense(document, document.line_of(tag), "Move the `#{name}` handler to JavaScript: a strict Content Security Policy blocks it")
+            end
           end
         end
       end
