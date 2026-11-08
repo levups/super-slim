@@ -67,7 +67,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div class="prose">
 <pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint <span class="o">[</span>PATHâ€¦]
 <span class="go">app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
-      <p><span id="rule-count">36</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
+      <p><span id="rule-count">37</span> rules taken from slim-lint, haml-lint, erb_lint, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.</p>
     </div>
   </section>
 
@@ -172,6 +172,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <tr class="rule-index-group"><th colspan="4" scope="rowgroup">Rails conventions</th></tr>
 <tr><td><a href="#InstanceVariables">InstanceVariables</a></td><td>Partials take locals, not instance variables</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#StrictLocals">StrictLocals</a></td><td>Partials declare their locals</td><td class="off">off</td><td></td></tr>
+<tr><td><a href="#UnusedLocals">UnusedLocals</a></td><td>Partials read every local they declare</td><td class="on">on</td><td></td></tr>
 <tr class="rule-index-group"><th colspan="4" scope="rowgroup">HTML and accessibility, from Herb and jsx-a11y</th></tr>
 <tr><td><a href="#DuplicateId">DuplicateId</a></td><td>Each <code>id</code> once per template</td><td class="on">on</td><td></td></tr>
 <tr><td><a href="#ImageAlt">ImageAlt</a></td><td>Images have <code>alt</code></td><td class="on">on</td><td></td></tr>
@@ -525,6 +526,20 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 </code></pre></div>
   </div>
   <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>false</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
+</article>
+<article class="rule" id="UnusedLocals">
+  <h4><a href="#UnusedLocals">UnusedLocals</a></h4>
+  <p class="rule-badges"><span class="badge on">On by default</span></p>
+  <p class="rule-why">Callers keep passing a local the partial no longer reads, and Rails accepts it: the <code>locals:</code> comment stops describing the partial. A template that reads <code>local_assigns</code> is left alone.</p>
+  <div class="rule-examples">
+    <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="c">/# locals: (post:, form:)</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
+</code></pre><p class="rule-output">The local <code>form</code> is declared but never read</p></div>
+    <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="c">/# locals: (post:)</span>
+<span class="nt">p</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
+</code></pre></div>
+  </div>
+  <table class="rule-settings"><thead><tr><th scope="col">Setting</th><th scope="col">Default</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>enabled</code></td><td><code>true</code></td><td><code>true</code> runs the rule, <code>false</code> turns it off</td></tr></tbody></table>
 </article>
 </section>
 <section class="rule-group"><h3>HTML and accessibility, from Herb and jsx-a11y</h3>

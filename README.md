@@ -214,6 +214,7 @@ linters, so most will look familiar:
 | LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
 | InstanceVariables (in partials) | haml-lint, Rails conventions | on |
 | StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
+| UnusedLocals (a local declared in `/# locals:` that the partial never reads) | Rails 7.1 strict locals | on |
 | DuplicateId, ImageAlt, IframeTitle, AnchorHref (also `href="#"` and `javascript:`), NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaBooleanValue (`aria-*=true` renders no value, `aria-*=false` no attribute), AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
 | ButtonType, InlineStyles, InlineEventHandlers (`onclick` and other `on*` attributes) | eslint-plugin-react, haml-lint | off |
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
