@@ -76,6 +76,15 @@ module SuperSlim
     # The layout rules: what `super-slim format` rewrites.
     LAYOUT_RULE_NAMES = %w[Indentation Tab TrailingWhitespace EmptyLines ControlStatementSpacing RedundantDiv].freeze
     GLOB_OPTIONS = %w[include exclude].freeze
+    # What the default of a rule's option asks of the value that replaces it.
+    VALUE_KIND_BY_DEFAULT_CLASS = {
+      TrueClass => ["true or false", [TrueClass, FalseClass]],
+      FalseClass => ["true or false", [TrueClass, FalseClass]],
+      Integer => ["a whole number", [Integer]],
+      # Left empty under a preset, `classes:` is nil.
+      Hash => ["a mapping", [Hash, NilClass]],
+      Array => ["a list", [Array]]
+    }.freeze
 
     def self.load(directory = Dir.pwd)
       new(configuration(directory).fetch("linters", {}), directory)
@@ -88,22 +97,48 @@ module SuperSlim
       configuration
     end
 
-    # A value of the wrong shape would fail later, inside a rule, with a NoMethodError naming none of this file.
+    # A value of the wrong shape would fail later, inside a rule or the formatter, on every template and with an error
+    # naming none of this file: `max: "120"` compares a number with text.
     def self.check_configuration(configuration)
       raise Error, "#{CONFIG_FILE}: expected a mapping of settings" unless configuration.is_a?(Hash)
 
       %w[linters format fmt].each do |key|
         raise Error, "#{CONFIG_FILE}: `#{key}` must be a mapping" unless configuration.fetch(key, {}).is_a?(Hash)
       end
-      configuration.fetch("linters", {}).each do |rule_name, options|
-        raise Error, "#{CONFIG_FILE}: `linters: #{rule_name}` must be a mapping of options" unless options.is_a?(Hash)
+      raise Error, "#{CONFIG_FILE}: `tailwind_classes` must be true or false" unless [true, false, nil].include?(configuration["tailwind_classes"])
 
-        GLOB_OPTIONS.each do |key|
-          globs = Array(options[key])
-          raise Error, "#{CONFIG_FILE}: `#{rule_name}: #{key}` must be a list of globs" unless globs.all?(String)
-        end
+      configuration.fetch("linters", {}).each { |rule_name, options| check_rule_options(rule_name, options) }
+      configuration.slice("format", "fmt").each { |key, options| check_format_options(key, options) }
+    end
+
+    def self.check_rule_options(rule_name, options)
+      raise Error, "#{CONFIG_FILE}: `linters: #{rule_name}` must be a mapping of options" unless options.is_a?(Hash)
+
+      GLOB_OPTIONS.each do |key|
+        globs = Array(options[key])
+        raise Error, "#{CONFIG_FILE}: `#{rule_name}: #{key}` must be a list of globs" unless globs.all?(String)
+      end
+      rule_class = Rules.all.find { _1.rule_name == rule_name } or return
+      rule_class::DEFAULTS.each do |key, default|
+        next unless options.key?(key.to_s)
+
+        kind, classes = VALUE_KIND_BY_DEFAULT_CLASS.fetch(default.class)
+        raise Error, "#{CONFIG_FILE}: `#{rule_name}: #{key}` must be #{kind}" unless classes.any? { options[key.to_s].is_a?(_1) }
       end
     end
+    private_class_method :check_rule_options
+
+    def self.check_format_options(key, options)
+      max_line_length = options["max_line_length"]
+      wraps_nothing_or_at_a_length = max_line_length.nil? || (max_line_length.is_a?(Integer) && max_line_length.positive?)
+      raise Error, "#{CONFIG_FILE}: `#{key}: max_line_length` must be a whole number above 0" unless wraps_nothing_or_at_a_length
+
+      delimiters = Formatter::LineWrapper::OPENING_BY_ATTRIBUTE_DELIMITERS.keys
+      return if !options.key?("attribute_delimiters") || delimiters.include?(options["attribute_delimiters"])
+
+      raise Error, "#{CONFIG_FILE}: `#{key}: attribute_delimiters` must be one of #{delimiters.join(", ")}"
+    end
+    private_class_method :check_format_options
 
     # include: and exclude: globs match paths relative to `root`, the directory of .super-slim.yml.
     def initialize(options_by_rule_name = {}, root = Dir.pwd)
