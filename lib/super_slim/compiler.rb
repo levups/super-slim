@@ -165,7 +165,10 @@ module SuperSlim
       if @rails
         compile_children(output.children)
       else
-        capture_into(new_variable) { compile_children(output.children) }
+        # The block returns what its children render.
+        captured = new_variable
+        capture_into(captured) { compile_children(output.children) }
+        emit_code(captured)
       end
       emit_code("end")
       emit_output(returned_value, output.escape)
@@ -439,7 +442,7 @@ module SuperSlim
         @buffer = StringBuffer.new(variable, @escape_function)
         emit_code(@buffer.open)
         yield
-        emit_code(@buffer.close)
+        flush_static
         @buffer = outer_buffer
       end
     end

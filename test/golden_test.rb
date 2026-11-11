@@ -135,8 +135,11 @@ class GoldenTest < Minitest::Test
     sections.slice("tilt", "rails").each do |mode, code|
       next if code.start_with?("error:")
 
-      errors = Prism.parse("def template(output_buffer = nil)\n#{code}\nend").errors
-      assert_empty errors.map(&:message), "#{golden_case.name}: #{mode} code does not parse"
+      parsed = Prism.parse("def template(output_buffer = nil)\n#{code}\nend")
+      assert_empty parsed.errors.map(&:message), "#{golden_case.name}: #{mode} code does not parse"
+      # `ruby -w` prints its warnings each time a template compiles: none may be about a variable SuperSlim adds.
+      generated = parsed.warnings.select { |warning| warning.location.slice.start_with?("_super_slim", "_buf") }
+      assert_empty generated.map { "#{_1.message}: #{_1.location.slice}" }, "#{golden_case.name}: #{mode} code warns under ruby -w"
     end
   end
 
