@@ -119,6 +119,14 @@ class LinterTest < Minitest::Test
       "12: @event", "14: @title"], messages
   end
 
+  def test_an_at_sign_without_a_name_is_no_instance_variable
+    source = "= form_for(@<%= singular_table_name %>) do |form|\n  = form.input @field\n"
+    messages = SuperSlim::Linter.new.call("_form.html.slim", source).select { _1.rule == "InstanceVariables" }
+      .map { |offense| "#{offense.lineno}: #{offense.message}" }
+
+    assert_equal ["2: Pass `@field` to the partial as a local"], messages
+  end
+
   def test_unused_locals
     assert_offenses ["UnusedLocals:1"], "/# locals: (post:, form:)\n\nh2 = post.title\n", path: "_card.html.slim"
     read_everywhere = <<~SLIM

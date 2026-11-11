@@ -319,7 +319,10 @@ module SuperSlim
           return variable_by_line unless code.include?("@")
 
           Prism.lex(code).value.each do |token,|
-            variable_by_line[token.location.start_line] ||= token.value if token.type == :INSTANCE_VARIABLE
+            # An `@` that no name follows is lexed as one too: `@<%= name %>` in a generator's template.
+            next unless token.type == :INSTANCE_VARIABLE && token.value != "@"
+
+            variable_by_line[token.location.start_line] ||= token.value
           end
           variable_by_line
         end
