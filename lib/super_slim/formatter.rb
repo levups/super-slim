@@ -25,7 +25,10 @@ module SuperSlim
     RUBY_BLOCK_MIN_LINES = 3
     SKIPPED_KINDS = %i[blank continuation].freeze
     RUBY_BLOCK = /\A\s*ruby:\s*\z/
-    CONTROL_RUN = /^( *)- .*\n\1- .*\n\1- /
+    # Three `-` lines, or one beside a `ruby:` block.
+    CODE_RUN = /^( *)- .*\n\1- .*\n\1- |^( *)- .*\n\2ruby:$|^( *)ruby:\n(?:\3 .*\n)+\3- /
+    # Two passes settle every template of the corpus, and a third sees that nothing changes: the rest is margin.
+    MAX_PASSES = 5
     # `while x do` is valid Ruby that nobody writes.
     LOOP = /\A(?:while|until|for)\b/
     END_KEYWORD = /\Aend\b/
@@ -60,7 +63,31 @@ module SuperSlim
       @line_wrapper = LineWrapper.new(max_line_length, tailwind_classes:, attribute_delimiters:) if max_line_length
     end
 
+    # With max_line_length, a pass can leave work for the next: brackets it spread fit once joined back without the
+    # spaces inside them, and the children of an output it moved onto its tag stand one level too deep. Formatted
+    # until nothing changes, so that `format --check` passes right after `format`.
     def call(source)
+      formatted = format_once(source)
+      return formatted if @line_wrapper.nil? || formatted == source
+
+      (MAX_PASSES - 1).times do
+        previous = formatted
+        formatted = format_again(previous)
+        break if formatted == previous
+      end
+      formatted
+    end
+
+    private
+
+    # Each pass is checked against the template it reads: one that can't be leaves the pass before it.
+    def format_again(formatted)
+      format_once(formatted)
+    rescue UnsafeFormattingError
+      formatted
+    end
+
+    def format_once(source)
       parser = Parser.new(outline: true, tailwind_classes: @tailwind_classes)
       nodes = parser.call(source)
       formatted = layout(source, parser)
@@ -79,9 +106,9 @@ module SuperSlim
       wrapped = @line_wrapper.call(formatted, parser:)
       return formatted if wrapped == formatted
 
-      # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block. A wrap Slim can't read is
-      # refused below.
-      if wrapped.match?(CONTROL_RUN)
+      # `-` code joined by the wrapper may now make a run long enough for a `ruby:` block, or stand beside one. A wrap
+      # Slim can't read is refused below.
+      if wrapped.match?(CODE_RUN)
         wrapped_parser = parsed_template(wrapped).last
         wrapped = layout(wrapped, wrapped_parser) if wrapped_parser
       end
@@ -96,8 +123,6 @@ module SuperSlim
     rescue SystemStackError
       raise UnsafeFormattingError, "Code nested too deep to check that formatting changes nothing"
     end
-
-    private
 
     def layout(source, parser)
       source = source.delete_prefix("﻿")
