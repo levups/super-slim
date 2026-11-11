@@ -83,6 +83,29 @@ module SuperSlim
       closing_by_opening
     end
 
+    # The text cut at its interpolations, as [:static, text] and [:dynamic, code, escape] parts: `#{{code}}` is not
+    # escaped, and its code comes without the inner braces.
+    def self.interpolation_parts(text)
+      return [[:static, text]] unless text.include?('#{')
+
+      closing_by_opening = closing_braces(text)
+      scanner = StringScanner.new(text)
+      parts = []
+      until scanner.eos?
+        if scanner.skip(ESCAPED_INTERPOLATION)
+          parts << [:static, '#{']
+        elsif scanner.match?(INTERPOLATION_START) && (closing = closing_by_opening[scanner.pos + 1])
+          code = text.byteslice(scanner.pos + 2...closing)
+          scanner.pos = closing + 1
+          escape = !code.match?(UNESCAPED_INTERPOLATION_CODE)
+          parts << [:dynamic, escape ? code : code[1..-2], escape]
+        else
+          parts << [:static, scanner.scan(INTERPOLATION_FREE_TEXT)]
+        end
+      end
+      parts
+    end
+
     private
 
     def compile_children(nodes)
@@ -307,7 +330,7 @@ module SuperSlim
         emit_code("#{value} = #{attribute.code}")
         [[:raw, "::SuperSlim::Runtime.class_value(#{value}, #{attribute.escape}, #{@html_safe})"]]
       when QuotedAttribute
-        interpolation_parts(attribute.text).map do |kind, value, escape|
+        Compiler.interpolation_parts(attribute.text).map do |kind, value, escape|
           (kind == :static && attribute.escape) ? [:static, ERB::Escape.html_escape(value)] : [kind, value, escape]
         end
       end
@@ -351,28 +374,7 @@ module SuperSlim
     end
 
     def emit_interpolated(text)
-      emit_parts(interpolation_parts(text))
-    end
-
-    def interpolation_parts(text)
-      return [[:static, text]] unless text.include?('#{')
-
-      closing_by_opening = Compiler.closing_braces(text)
-      scanner = StringScanner.new(text)
-      parts = []
-      until scanner.eos?
-        if scanner.skip(ESCAPED_INTERPOLATION)
-          parts << [:static, '#{']
-        elsif scanner.match?(INTERPOLATION_START) && (closing = closing_by_opening[scanner.pos + 1])
-          code = text.byteslice(scanner.pos + 2...closing)
-          scanner.pos = closing + 1
-          escape = !code.match?(UNESCAPED_INTERPOLATION_CODE)
-          parts << [:dynamic, escape ? code : code[1..-2], escape]
-        else
-          parts << [:static, scanner.scan(INTERPOLATION_FREE_TEXT)]
-        end
-      end
-      parts
+      emit_parts(Compiler.interpolation_parts(text))
     end
 
     def compile_embedded(embedded)
@@ -401,7 +403,7 @@ module SuperSlim
 
       placeholder = "%#{object_id.abs.to_s(36)}%"
       dynamic_parts = []
-      markdown = children.grep(Text).flat_map { interpolation_parts(_1.text) }.map do |part|
+      markdown = children.grep(Text).flat_map { Compiler.interpolation_parts(_1.text) }.map do |part|
         next part[1] if part.first == :static
 
         dynamic_parts << part

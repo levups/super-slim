@@ -79,31 +79,44 @@ module SuperSlim
           tag.attributes.select { _1.respond_to?(:name) && _1.name == name && literal_value(_1) }
         end
 
-        INTERPOLATION = /#\{\{?([^{}]*)\}?\}/
-
         # Each piece of Ruby in the template, with the line it starts on: `-` and `=` lines, attribute values, splats,
-        # `ruby:` blocks, and the interpolations of text and quoted attributes.
+        # `ruby:` blocks, and the interpolations of text, inline HTML and quoted attributes.
         def each_ruby(document)
           document.each_node do |node, ancestors|
             case node
             when AST::Control, AST::Output then yield node.code, document.line_of(node)
-            when AST::Tag
-              node.attributes.each do |attribute|
-                case attribute
-                when AST::CodeAttribute, AST::Splat then yield attribute.code, document.line_of(node)
-                when AST::QuotedAttribute then attribute.text.scan(INTERPOLATION) { yield $1, document.line_of(node) }
-                end
-              end
+            when AST::Tag then each_attribute_ruby(node.attributes) { |code| yield code, document.line_of(node) }
+            when AST::InlineHtml then each_interpolation(node.text) { |code| yield code, document.line_of(node) }
             when AST::Embedded
-              next unless node.engine == "ruby"
-
-              yield node.children.grep(AST::Text).map(&:text).join, document.line_of(node) + 1
+              each_attribute_ruby(node.attributes) { |code| yield code, document.line_of(node) }
+              yield ruby_block_code(node), document.line_of(node) + 1 if ruby_block?(node)
             when AST::Text
-              next if ancestors.last.is_a?(AST::Embedded) && ancestors.last.engine == "ruby"
+              next if ruby_block?(ancestors.last)
 
-              node.text.scan(INTERPOLATION) { yield $1, line_near(document, node, ancestors) }
+              each_interpolation(node.text) { |code| yield code, line_near(document, node, ancestors) }
             end
           end
+        end
+
+        def each_attribute_ruby(attributes, &)
+          attributes.each do |attribute|
+            case attribute
+            when AST::CodeAttribute, AST::Splat then yield attribute.code
+            when AST::QuotedAttribute then each_interpolation(attribute.text, &)
+            end
+          end
+        end
+
+        def each_interpolation(text)
+          Compiler.interpolation_parts(text).each { |kind, code| yield code if kind == :dynamic }
+        end
+
+        def ruby_block?(node)
+          node.is_a?(AST::Embedded) && node.engine == "ruby"
+        end
+
+        def ruby_block_code(embedded)
+          embedded.children.grep(AST::Text).map(&:text).join
         end
 
         # Prism reads a `- if` or `- each do` line without its `end`, as it reads code with errors: the tree it gives
@@ -287,20 +300,28 @@ module SuperSlim
       end
 
       class InstanceVariables < Rule
-        INSTANCE_VARIABLE = /(?<![\w@])@[a-z_]\w*/
-
         def offenses(document, _source)
           return [] unless document.partial?
 
-          document.enum_for(:each_node).filter_map do |node,|
-            code = case node
-            when AST::Control, AST::Output then node.code
-            when AST::Tag then node.attributes.filter_map { _1.code if _1.respond_to?(:code) }.join(" ")
+          # One offense a line of Ruby, for its first variable: a tag may read the same one in two attributes.
+          enum_for(:each_ruby, document).flat_map do |code, lineno|
+            first_variable_by_line(code).map do |line, variable|
+              offense(document, lineno + line - 1, "Pass `#{variable}` to the partial as a local")
             end
-            next unless code && (variable = code[INSTANCE_VARIABLE])
+          end.uniq
+        end
 
-            offense(document, document.line_of(node), "Pass `#{variable}` to the partial as a local")
+        private
+
+        # Lexed rather than matched: "npm/@scope/package" and "@alice" hold no variable.
+        def first_variable_by_line(code)
+          variable_by_line = {}
+          return variable_by_line unless code.include?("@")
+
+          Prism.lex(code).value.each do |token,|
+            variable_by_line[token.location.start_line] ||= token.value if token.type == :INSTANCE_VARIABLE
           end
+          variable_by_line
         end
       end
 
@@ -328,7 +349,8 @@ module SuperSlim
           read = Set.new
           definition.parameters.keywords.each { read.merge(names_read(_1.value)) if _1.respond_to?(:value) }
           each_ruby(document) { |code,| read.merge(names_read(code)) }
-          return [] if read.include?(:local_assigns)
+          # `binding.local_variable_get(:class)` reads a local named after a keyword.
+          return [] if read.include?(:local_assigns) || read.include?(:binding)
 
           (declared - read.to_a).map { offense(document, lineno + 1, "The local `#{_1}` is declared but never read") }
         end
@@ -583,24 +605,26 @@ module SuperSlim
       class UnescapedOutput < Rule
         DEFAULTS = {enabled: false}.freeze
         SKIPS_ESCAPING = /\.html_safe\b|(?<![\w.:@])raw[ (]/
-        UNESCAPED_INTERPOLATION = /#\{\{/
         MESSAGE = "skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`"
 
         def offenses(document, _source)
           document.enum_for(:each_node).flat_map do |node, ancestors|
-            reasons_of(node).map { offense(document, line_near(document, node, ancestors), "#{_1} #{MESSAGE}") }
+            reasons_of(node, ancestors).map { offense(document, line_near(document, node, ancestors), "#{_1} #{MESSAGE}") }
           end
         end
 
         private
 
-        def reasons_of(node)
+        def reasons_of(node, ancestors)
           case node
           when AST::Output then [*("`==`" unless node.escape), *code_reason(node.code)]
           when AST::Control then code_reason(node.code)
           when AST::Tag then node.attributes.flat_map { attribute_reasons(_1) }
-          when AST::Text then node.text.match?(UNESCAPED_INTERPOLATION) ? ["`\#{{}}`"] : []
-          when AST::Embedded then (node.engine == "ruby") ? code_reason(node.children.grep(AST::Text).map(&:text).join("\n")) : []
+          when AST::InlineHtml then text_reasons(node.text)
+          # The text of a `ruby:` block is code, read whole with the block.
+          when AST::Text then ruby_block?(ancestors.last) ? [] : text_reasons(node.text)
+          when AST::Embedded
+            [*node.attributes.flat_map { attribute_reasons(_1) }, *(code_reason(ruby_block_code(node)) if ruby_block?(node))]
           else []
           end
         end
@@ -608,9 +632,19 @@ module SuperSlim
         def attribute_reasons(attribute)
           case attribute
           when AST::CodeAttribute then [*("`==`" unless attribute.escape), *code_reason(attribute.code)]
+          when AST::QuotedAttribute then text_reasons(attribute.text, escape: attribute.escape)
           when AST::Splat then code_reason(attribute.code)
           else []
           end
+        end
+
+        # `==` before literal text skips escaping nothing but what the author wrote: only interpolations count.
+        def text_reasons(text, escape: true)
+          Compiler.interpolation_parts(text).flat_map do |kind, code, escape_interpolation|
+            next [] unless kind == :dynamic
+
+            [*("`==`" unless escape), *("`\#{{}}`" unless escape_interpolation), *code_reason(code)]
+          end.uniq
         end
 
         def code_reason(code)
@@ -635,16 +669,18 @@ module SuperSlim
 
       class HardcodedText < Rule
         DEFAULTS = {enabled: false}.freeze
-        NOT_WORDS = /#\{\{?[^{}]*\}?\}|&(?:[a-z]+|#\d+|#x\h+);|<!\[CDATA\[|\]\]>|<[^<>]+>/i
+        NOT_WORDS = /&(?:[a-z]+|#\d+|#x\h+);|<!\[CDATA\[|\]\]>|<[^<>]+>/i
         EXCERPT_LENGTH = 40
 
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::TextBlock) && !ancestors.inside_comment
 
-            text = node.children.grep(AST::Text).map(&:text).join(" ").gsub(/\s+/, " ").strip
-            next unless text.gsub(NOT_WORDS, "").match?(/\p{L}/)
+            texts = node.children.grep(AST::Text).map(&:text)
+            literal_texts = texts.flat_map { |text| Compiler.interpolation_parts(text).filter_map { |kind, literal| literal if kind == :static } }
+            next unless literal_texts.join(" ").gsub(NOT_WORDS, "").match?(/\p{L}/)
 
+            text = texts.join(" ").gsub(/\s+/, " ").strip
             excerpt = (text.length > EXCERPT_LENGTH) ? "#{text[0, EXCERPT_LENGTH]}…" : text
             offense(document, line_near(document, node, ancestors), "Translate `#{excerpt}` instead of writing it in the template")
           end
@@ -661,8 +697,6 @@ module SuperSlim
         def offenses(document, _source)
           calls_by_lineno = Hash.new { |hash, lineno| hash[lineno] = [] }
           each_ruby(document) do |code, lineno|
-            next unless lineno
-
             each_prism_node(code) do |node|
               next unless node.is_a?(Prism::CallNode) && (call = query(node))
 
@@ -717,18 +751,25 @@ module SuperSlim
       # Ruby that a plainer line of Slim says better, after haml-lint.
 
       class UnnecessaryInterpolation < Rule
-        LONE_INTERPOLATION = /\A#\{([^{}]+)\}\z/
-
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::TextBlock)
             next unless (lineno = document.line_of(node) || document.line_of(ancestors.last))
 
             texts = node.children.grep(AST::Text)
-            next unless texts.size == 1 && texts.first.text =~ LONE_INTERPOLATION
+            next unless texts.size == 1 && (code = lone_interpolation(texts.first.text))
 
-            offense(document, lineno, "Write `= #{$1.strip}` instead of interpolating it alone")
+            offense(document, lineno, "Write `= #{code}` instead of interpolating it alone")
           end
+        end
+
+        private
+
+        # The code of an escaped interpolation that is the whole text: `#{{}}` would need `==`.
+        def lone_interpolation(text)
+          parts = Compiler.interpolation_parts(text)
+          kind, code, escape = parts.first
+          code.strip if parts.size == 1 && kind == :dynamic && escape && !code.strip.empty?
         end
       end
 

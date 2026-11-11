@@ -62,10 +62,10 @@ class HostileTemplatesTest < Minitest::Test
     assert_raises(SuperSlim::UnsafeFormattingError) { SuperSlim::Formatter.new.call("p\n\n\n\n= __LINE__\n") }
   end
 
-  def test_offenses_without_a_line_sort_first
+  def test_an_offense_in_an_html_comment_is_on_its_line
     linter = SuperSlim::Linter.new("UnescapedOutput" => {"enabled" => true})
 
-    assert_equal [nil, 2], linter.call("t.slim", "/! \#{{x}}\n= raw y\n").map(&:lineno)
+    assert_equal [1, 2], linter.call("t.slim", "/! \#{{x}}\n= raw y\n").map(&:lineno)
   end
 
   def test_a_data_hash_holding_itself_raises
