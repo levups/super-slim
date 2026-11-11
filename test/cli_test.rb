@@ -99,6 +99,14 @@ class CLITest < Minitest::Test
     {
       "linters: 5\n" => ".super-slim.yml: `linters` must be a mapping",
       "linters:\n  LineLength:\n    include: 3\n" => ".super-slim.yml: `LineLength: include` must be a list of globs",
+      "linters:\n  LineLength:\n    max: \"120\"\n" => ".super-slim.yml: `LineLength: max` must be a whole number",
+      "linters:\n  LineLength:\n    enabled: \"false\"\n" => ".super-slim.yml: `LineLength: enabled` must be true or false",
+      "linters:\n  DeprecatedClasses:\n    classes: [close]\n" => ".super-slim.yml: `DeprecatedClasses: classes` must be a mapping",
+      "linters:\n  EmbeddedEngines:\n    forbidden_engines: css\n" => ".super-slim.yml: `EmbeddedEngines: forbidden_engines` must be a list",
+      "format:\n  max_line_length: \"120\"\n" => ".super-slim.yml: `format: max_line_length` must be a whole number above 0",
+      "fmt:\n  max_line_length: 0\n" => ".super-slim.yml: `fmt: max_line_length` must be a whole number above 0",
+      "format:\n  attribute_delimiters: \"<>\"\n" => ".super-slim.yml: `format: attribute_delimiters` must be one of (), [], {}",
+      "tailwind_classes: maybe\n" => ".super-slim.yml: `tailwind_classes` must be true or false",
       "x: !ruby/object:Object {}\n" => "Tried to load unspecified class: Object"
     }.each do |configuration, message|
       in_templates("p Hello\n") do |directory|
@@ -106,6 +114,15 @@ class CLITest < Minitest::Test
 
         assert_output("", "#{message}\n") { assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["lint", "."]) }
       end
+    end
+  end
+
+  def test_a_preset_table_and_a_line_length_left_empty_are_no_error
+    in_templates("p Hello\n") do |directory|
+      File.write(File.join(directory, ".super-slim.yml"), "linters:\n  DeprecatedAttributes:\n    preset: bootstrap5\n    attributes:\nformat:\n  max_line_length:\n")
+
+      assert_equal [0, ""], run_cli("lint", ".")
+      assert_equal [0, ""], run_cli("format", "--check", ".")
     end
   end
 
