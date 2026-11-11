@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+## [3.6.0] — 2026-11-11
+
+The linter reads all the Ruby of a template and `.super-slim.yml` is checked when it is read: `super-slim lint` may
+report lines it passed before, and a configuration with a misspelt name or a wrong value now stops with an error.
+
+**New**
+- A rule, an option or a setting that `.super-slim.yml` misspells stops `lint` and `format` with a usage error that
+  names it and lists the known ones, instead of being ignored: `LineLenght:` left the limit at 120, and a rule carried
+  over from slim-lint, such as `RuboCop:`, did nothing. Rename or remove the entry.
+- A wrong value in `.super-slim.yml` is reported with the setting it belongs to. `max: "120"`, `classes: [close]`,
+  `enabled: "false"`, `tailwind_classes: maybe`, `max_line_length: 0` and `attribute_delimiters: "<>"` failed on
+  every template, ended in a backtrace or were taken at their word.
+
+**Fixed**
+- `InstanceVariables` reads interpolated text, quoted attributes, inline HTML and `ruby:` blocks, not only `-` and `=`
+  lines and code attributes, and reports each variable on its own line when code spreads over several. An `@` in a
+  string, as in `"npm/@scope/package"`, is no longer taken for one.
+- `UnusedLocals` no longer reports a local read in inline HTML, in an interpolation holding braces such as
+  `#{tags.map { |tag| tag.name }}`, in an attribute of `javascript:` or `css:`, or through
+  `binding.local_variable_get`.
+- `UnescapedOutput` reports `href=="#{url}"`, `#{{}}` in a quoted attribute or in inline HTML, and `html_safe` or
+  `raw` inside an interpolation. `DatabaseQueries` and `UnnecessaryInterpolation` read interpolations holding braces,
+  and `HardcodedText` no longer takes their code for text.
+- An offense inside an HTML comment (`/!`) at the top of a template is reported on its line, not without one.
+- With `max_line_length`, `super-slim format` writes a template that `format --check` accepts. A second run could
+  rewrite a hash the first had spread, a call with two spaces before its first argument, the children of an output
+  moved onto its tag, or a `-` line joined beside a `ruby:` block. A template the wrapper changes takes about 30%
+  longer to format; one already formatted takes the same time.
+- With `max_line_length`, a `- rescue` or `- ensure` line longer than the limit no longer makes `super-slim format`
+  refuse the template with a `NoMethodError`.
+- Outside Rails, a dynamic tag with content, `*{tag: "section"} Hello`, no longer compiles to Ruby that warns under
+  `ruby -w`.
+
 ## [3.5.0] — 2026-11-08
 
 Six lint rules and a page that documents every rule. Four of the new rules are on by default, so `super-slim lint` may
@@ -266,7 +299,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.0...HEAD
+[3.6.0]: https://github.com/levups/super-slim/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/levups/super-slim/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/levups/super-slim/compare/v3.4.0...v3.4.1
 [3.4.0]: https://github.com/levups/super-slim/compare/v3.3.0...v3.4.0
