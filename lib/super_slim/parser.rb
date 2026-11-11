@@ -292,7 +292,8 @@ module SuperSlim
     def parse_comment
       if @scanner.skip(HTML_COMMENT)
         text_indent = @indents.last + @scanner[1].size + 2
-        @stacks.last << Comment.new(parse_text_block(@scanner.rest, text_indent))
+        lineno = @lineno
+        @stacks.last << located(Comment.new(parse_text_block(@scanner.rest, text_indent)), lineno)
       elsif @scanner.match?(CONDITIONAL_COMMENT)
         syntax_error!("Conditional comments are not supported")
       else

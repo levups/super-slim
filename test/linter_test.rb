@@ -84,9 +84,39 @@ class LinterTest < Minitest::Test
     assert_offenses ["UnnecessaryInterpolation:1", "UnnecessaryStringOutput:2", "UnnecessaryInterpolation:4"], "| \#{title}\n= \"Hello\"\n= \" \"\nh1 \#{title}\n"
   end
 
+  def test_unnecessary_interpolation_of_code_holding_braces
+    messages = SuperSlim::Linter.new.call("show.html.slim", "p \#{tags.map { |tag| tag.name }.join}\np \#{{raw}}\np \#{ }\n").map(&:message)
+
+    assert_equal ["Write `= tags.map { |tag| tag.name }.join` instead of interpolating it alone"], messages
+  end
+
   def test_instance_variables_in_partials_only
     assert_offenses ["InstanceVariables:1"], "p = @user.name\n", path: "app/views/_card.html.slim"
     assert_offenses [], "p = @user.name\n", path: "app/views/show.html.slim"
+  end
+
+  def test_instance_variables_wherever_a_partial_holds_ruby
+    source = <<~'SLIM'
+      p Hello #{@user.name}
+      a href="/users/#{@user.id}" title=@title Profile
+      <b>#{@count}</b>
+      ruby:
+        name = "Alice"
+        role = @role
+      = link_to "@alice", "https://cdn.example.com/npm/@scope/package"
+      = render "card",
+        post: @post,
+        author: @author, editor: @editor
+      /! Rendered for #{@reader}
+      javascript nonce=@nonce:
+        track("#{@event}")
+      p title=@title = @title
+    SLIM
+    messages = SuperSlim::Linter.new.call("_card.html.slim", source).select { _1.rule == "InstanceVariables" }
+      .map { |offense| "#{offense.lineno}: #{offense.message[/@\w+/]}" }
+
+    assert_equal ["1: @user", "2: @user", "2: @title", "3: @count", "6: @role", "9: @post", "10: @author", "11: @reader", "12: @nonce",
+      "12: @event", "14: @title"], messages
   end
 
   def test_unused_locals
@@ -104,6 +134,21 @@ class LinterTest < Minitest::Test
     assert_offenses [], "/# locals: (post:)\n\n= local_assigns[:post]\n", path: "_card.html.slim"
   end
 
+  def test_unused_locals_reads_ruby_wherever_the_partial_holds_it
+    read_everywhere = <<~'SLIM'
+      /# locals: (tags:, title:, links:, nonce:, reader:)
+
+      <h1>#{title}</h1>
+      p Tagged #{tags.map { |tag| tag.name }.join(", ")}
+      a href="#{links.fetch({rel: "next"})}" Next
+      javascript nonce=nonce:
+        start()
+      /! Rendered for #{reader}
+    SLIM
+    assert_offenses [], read_everywhere, path: "_card.html.slim"
+    assert_offenses [], "/# locals: (class: nil)\n\np class=binding.local_variable_get(:class) Text\n", path: "_card.html.slim"
+  end
+
   def test_database_queries
     linter = SuperSlim::Linter.new({"DatabaseQueries" => {"enabled" => true}})
     source = <<~SLIM
@@ -118,9 +163,12 @@ class LinterTest < Minitest::Test
 
         latest = Admin::Post.last
       p title="\#{Post.find(1).title}"
+      <b>\#{Post.count}</b>
+      p \#{Post.where({draft: true}).size} drafts
     SLIM
     messages = linter.call("show.html.slim", source).map { |offense| "#{offense.lineno}: #{offense.message.split(" quer").first}" }
-    assert_equal ["1: `where`, `exists?`", "2: `where`", "4: `Tag.order`", "10: `Admin::Post.last`", "11: `Post.find`"], messages
+    assert_equal ["1: `where`, `exists?`", "2: `where`", "4: `Tag.order`", "10: `Admin::Post.last`", "11: `Post.find`", "12: `Post.count`",
+      "13: `Post.where`"], messages
     assert_empty SuperSlim::Linter.new.call("show.html.slim", source)
   end
 
@@ -227,6 +275,26 @@ class LinterTest < Minitest::Test
     assert_equal "`raw` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`", offenses[1].message
   end
 
+  def test_unescaped_output_in_quoted_attributes_inline_html_and_interpolations
+    linter = SuperSlim::Linter.new("UnescapedOutput" => {"enabled" => true})
+    source = <<~'SLIM'
+      a href=="#{url}" Next
+      a title="#{{title}}" Next
+      <p>#{{post.body}}</p>
+      p Read #{post.intro.html_safe}
+      a href=="/posts" Posts
+      p Read \#{{post.intro}}
+      ruby:
+        labels = "#{{draft: 1}.size} labels"
+      javascript nonce==nonce:
+        start()
+    SLIM
+    messages = linter.call("show.html.slim", source).select { _1.rule == "UnescapedOutput" }
+      .map { |offense| "#{offense.lineno}: #{offense.message[/\A`[^`]+`/]}" }
+
+    assert_equal ["1: `==`", "2: `\#{{}}`", "3: `\#{{}}`", "4: `html_safe`", "9: `==`"], messages
+  end
+
   def test_slim_syntax
     linter = SuperSlim::Linter.new("SlimSyntax" => {"enabled" => true})
     source = <<~SLIM
@@ -267,6 +335,7 @@ class LinterTest < Minitest::Test
       ' &nbsp;
       / Comment
       p #{{name}}
+      p #{tags.map { |tag| tag.name }.join} #{count}
       description
         | <![CDATA[
         = post.body

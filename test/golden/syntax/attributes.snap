@@ -106,6 +106,7 @@ p title=(items.size > 2 && "many") Expression
 7: [HardcodedText] Translate `Multi-line braces` instead of writing it in the template
 12: [HardcodedText] Translate `Multi-line parentheses` instead of writing it in the template
 21: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+22: [UnescapedOutput] `#{{}}` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
 25: [HardcodedText] Translate `Static true` instead of writing it in the template
 26: [HardcodedText] Translate `Static false` instead of writing it in the template
 27: [HardcodedText] Translate `Static nil` instead of writing it in the template
