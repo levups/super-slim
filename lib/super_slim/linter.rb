@@ -76,6 +76,8 @@ module SuperSlim
     # The layout rules: what `super-slim format` rewrites.
     LAYOUT_RULE_NAMES = %w[Indentation Tab TrailingWhitespace EmptyLines ControlStatementSpacing RedundantDiv].freeze
     GLOB_OPTIONS = %w[include exclude].freeze
+    SETTINGS = %w[linters format fmt tailwind_classes].freeze
+    FORMAT_SETTINGS = %w[max_line_length attribute_delimiters].freeze
     # What the default of a rule's option asks of the value that replaces it.
     VALUE_KIND_BY_DEFAULT_CLASS = {
       TrueClass => ["true or false", [TrueClass, FalseClass]],
@@ -102,6 +104,7 @@ module SuperSlim
     def self.check_configuration(configuration)
       raise Error, "#{CONFIG_FILE}: expected a mapping of settings" unless configuration.is_a?(Hash)
 
+      check_names(configuration.keys, SETTINGS, "a setting")
       %w[linters format fmt].each do |key|
         raise Error, "#{CONFIG_FILE}: `#{key}` must be a mapping" unless configuration.fetch(key, {}).is_a?(Hash)
       end
@@ -118,7 +121,11 @@ module SuperSlim
         globs = Array(options[key])
         raise Error, "#{CONFIG_FILE}: `#{rule_name}: #{key}` must be a list of globs" unless globs.all?(String)
       end
-      rule_class = Rules.all.find { _1.rule_name == rule_name } or return
+      rule_class = Rules.all.find { _1.rule_name == rule_name }
+      raise Error, "#{CONFIG_FILE}: `#{rule_name}` is not a rule of super-slim lint" unless rule_class
+
+      preset_option = (PRESETS.any? { |_preset, options_by_rule| options_by_rule.key?(rule_name) }) ? ["preset"] : []
+      check_names(options.keys, rule_class::DEFAULTS.keys.map(&:to_s) + GLOB_OPTIONS + preset_option, "an option of #{rule_name}")
       rule_class::DEFAULTS.each do |key, default|
         next unless options.key?(key.to_s)
 
@@ -129,6 +136,7 @@ module SuperSlim
     private_class_method :check_rule_options
 
     def self.check_format_options(key, options)
+      check_names(options.keys, FORMAT_SETTINGS, "a setting of `#{key}`")
       max_line_length = options["max_line_length"]
       wraps_nothing_or_at_a_length = max_line_length.nil? || (max_line_length.is_a?(Integer) && max_line_length.positive?)
       raise Error, "#{CONFIG_FILE}: `#{key}: max_line_length` must be a whole number above 0" unless wraps_nothing_or_at_a_length
@@ -139,6 +147,14 @@ module SuperSlim
       raise Error, "#{CONFIG_FILE}: `#{key}: attribute_delimiters` must be one of #{delimiters.join(", ")}"
     end
     private_class_method :check_format_options
+
+    # A misspelt name is a setting that does nothing and says nothing: the rule it meant to turn off stays on.
+    def self.check_names(names, known_names, kind)
+      unknown_name = (names - known_names).first or return
+
+      raise Error, "#{CONFIG_FILE}: `#{unknown_name}` is not #{kind}, use one of: #{known_names.join(", ")}"
+    end
+    private_class_method :check_names
 
     # include: and exclude: globs match paths relative to `root`, the directory of .super-slim.yml.
     def initialize(options_by_rule_name = {}, root = Dir.pwd)
