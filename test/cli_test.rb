@@ -3,6 +3,7 @@
 require "minitest/autorun"
 require "stringio"
 require "fileutils"
+require "open3"
 require "tmpdir"
 require "super_slim/cli"
 
@@ -161,6 +162,20 @@ class CLITest < Minitest::Test
         assert_equal 1, status
         assert_equal ["./a\\e[2Jb\\n::error::x.slim:1: [TrailingWhitespace] Trailing whitespace renders: write it with `'` or `>` instead"], output.lines(chomp: true)
       end
+    end
+  end
+
+  # `exe/super-slim` loads the checkout it sits in by path: with the gem installed too, a formatter looked up on
+  # the load path would be the installed one.
+  def test_the_formatter_comes_from_the_copy_of_the_gem_that_was_loaded
+    Dir.mktmpdir do |directory|
+      FileUtils.mkdir_p(File.join(directory, "super_slim"))
+      File.write(File.join(directory, "super_slim/formatter.rb"), "raise 'the formatter of another copy of the gem'\n")
+      script = "require #{File.expand_path("../lib/super_slim", __dir__).dump}; print SuperSlim::Formatter.call(%(p\\n   | Hello\\n))"
+      output, status = Open3.capture2e(RbConfig.ruby, "-I", directory, "-e", script)
+
+      assert_predicate status, :success?, output
+      assert_equal "p\n  | Hello\n", output
     end
   end
 
