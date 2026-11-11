@@ -149,6 +149,23 @@ class FuzzTest < Minitest::Test
     end
   end
 
+  # Wrapping joins and spreads lines at any length: what it writes, it must write again.
+  def test_wrapping_is_idempotent
+    random = Random.new(SEED)
+    generator = Generator.new(random)
+    cases = Array.new(CASE_COUNT) { [generator.template, 20 + random.rand(60)] }
+    wrappings = SuperSlim::Parallel.map(cases, minimum_per_process: 500) do |source, max_line_length|
+      formatter = SuperSlim::Formatter.new(max_line_length:)
+      wrapped = formatter.call(source)
+      [wrapped, formatter.call(wrapped)]
+    rescue SuperSlim::SyntaxError
+      nil
+    end
+    cases.zip(wrappings).each_with_index do |((source, max_line_length), (wrapped, rewrapped)), index|
+      assert_equal wrapped, rewrapped, "Case #{index} (seed #{SEED}) is not idempotent at #{max_line_length} columns:\n#{source}" if wrapped
+    end
+  end
+
   private
 
   def render(engine, source)

@@ -98,6 +98,22 @@ class FormatterTest < Minitest::Test
     assert_wraps %(- links = [\\\n  root_path,\n  posts_path]\n), %(- links = [root_path, posts_path]\n), max_line_length: 20
   end
 
+  def test_wraps_into_a_layout_that_the_next_pass_keeps
+    assert_wraps %(= link_to post.title,\n  post_path(post, 1),\n  class: "btn"\n), %(= link_to  post.title, post_path(post, 1), class: "btn"\n), max_line_length: 21
+    assert_wraps %(= link_to post.title,\n  post,\n  data: {turbo: true, id: 1},\n  class: "btn btn-primary-lg"\n),
+      %(= link_to post.title, post, data: { turbo: true, id: 1 }, class: "btn btn-primary-lg"\n)
+    assert_wraps %(ruby:\n  a = 1\n  b = 2\n  c = 3\n  title(a, b)\n), %(ruby:\n  a = 1\n  b = 2\n  c = 3\n- title(a,\n  b)\n)
+    assert_wraps %(ruby:\n  title(a, b)\n  a = 1\n  b = 2\n), %(- title(a,\n  b)\nruby:\n  a = 1\n  b = 2\n)
+    assert_wraps %(a.card = wrap do\n  / comment\n    ignored\n), %(a.card\n  = wrap do\n    / comment\n      ignored\n)
+  end
+
+  def test_leaves_a_long_rescue_or_ensure_line_whole
+    source = %(- begin\n  p = post.title\n- rescue ActiveRecord::RecordNotFound, ArgumentError\n  p Missing\n- ensure\n  p Done\n)
+
+    assert_wraps source, source
+    assert_wraps source, source, max_line_length: 5
+  end
+
   def test_spreads_code_in_a_layout_slim_reads
     assert_wraps %(= link_to "Read the whole post",\n  post_path(post),\n  class: "btn btn-primary"\n),
       %(= link_to "Read the whole post", post_path(post), class: "btn btn-primary"\n), max_line_length: 40

@@ -51,7 +51,11 @@ module SuperSlim
         parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend")
         opens_block = !parsed.success?
         parsed = Prism.parse("#{TEMPLATE_METHOD}#{code}\nend\nend") if opens_block
-        [parsed.value.statements.body.first.body&.body || [], opens_block] if parsed.success? && parsed.comments.empty?
+        return unless parsed.success? && parsed.comments.empty?
+
+        # `- rescue` and `- ensure` belong to the method itself: they leave it no statements to spread.
+        body = parsed.value.statements.body.first.body
+        [body.is_a?(Prism::StatementsNode) ? body.body : [], opens_block]
       end
 
       # Positional and keyword arguments, then the block argument; nil when the call takes none.

@@ -6,7 +6,8 @@
 # For each template:
 # - Slim and SuperSlim both compile it, or both refuse it;
 # - SuperSlim's Ruby parses, and every `-` and `=` sits on its template line, for backtraces;
-# - super-slim format is idempotent, and refuses to write a template whose Ruby would change;
+# - super-slim format is idempotent, with and without max_line_length, and refuses to write a template whose Ruby
+#   would change;
 # - the linter runs; its offenses go to the report, so two versions can be compared.
 #
 # --render also renders each template through Slim 5 and SuperSlim against a stub that answers every helper, local
@@ -29,7 +30,9 @@ paths = ARGV.flat_map { Dir[File.join(File.expand_path(_1), "**/*.slim")] }.sort
 abort "No .slim file under #{ARGV.join(", ")}" if paths.empty?
 
 linter = SuperSlim::Linter.new
-CHECKS = %i[compile prism lines render format idempotence format_render lint].freeze
+CHECKS = %i[compile prism lines render format idempotence wrap format_render lint].freeze
+# LineLength's default, and a length short enough to wrap most code.
+WRAP_LINE_LENGTHS = [120, 80].freeze
 
 # Everything one template tells, built in a worker process: failures as [check, message] pairs.
 results = SuperSlim::Parallel.map(paths, minimum_per_process: 200) do |path|
@@ -84,6 +87,15 @@ results = SuperSlim::Parallel.map(paths, minimum_per_process: 200) do |path|
     failures << [:format, "#{path}: #{formatted}"] if super_slim_compiles
   else
     failures << [:idempotence, path] unless SuperSlim::Formatter.new.call(formatted) == formatted
+    WRAP_LINE_LENGTHS.each do |max_line_length|
+      wrapper = SuperSlim::Formatter.new(max_line_length:)
+      wrapped = Corpus.compile_error_or { wrapper.call(source) }
+      rewrapped = Corpus.compile_error_or { wrapper.call(wrapped) } unless wrapped.start_with?("error:")
+      next if rewrapped == wrapped
+
+      error = [wrapped, rewrapped].compact.find { _1.start_with?("error:") }
+      failures << [:wrap, "#{path} at #{max_line_length} columns: #{error || "wraps again what it wrapped"}"]
+    end
     failures << [:format_render, path] if render && super_slim_compiles && Corpus.render_with_super_slim(formatted, path) != super_slim_html
   end
 
