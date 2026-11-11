@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [3.6.1] — 2026-11-11
+
+One fix: `InstanceVariables` no longer reports an `@` that no name follows.
+
+**Fixed**
+- `InstanceVariables` no longer reports ``Pass `@` to the partial as a local`` on an `@` that no name follows, as in
+  the `_form.html.slim` scaffold template simple_form installs, `= simple_form_for(@<%= singular_table_name %>)`. 3.6.0
+  did, 3.5.0 did not.
+
 ## [3.6.0] — 2026-11-11
 
 The linter reads all the Ruby of a template and `.super-slim.yml` is checked when it is read: `super-slim lint` may
@@ -299,7 +308,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.1...HEAD
+[3.6.1]: https://github.com/levups/super-slim/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/levups/super-slim/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/levups/super-slim/compare/v3.4.1...v3.5.0
 [3.4.1]: https://github.com/levups/super-slim/compare/v3.4.0...v3.4.1
