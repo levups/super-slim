@@ -254,7 +254,8 @@ linters:
 ```
 
 Every rule accepts `include:` and `exclude:`, lists of glob patterns matched against paths relative to
-`.super-slim.yml` (`**/` matches any number of directories).
+`.super-slim.yml` (`**/` matches any number of directories). A rule, an option or a setting the file misspells
+stops `lint` and `format` with an error that names it, rather than being ignored.
 
 A comment silences rules on the next tag or code line, blank lines and comments skipped, and on the lines it goes on
 over. The linter reports a rule name it doesn't know:

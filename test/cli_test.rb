@@ -117,6 +117,22 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_a_name_the_configuration_misspells_fails_with_a_usage_error
+    {
+      "linters:\n  LineLenght:\n    max: 150\n" => "`LineLenght` is not a rule of super-slim lint",
+      "linters:\n  LineLength:\n    maximum: 150\n" => "`maximum` is not an option of LineLength, use one of: enabled, max, include, exclude",
+      "linters:\n  LineLength:\n    preset: bootstrap5\n" => "`preset` is not an option of LineLength, use one of: enabled, max, include, exclude",
+      "formatter:\n  max_line_length: 120\n" => "`formatter` is not a setting, use one of: linters, format, fmt, tailwind_classes",
+      "format:\n  line_length: 120\n" => "`line_length` is not a setting of `format`, use one of: max_line_length, attribute_delimiters"
+    }.each do |configuration, message|
+      in_templates("p Hello\n") do |directory|
+        File.write(File.join(directory, ".super-slim.yml"), configuration)
+
+        assert_output("", ".super-slim.yml: #{message}\n") { assert_equal SuperSlim::CLI::EX_USAGE, SuperSlim::CLI.new.call(["lint", "."]) }
+      end
+    end
+  end
+
   def test_a_preset_table_and_a_line_length_left_empty_are_no_error
     in_templates("p Hello\n") do |directory|
       File.write(File.join(directory, ".super-slim.yml"), "linters:\n  DeprecatedAttributes:\n    preset: bootstrap5\n    attributes:\nformat:\n  max_line_length:\n")
