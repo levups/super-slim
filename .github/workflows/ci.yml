@@ -83,6 +83,30 @@ jobs:
       BUNDLE_GEMFILE: ${{ matrix.rails.gemfile != 'Gemfile' && matrix.rails.gemfile || '' }}
     steps: *test-steps
 
+  # 2026-11: Ruby 3.3 ships Prism 0.19, which the jobs above never load: RuboCop brings Prism 1.x into the Gemfile.
+  # The formatter and the linter of an app without RuboCop run on 0.19. Leaves with Ruby 3.3.
+  prism:
+    name: Ruby 3.3 · Prism 0.19
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BUNDLE_GEMFILE: gemfiles/prism_0_19.gemfile
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Check Prism is the one Ruby ships
+        run: bundle exec ruby -e 'require "prism"; abort Prism::VERSION unless Prism::VERSION == "0.19.0"'
+      - name: Run the formatter and linter tests
+        run: bundle exec rake test:prism
+
   corpus:
     name: Corpus of public apps
     if: ${{ !github.event.pull_request.draft }}
@@ -160,7 +184,7 @@ jobs:
   passed:
     name: CI passed
     if: ${{ always() && !github.event.pull_request.draft }}
-    needs: [rubocop, test, corpus, docs]
+    needs: [rubocop, test, prism, corpus, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

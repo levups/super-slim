@@ -20,6 +20,12 @@ Rake::TestTask.new("test:slim_suite") do |task|
   task.test_files = FileList["test/slim_suite/*_test.rb", "test/slim_suite/run.rb"]
 end
 
+# What reads Ruby with Prism, and needs neither Rails nor RuboCop: CI runs it on gemfiles/prism_0_19.gemfile.
+Rake::TestTask.new("test:prism") do |task|
+  task.libs << "lib" << "test"
+  task.test_files = FileList["test/{cli,formatter,fuzz,hostile_templates,line_endings,linter}_test.rb"]
+end
+
 desc "Run SuperSlim's tests, then Slim's own suites against SuperSlim"
 task test: %w[test:super_slim test:slim_suite]
 task default: :test

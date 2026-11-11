@@ -27,6 +27,8 @@ CI also runs `ruby-head` and the corpus job.
 
 - Rails is optional: it stays out of the gemspec.
 - Ruby 3.3's strscan lacks `StringScanner#peek_byte`, hence strscan 3.1.1+ in the gemspec.
+- Ruby 3.3 ships Prism 0.19, but the Gemfile resolves Prism 1.x through RuboCop: only CI's `prism` job formats and
+  lints with 0.19 (`BUNDLE_GEMFILE=gemfiles/prism_0_19.gemfile bundle exec rake test:prism`).
 - `test:slim_suite` runs in its own process: Slim's test helper defines and removes `String#html_safe?`.
 - Never render downloaded corpus templates, it runs their Ruby: only the `SUPER_SLIM_CORPUS` directories you trust.
 - A refactoring leaves the compiled Ruby unchanged: `bench/compiled_digests.rb` proves it on a corpus.

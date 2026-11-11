@@ -1,0 +1,12 @@
+# frozen_string_literal: true
+
+# 2026-11: Prism 0.19.0, the one Ruby 3.3 ships. An app without RuboCop formats and lints with it, and the Gemfile
+# never does: rubocop-ast brings Prism 1.x. Only what `rake test:prism` needs; leaves with Ruby 3.3.
+source "https://rubygems.org"
+
+gemspec path: ".."
+
+gem "minitest"
+gem "prism", "0.19.0"
+gem "rake"
+gem "slim", "5.2.2"
