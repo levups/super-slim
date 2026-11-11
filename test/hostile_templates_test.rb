@@ -2,7 +2,6 @@
 
 require "minitest/autorun"
 require "super_slim"
-require "super_slim/formatter"
 require "super_slim/linter"
 
 # Templates in a pull request are written by anyone: the linter and the formatter must neither hang nor crash.
