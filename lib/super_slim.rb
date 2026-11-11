@@ -8,8 +8,10 @@ require_relative "super_slim/compiler"
 require_relative "super_slim/runtime"
 
 module SuperSlim
-  autoload :Formatter, "super_slim/formatter"
-  autoload :RuboCop, "super_slim/rubocop"
+  # By their full path: a bare "super_slim/formatter" is the first one on the load path, which is another copy of the
+  # gem when this one was loaded by its path, as `exe/super-slim` does in a checkout.
+  autoload :Formatter, File.join(__dir__, "super_slim/formatter")
+  autoload :RuboCop, File.join(__dir__, "super_slim/rubocop")
 
   class Error < StandardError; end
   class InvalidAttributeNameError < Error; end
