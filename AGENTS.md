@@ -40,7 +40,7 @@ CI also runs `ruby-head` and the corpus job.
 
 ## Rules for all our gems
 
-This section and the next two read the same in super-slim, gamba, crumbly, agentry and mapitaine: change all five
+This section and the next two read the same in super-slim, gamba, crumbly, agentry and maptain: change all five
 together.
 
 - Every maintained Ruby and Rails (https://endoflife.date), nothing older. The oldest sets `required_ruby_version`,
