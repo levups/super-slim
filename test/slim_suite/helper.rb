@@ -98,9 +98,12 @@ class TestSlim < Minitest::Test
     assert_equal from, $1
   end
 
+  # Slim leaves the file and line out of the errors it finds while compiling, which SuperSlim adds below the message.
   def assert_runtime_error(message, source, options = {})
     render_with_super_slim(source, options)
     flunk "Runtime error expected"
+  rescue SuperSlim::SyntaxError => exception
+    assert_equal message, exception.error
   rescue RuntimeError, SuperSlim::Error => exception
     assert_equal message, exception.message
   end

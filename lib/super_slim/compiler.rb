@@ -112,7 +112,7 @@ module SuperSlim
       block_open = false
       nodes.each do |node|
         if node.is_a?(Control)
-          raise Error, "Explicit end statements are forbidden" if node.code.match?(EXPLICIT_END)
+          compile_error!("Explicit end statements are forbidden") if node.code.match?(EXPLICIT_END)
 
           emit_code("end") if block_open && !node.code.match?(BLOCK_CONTINUATION)
           block_open = with_do(node.code, node.children).match?(BLOCK_OPENING)
@@ -223,7 +223,11 @@ module SuperSlim
         seen_names = {}
         attributes.each do |attribute|
           next if attribute.name == "class"
-          raise Error, "Multiple #{attribute.name} attributes specified" if seen_names.key?(attribute.name)
+          if seen_names.key?(attribute.name)
+            # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
+            code_newlines = attributes.sum { _1.is_a?(CodeAttribute) ? _1.code.count("\n") : 0 }
+            compile_error!("Multiple #{attribute.name} attributes specified", lines_ahead: code_newlines)
+          end
 
           seen_names[attribute.name] = true
         end
@@ -391,11 +395,15 @@ module SuperSlim
 
     # Keeps every line of the block on its template line, blank lines included. The code must end with a
     # newline, as its last line may be a comment: when no blank line follows, that newline is the one of the
-    # newline node that comes next.
+    # newline node that comes next. Code on the `ruby:` line itself has no newline before it, an empty block none
+    # at all.
     def compile_ruby(children)
       code = children.grep(Text).map(&:text).join
-      trailing_newline_count = children.count(NEWLINE) - 1 - code.count("\n")
-      @code << "\n"
+      leading_newline_count = children.index { _1 != NEWLINE } || children.size
+      trailing_newline_count = children.count(NEWLINE) - leading_newline_count - code.count("\n")
+      @code << ("\n" * leading_newline_count)
+      return if code.empty?
+
       emit_code(code)
       @code << ("\n" * [trailing_newline_count, 1].max)
       @newline_emitted = trailing_newline_count.zero?
@@ -423,12 +431,19 @@ module SuperSlim
     def doctype(type)
       type = type.downcase
       if (xml = type.match(/\Axml(\s+(.+))?\z/))
-        raise Error, "Invalid xml directive in html mode" unless @xml
+        compile_error!("Invalid xml directive in html mode") unless @xml
 
         %(<?xml version="1.0" encoding="#{xml[2] || "utf-8"}" ?>)
       else
-        @doctypes[type] || raise(Error, "Invalid doctype #{type}")
+        @doctypes[type] || compile_error!("Invalid doctype #{type}")
       end
+    end
+
+    # The compiled code keeps each template line on its own line, so the newlines written so far give the line of
+    # the node being compiled: no node carries its line, which would cost every template line. Code not written
+    # yet may still hold `lines_ahead` of them.
+    def compile_error!(message, lines_ahead: 0)
+      raise CompileError.new(message, @code.count("\n") + lines_ahead + 1)
     end
 
     def capture_into(variable)
