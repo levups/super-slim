@@ -395,11 +395,15 @@ module SuperSlim
 
     # Keeps every line of the block on its template line, blank lines included. The code must end with a
     # newline, as its last line may be a comment: when no blank line follows, that newline is the one of the
-    # newline node that comes next.
+    # newline node that comes next. Code on the `ruby:` line itself has no newline before it, an empty block none
+    # at all.
     def compile_ruby(children)
       code = children.grep(Text).map(&:text).join
-      trailing_newline_count = children.count(NEWLINE) - 1 - code.count("\n")
-      @code << "\n"
+      leading_newline_count = children.index { _1 != NEWLINE } || children.size
+      trailing_newline_count = children.count(NEWLINE) - leading_newline_count - code.count("\n")
+      @code << ("\n" * leading_newline_count)
+      return if code.empty?
+
       emit_code(code)
       @code << ("\n" * [trailing_newline_count, 1].max)
       @newline_emitted = trailing_newline_count.zero?
