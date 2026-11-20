@@ -100,9 +100,10 @@ defaults are different (`format: :xhtml, sort_attrs: true`), so if you never cha
 Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically, with `<link />` and
 `doctype xml`.
 
-Errors keep Slim's messages, but every template error names its file and line. Slim leaves them out of the errors
-it finds after parsing, such as `Explicit end statements are forbidden` or `Multiple id attributes specified`.
-SuperSlim raises them as `SuperSlim::SyntaxError`, like a parse error, so Rails' error page shows the template line.
+Errors keep Slim's messages, but those found while compiling also name their file and line, which Slim leaves out:
+`Explicit end statements are forbidden`, `Multiple id attributes specified`, an `xml` directive in HTML and an
+unknown doctype. SuperSlim raises them as `SuperSlim::SyntaxError`, like a parse error, so Rails' error page shows
+the template line.
 
 ## Formatter
 

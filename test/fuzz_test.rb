@@ -178,6 +178,6 @@ class FuzzTest < Minitest::Test
   rescue ::SyntaxError
     "error: invalid Ruby"
   rescue => exception
-    "error: #{exception.message.lines.first.chomp}"
+    "error: #{exception.message.lines.first.to_s.chomp}"
   end
 end

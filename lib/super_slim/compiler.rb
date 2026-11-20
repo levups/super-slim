@@ -223,7 +223,11 @@ module SuperSlim
         seen_names = {}
         attributes.each do |attribute|
           next if attribute.name == "class"
-          compile_error!("Multiple #{attribute.name} attributes specified") if seen_names.key?(attribute.name)
+          if seen_names.key?(attribute.name)
+            # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
+            code_newlines = attributes.sum { _1.is_a?(CodeAttribute) ? _1.code.count("\n") : 0 }
+            compile_error!("Multiple #{attribute.name} attributes specified", lines_ahead: code_newlines)
+          end
 
           seen_names[attribute.name] = true
         end
@@ -432,9 +436,10 @@ module SuperSlim
     end
 
     # The compiled code keeps each template line on its own line, so the newlines written so far give the line of
-    # the node being compiled: no node carries its line, which would cost every template line.
-    def compile_error!(message)
-      raise CompileError.new(message, @code.count("\n") + 1)
+    # the node being compiled: no node carries its line, which would cost every template line. Code not written
+    # yet may still hold `lines_ahead` of them.
+    def compile_error!(message, lines_ahead: 0)
+      raise CompileError.new(message, @code.count("\n") + lines_ahead + 1)
     end
 
     def capture_into(variable)

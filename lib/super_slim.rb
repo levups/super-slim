@@ -61,7 +61,8 @@ module SuperSlim
     def compile(source, file: nil, tailwind_classes: self.tailwind_classes, **compiler_options)
       Compiler.new(**compiler_options).call(Parser.new(file:, tailwind_classes:).call(source))
     rescue Compiler::CompileError => exception
-      raise compile_syntax_error(exception, source, file)
+      # Without its cause: Rails would show the compiler's backtrace below the template line.
+      raise compile_syntax_error(exception, source, file), cause: nil
     end
 
     private
@@ -70,7 +71,7 @@ module SuperSlim
     def compile_syntax_error(exception, source, file)
       lineno = exception.lineno
       # The source parsed, so it is valid UTF-8 whatever its encoding says.
-      line = source.b.lines.fetch(lineno - 1, "").force_encoding(Encoding::UTF_8).chomp.delete_prefix("﻿")
+      line = Parser.split_lines(source.b).fetch(lineno - 1).force_encoding(Encoding::UTF_8).delete_prefix("﻿")
       error = SyntaxError.new(exception.message, file, line, lineno, line[/\A[ \t]*/].size)
       error.set_backtrace(["#{error.file}:#{lineno}", *exception.backtrace])
       error

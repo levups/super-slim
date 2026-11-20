@@ -39,17 +39,25 @@ class CompileErrorsTest < Minitest::Test
     assert_compile_error "Explicit end statements are forbidden", "div\r\n\t- end\r\n", 2, "\t- end"
   end
 
-  # Its compiled code sits on the last line of its attributes.
+  # Its compiled code sits on the last line of its attributes, after the lines their Ruby code goes on to.
   def test_a_tag_over_several_lines_points_at_its_last_line
     assert_compile_error "Multiple id attributes specified", "p\np(id=\"a\"\n  title=\"c\"\n  id=\"b\")\n", 4, "  id=\"b\")"
+    assert_compile_error "Multiple id attributes specified", "p(title=[1,\n  2]\n  id=\"a\" id=\"b\")\n", 3, "  id=\"a\" id=\"b\")"
+    assert_compile_error "Multiple id attributes specified", "p(a=[1,\n 2] b=[3,\n 4] id=\"a\" id=\"b\")\n", 3, " 4] id=\"a\" id=\"b\")"
   end
 
-  def test_it_stays_a_superslim_error
-    assert_raises(SuperSlim::Error) { SuperSlim.compile("- end\n") }
-    assert_includes assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile("- end\n") }.message, "(__TEMPLATE__), Line 1"
+  def test_a_template_without_a_file_is_named_alike_by_every_error
+    ["p(\n", "- end\n"].each do |source|
+      exception = assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile(source) }
+
+      assert_equal "(__TEMPLATE__):1", exception.backtrace.first
+      assert_includes exception.message, "(__TEMPLATE__), Line 1"
+      assert_nil exception.cause
+    end
   end
 
   def test_rails_reports_the_template_line
+    annotate_rendered_view_with_filenames = ActionView::Base.annotate_rendered_view_with_filenames
     [false, true].each do |annotate|
       ActionView::Base.annotate_rendered_view_with_filenames = annotate
       template = ActionView::Template.new("p one\np two\n- end\n", FILE, SuperSlim::RailsHandler.new, locals: [], format: :html)
@@ -59,7 +67,7 @@ class CompileErrorsTest < Minitest::Test
       assert_kind_of SuperSlim::SyntaxError, exception.cause
     end
   ensure
-    ActionView::Base.annotate_rendered_view_with_filenames = false
+    ActionView::Base.annotate_rendered_view_with_filenames = annotate_rendered_view_with_filenames
   end
 
   private

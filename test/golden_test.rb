@@ -132,7 +132,7 @@ class GoldenTest < Minitest::Test
     [true, false].each do |html_safe|
       expected = render_slim(golden_case, html_safe:).sub(/\Aerror: \w+: /, "error: ")
       actual = render_tilt(golden_case, golden_case.source, html_safe:).sub(/\Aerror: \w+: /, "error: ")
-      actual = actual.lines.first.chomp if expected.start_with?("error: ") && !expected.include?("\n")
+      actual = actual.lines.first.to_s.chomp if expected.start_with?("error: ") && !expected.include?("\n")
       assert_equal expected, actual, "#{golden_case.name}: SuperSlim differs from Slim (html_safe: #{html_safe})"
     end
   end

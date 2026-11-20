@@ -659,7 +659,7 @@ module SuperSlim
 
     def syntax_error!(message)
       error = SyntaxError.new(message, @file, @line, @lineno, (@line && @scanner) ? column : 0)
-      error.set_backtrace(["#{@file}:#{@lineno}", *caller])
+      error.set_backtrace(["#{error.file}:#{@lineno}", *caller])
       raise error
     end
   end
