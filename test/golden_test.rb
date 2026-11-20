@@ -131,8 +131,10 @@ class GoldenTest < Minitest::Test
   def assert_same_as_slim(golden_case)
     [true, false].each do |html_safe|
       expected = render_slim(golden_case, html_safe:).sub(/\Aerror: \w+: /, "error: ")
-      actual = render_tilt(golden_case, golden_case.source, html_safe:).sub(/\Aerror: \w+: /, "error: ")
-      actual = actual.lines.first.to_s.chomp if expected.start_with?("error: ") && !expected.include?("\n")
+      actual = render_tilt(golden_case, golden_case.source, html_safe:)
+      located = actual.start_with?("error: SyntaxError: ") && expected.start_with?("error: ") && !expected.include?("\n")
+      actual = located ? actual.lines.first.chomp : actual
+      actual = actual.sub(/\Aerror: \w+: /, "error: ")
       assert_equal expected, actual, "#{golden_case.name}: SuperSlim differs from Slim (html_safe: #{html_safe})"
     end
   end
