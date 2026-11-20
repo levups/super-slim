@@ -112,7 +112,7 @@ module SuperSlim
       block_open = false
       nodes.each do |node|
         if node.is_a?(Control)
-          raise Error, "Explicit end statements are forbidden" if node.code.match?(EXPLICIT_END)
+          compile_error!("Explicit end statements are forbidden") if node.code.match?(EXPLICIT_END)
 
           emit_code("end") if block_open && !node.code.match?(BLOCK_CONTINUATION)
           block_open = with_do(node.code, node.children).match?(BLOCK_OPENING)
@@ -223,7 +223,7 @@ module SuperSlim
         seen_names = {}
         attributes.each do |attribute|
           next if attribute.name == "class"
-          raise Error, "Multiple #{attribute.name} attributes specified" if seen_names.key?(attribute.name)
+          compile_error!("Multiple #{attribute.name} attributes specified") if seen_names.key?(attribute.name)
 
           seen_names[attribute.name] = true
         end
@@ -423,12 +423,18 @@ module SuperSlim
     def doctype(type)
       type = type.downcase
       if (xml = type.match(/\Axml(\s+(.+))?\z/))
-        raise Error, "Invalid xml directive in html mode" unless @xml
+        compile_error!("Invalid xml directive in html mode") unless @xml
 
         %(<?xml version="1.0" encoding="#{xml[2] || "utf-8"}" ?>)
       else
-        @doctypes[type] || raise(Error, "Invalid doctype #{type}")
+        @doctypes[type] || compile_error!("Invalid doctype #{type}")
       end
+    end
+
+    # The compiled code keeps each template line on its own line, so the newlines written so far give the line of
+    # the node being compiled: no node carries its line, which would cost every template line.
+    def compile_error!(message)
+      raise CompileError.new(message, @code.count("\n") + 1)
     end
 
     def capture_into(variable)

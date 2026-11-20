@@ -42,6 +42,17 @@ module SuperSlim
     end
   end
 
+  # A template error found while compiling, at its template line: `compile` adds the file and the line's text, and
+  # raises it as a SyntaxError.
+  class Compiler::CompileError < Error
+    attr_reader :lineno
+
+    def initialize(message, lineno)
+      @lineno = lineno
+      super(message)
+    end
+  end
+
   class << self
     # Shortcuts also read Tailwind class names, such as `.rounded-b-[3px]` or `.lg:hover:underline`. Off by
     # default so that switching from Slim changes no template: Slim renders `.size-2.5` as two classes.
@@ -49,6 +60,20 @@ module SuperSlim
 
     def compile(source, file: nil, tailwind_classes: self.tailwind_classes, **compiler_options)
       Compiler.new(**compiler_options).call(Parser.new(file:, tailwind_classes:).call(source))
+    rescue Compiler::CompileError => exception
+      raise compile_syntax_error(exception, source, file)
+    end
+
+    private
+
+    # Located like the parser's errors, its backtrace starting at the template line, which Rails reports.
+    def compile_syntax_error(exception, source, file)
+      lineno = exception.lineno
+      # The source parsed, so it is valid UTF-8 whatever its encoding says.
+      line = source.b.lines.fetch(lineno - 1, "").force_encoding(Encoding::UTF_8).chomp.delete_prefix("﻿")
+      error = SyntaxError.new(exception.message, file, line, lineno, line[/\A[ \t]*/].size)
+      error.set_backtrace(["#{error.file}:#{lineno}", *exception.backtrace])
+      error
     end
   end
 end
