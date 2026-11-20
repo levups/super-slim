@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [3.6.2] — 2026-11-20
+
+Template errors found while compiling now point at their template line, in Rails too.
+
+**Fixed**
+- `Explicit end statements are forbidden`, `Multiple … attributes specified`, `Invalid xml directive in html mode`
+  and `Invalid doctype` are raised as `SuperSlim::SyntaxError` with the file, the line and a caret, like parse
+  errors, so Rails' error page shows the template line instead of `compiler.rb`. They are still a `SuperSlim::Error`.
+- Code on the `ruby:` line itself, or an empty `ruby:` block, no longer moves every later line two lines down in
+  backtraces and `__LINE__`.
+- Without `file:`, parse errors and `Invalid UTF-8` start their backtrace at `(__TEMPLATE__):<line>`, like the
+  others.
+
 ## [3.6.1] — 2026-11-11
 
 One fix: `InstanceVariables` no longer reports an `@` that no name follows.
@@ -308,7 +321,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.1...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.2...HEAD
+[3.6.2]: https://github.com/levups/super-slim/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/levups/super-slim/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/levups/super-slim/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/levups/super-slim/compare/v3.4.1...v3.5.0
