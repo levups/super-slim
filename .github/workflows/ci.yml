@@ -88,7 +88,8 @@ jobs:
   prism:
     name: Ruby 3.3 · Prism 0.19
     if: ${{ !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    # Prism 0.19 builds with -Werror, which the GCC of ubuntu-latest fails on (calloc-transposed-args, 2026-11-18).
+    runs-on: ubuntu-22.04
     timeout-minutes: 5
     env:
       BUNDLE_GEMFILE: gemfiles/prism_0_19.gemfile
