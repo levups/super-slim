@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [3.6.3] — 2026-11-21
+
+One fix: a line break inside an interpolation of a quoted attribute no longer shifts the lines that follow.
+
+**Fixed**
+- A quoted attribute whose `#{…}` spans lines, such as `p title="#{t(:title,` then `count: 2)}"` on the next line,
+  no longer moves every later line one line down per break in backtraces, `__LINE__` and compile errors. The
+  attributes of a `ruby:` or `markdown:` block keep their lines too.
+
 ## [3.6.2] — 2026-11-20
 
 Template errors found while compiling now point at their template line, in Rails too.
@@ -321,7 +330,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.2...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.3...HEAD
+[3.6.3]: https://github.com/levups/super-slim/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/levups/super-slim/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/levups/super-slim/compare/v3.6.0...v3.6.1
 [3.6.0]: https://github.com/levups/super-slim/compare/v3.5.0...v3.6.0
