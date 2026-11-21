@@ -629,6 +629,7 @@ module SuperSlim
       first = source_offset if @outline
       value = +""
       depth = 0
+      breaks = 0
       quote_byte = quote.ord
 
       until depth == 0 && @scanner.peek_byte == quote_byte
@@ -636,7 +637,7 @@ module SuperSlim
           # Unlike a stripped continuation line, a line read whole keeps its trailing whitespace in the value.
           @outline[@lineno].text = true if @outline && @scanner.eos? && @scanner.string.equal?(@line)
           value << (@scanner.eos? ? "\n" : " ")
-          @stacks.last << NEWLINE
+          breaks += 1
           expect_next_line
         elsif (chunk = @scanner.scan(QUOTED_CHUNK_BY_QUOTE[quote]))
           value << chunk
@@ -648,6 +649,9 @@ module SuperSlim
         end
       end
 
+      # A break inside an interpolation is already a line of the compiled code, which keeps it: only the others get
+      # a newline node.
+      (breaks - Compiler.interpolation_newlines(value)).times { @stacks.last << NEWLINE } if breaks > 0
       record_ruby(:text, first, source_offset) if @outline
       @scanner.pos += 1
       value

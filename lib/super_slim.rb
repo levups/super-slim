@@ -70,8 +70,9 @@ module SuperSlim
     # Located like the parser's errors, its backtrace starting at the template line, which Rails reports.
     def compile_syntax_error(exception, source, file)
       lineno = exception.lineno
-      # The source parsed, so it is valid UTF-8 whatever its encoding says. A construct whose compiled code takes
-      # more lines than its template can move the count past the end: the error still raises, without that line.
+      # The source parsed, so it is valid UTF-8 whatever its encoding says. A count past the end guards against
+      # compiled code taking more lines than its template, which no construct is known to do: the error still
+      # raises, without that line.
       line = String.new(Parser.split_lines(source.b)[lineno - 1].to_s, encoding: Encoding::UTF_8)
       line = line.delete_prefix("﻿") if lineno == 1
       error = SyntaxError.new(exception.message, file, line, lineno, line[/\A[ \t]*/].size)
