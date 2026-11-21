@@ -148,7 +148,9 @@ module SuperSlim
     def invalid_encoding!(source)
       lines = source.b.split("\n")
       lineno = lines.index { |line| !line.dup.force_encoding(Encoding::UTF_8).valid_encoding? } || 0
-      raise SyntaxError.new("Invalid UTF-8", @file, lines[lineno].to_s.force_encoding(Encoding::UTF_8).scrub, lineno + 1, 0)
+      error = SyntaxError.new("Invalid UTF-8", @file, lines[lineno].to_s.force_encoding(Encoding::UTF_8).scrub, lineno + 1, 0)
+      error.set_backtrace(["#{error.file}:#{lineno + 1}", *caller])
+      raise error
     end
 
     def line_starts(source, byte_order_mark_size)
@@ -659,7 +661,7 @@ module SuperSlim
 
     def syntax_error!(message)
       error = SyntaxError.new(message, @file, @line, @lineno, (@line && @scanner) ? column : 0)
-      error.set_backtrace(["#{@file}:#{@lineno}", *caller])
+      error.set_backtrace(["#{error.file}:#{@lineno}", *caller])
       raise error
     end
   end

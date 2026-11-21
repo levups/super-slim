@@ -66,6 +66,6 @@ class LiterateTest < Minitest::Test
   def outcome
     yield
   rescue => exception
-    "error: #{exception.message.lines.first}"
+    "error: #{exception.message.lines.first.to_s.chomp}"
   end
 end

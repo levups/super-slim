@@ -119,14 +119,22 @@ class GoldenTest < Minitest::Test
     handler = SuperSlim::RailsHandler.new
     format = (golden_case.format == :xml) ? :xml : :html
     template = ActionView::Template.new(golden_case.source, golden_case.name, handler, locals: [], format:)
-    attempt { template.render(RailsView.new(ActionView::LookupContext.new([]), {}, nil), {}).to_s }
+    attempt do
+      template.render(RailsView.new(ActionView::LookupContext.new([]), {}, nil), {}).to_s
+    rescue ActionView::Template::Error => exception
+      raise exception.cause # Rails wraps every error, Tilt none
+    end
   end
 
-  # Error classes differ between the engines, their messages must not.
+  # Error classes differ between the engines, their messages must not. Slim leaves the file and line out of the errors
+  # it finds while compiling, which SuperSlim adds below the message.
   def assert_same_as_slim(golden_case)
     [true, false].each do |html_safe|
       expected = render_slim(golden_case, html_safe:).sub(/\Aerror: \w+: /, "error: ")
-      actual = render_tilt(golden_case, golden_case.source, html_safe:).sub(/\Aerror: \w+: /, "error: ")
+      actual = render_tilt(golden_case, golden_case.source, html_safe:)
+      located = actual.start_with?("error: SyntaxError: ") && expected.start_with?("error: ") && !expected.include?("\n")
+      actual = located ? actual.lines.first.chomp : actual
+      actual = actual.sub(/\Aerror: \w+: /, "error: ")
       assert_equal expected, actual, "#{golden_case.name}: SuperSlim differs from Slim (html_safe: #{html_safe})"
     end
   end
