@@ -106,6 +106,13 @@ module SuperSlim
       parts
     end
 
+    # The line breaks inside the text's interpolations, which its compiled code keeps.
+    def self.interpolation_newlines(text)
+      return 0 unless text.include?("\n") && text.include?('#{')
+
+      interpolation_parts(text).sum { |kind, code| (kind == :dynamic) ? code.count("\n") : 0 }
+    end
+
     private
 
     def compile_children(nodes)
@@ -225,8 +232,8 @@ module SuperSlim
           next if attribute.name == "class"
           if seen_names.key?(attribute.name)
             # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
-            code_newlines = attributes.sum { _1.is_a?(CodeAttribute) ? _1.code.count("\n") : 0 }
-            compile_error!("Multiple #{attribute.name} attributes specified", lines_ahead: code_newlines)
+            lines_ahead = attributes.sum { |other| code_newlines(other) }
+            compile_error!("Multiple #{attribute.name} attributes specified", lines_ahead:)
           end
 
           seen_names[attribute.name] = true
@@ -386,6 +393,11 @@ module SuperSlim
 
     def compile_embedded(embedded)
       case embedded.engine
+      when "ruby", "markdown"
+        # Their attributes are dropped, and with them the lines their interpolations go on to.
+        @code << ("\n" * embedded.attributes.sum { code_newlines(_1) })
+      end
+      case embedded.engine
       when "ruby" then compile_ruby(embedded.children)
       when "javascript" then compile_tag(Tag.new("script", embedded.attributes, [TextBlock.new(embedded.children)]))
       when "css" then compile_tag(Tag.new("style", embedded.attributes, embedded.children))
@@ -436,6 +448,16 @@ module SuperSlim
         %(<?xml version="1.0" encoding="#{xml[2] || "utf-8"}" ?>)
       else
         @doctypes[type] || compile_error!("Invalid doctype #{type}")
+      end
+    end
+
+    # The lines an attribute's Ruby code goes on to: a code attribute's, and those of a quoted attribute's
+    # interpolations, which the parser leaves to the code.
+    def code_newlines(attribute)
+      case attribute
+      when CodeAttribute then attribute.code.count("\n")
+      when QuotedAttribute then Compiler.interpolation_newlines(attribute.text)
+      else 0
       end
     end
 

@@ -60,11 +60,10 @@ class CompileErrorsTest < Minitest::Test
     end
   end
 
-  # An interpolation over two lines of a quoted attribute still takes one more line once compiled (#122).
-  def test_a_line_counted_past_the_end_keeps_the_error
-    exception = assert_raises(SuperSlim::SyntaxError) { SuperSlim.compile(%(p title="\#{foo(\n1)}"\np id="a" id="b"\n)) }
-
-    assert_equal "Multiple id attributes specified", exception.error
+  # A line break inside an interpolation of a quoted attribute is counted once (#122).
+  def test_an_interpolation_over_two_lines_counts_its_break_once
+    assert_compile_error "Multiple id attributes specified", %(p title="\#{foo(\n1)}"\np id="a" id="b"\n), 3, %(p id="a" id="b")
+    assert_compile_error "Multiple id attributes specified", %(p title="\#{foo(\n1)}" id="a" id="b"\n), 2, '1)}" id="a" id="b"'
   end
 
   def test_rails_reports_the_template_line
