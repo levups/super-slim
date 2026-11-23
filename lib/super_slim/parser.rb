@@ -47,6 +47,7 @@ module SuperSlim
     QUOTED_CHUNK_BY_QUOTE = %w[" '].to_h { |quote| [quote, /(?:[^{}\\#{quote}]|\\(?!\z))+/] }.freeze
     SLASH, PIPE, APOSTROPHE, LESS_THAN, GREATER_THAN, DASH, EQUALS = "/|'<>-=".bytes
     OPENING_BRACE, CLOSING_BRACE = "{}".bytes
+    HASH, DOT, STAR = "#.*".bytes
     WHITESPACE_MARKER_BYTES = "<>'".bytes.freeze
     BOOLEAN_ATTRIBUTE_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /#{ATTRIBUTE_NAME}(?=(\s|#{Regexp.escape(closing)}|\z))/] }.freeze
     ATTRIBUTE_LIST_END_BY_CLOSING = DELIMITERS.values.to_h { |closing| [closing, /\s*#{Regexp.escape(closing)}/] }.freeze
@@ -364,11 +365,18 @@ module SuperSlim
       end
     end
 
-    # A tag name is consumed with its match; a shortcut is left for parse_tag to read as an attribute.
+    # A tag name is consumed with its match; a shortcut is left for parse_tag to read as an attribute of a div, and
+    # a splat as the attributes of a dynamic tag.
     def scan_tag
-      tag = @scanner.check(Shortcuts::TAG_PATTERN) or return
-      @scanner.pos += tag.bytesize if @scanner[1]
-      tag
+      length = @scanner.match?(Shortcuts::TAG_PATTERN) or return
+      case @scanner.peek_byte
+      when HASH, DOT then Shortcuts::DEFAULT_TAG
+      when STAR then "*"
+      else
+        tag = @scanner.peek(length)
+        @scanner.pos += length
+        tag
+      end
     end
 
     def parse_embedded(engine, attributes_source, text)
@@ -473,18 +481,18 @@ module SuperSlim
 
     def parse_tag(tag)
       tag_lineno = @lineno
-      tag = Shortcuts::DEFAULT_TAG if Shortcuts::ATTRIBUTE_BY_SHORTCUT.key?(tag)
 
       attributes = []
       # Read before it is consumed, so that an illegal shortcut is reported where it starts.
       while (shortcut_length = @scanner.match?(@attribute_shortcut))
-        shortcut = @scanner[1]
-        value = @scanner[2]
-        syntax_error!("Illegal shortcut") unless (name = Shortcuts::ATTRIBUTE_BY_SHORTCUT[shortcut])
+        # A shortcut is a single `#` or `.`: read by bytes, without a string for it.
+        next_byte = @scanner.string.getbyte(@scanner.pos + 1)
+        syntax_error!("Illegal shortcut") if next_byte == HASH || next_byte == DOT
 
+        value = @scanner[2]
         # Tailwind arbitrary values may hold quotes and ampersands, which Slim names never do.
         value = ERB::Escape.html_escape(value) if value.match?(SHORTCUT_VALUE_TO_ESCAPE)
-        attributes << StaticAttribute.new(name, value)
+        attributes << StaticAttribute.new((@scanner.peek_byte == HASH) ? "id" : "class", value)
         @scanner.pos += shortcut_length
       end
 

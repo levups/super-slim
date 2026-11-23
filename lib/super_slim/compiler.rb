@@ -226,29 +226,41 @@ module SuperSlim
       return if attributes.empty?
       return emit_output(compile_runtime_attributes(attributes), false) if attributes.any? { runtime_attribute?(_1) }
 
-      if attributes.size > 1
-        seen_names = {}
-        attributes.each do |attribute|
-          next if attribute.name == "class"
-          if seen_names.key?(attribute.name)
-            # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
-            lines_ahead = attributes.sum { |other| code_newlines(other) }
-            compile_error!("Multiple #{attribute.name} attributes specified", lines_ahead:)
-          end
+      # A tag has a handful of attributes: scanning them again costs less than a hash of their names.
+      attributes.each_with_index do |attribute, index|
+        name = attribute.name
+        next if name == "class" || attributes.index { _1.name == name } == index
 
-          seen_names[attribute.name] = true
-        end
+        # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
+        lines_ahead = attributes.sum { |other| code_newlines(other) }
+        compile_error!("Multiple #{name} attributes specified", lines_ahead:)
       end
 
       # Every class value renders at the place of the first class attribute.
-      class_attributes = nil
+      classes_compiled = false
       attributes.each do |attribute|
         next compile_attribute(attribute) unless attribute.name == "class"
-        next if class_attributes
+        next if classes_compiled
 
-        class_attributes = attributes.select { _1.name == "class" }
-        compile_class_attribute(class_attributes.map { attribute_parts(_1) })
+        classes_compiled = true
+        if attributes.all? { _1.name != "class" || _1.is_a?(StaticAttribute) }
+          compile_static_classes(attributes)
+        else
+          compile_class_attribute(attributes.filter_map { attribute_parts(_1) if _1.name == "class" })
+        end
       end
+    end
+
+    # Shortcuts, the most common classes: their values join at compile time.
+    def compile_static_classes(attributes)
+      opened = false
+      attributes.each do |attribute|
+        next if attribute.name != "class" || attribute.value.empty?
+
+        @static << (opened ? " " : ' class="') << attribute.value
+        opened = true
+      end
+      @static << '"' if opened
     end
 
     def runtime_attribute?(attribute)
@@ -259,6 +271,7 @@ module SuperSlim
       case attribute
       when BooleanAttribute then emit_boolean_attribute(attribute.name)
       when CodeAttribute then compile_code_attribute(attribute)
+      when StaticAttribute then @static << " " << attribute.name << '="' << attribute.value << '"'
       else emit_attribute(attribute.name, attribute_parts(attribute))
       end
     end
@@ -351,13 +364,14 @@ module SuperSlim
     end
 
     def emit_attribute(name, parts)
-      emit_static(%( #{name}="))
+      @static << " " << name << '="'
       emit_parts(parts)
-      emit_static('"')
+      @static << '"'
     end
 
     def emit_boolean_attribute(name)
-      emit_static(@xml ? %( #{name}="") : " #{name}")
+      @static << " " << name
+      @static << '=""' if @xml
     end
 
     def emit_parts(parts)
@@ -388,7 +402,7 @@ module SuperSlim
     end
 
     def emit_interpolated(text)
-      emit_parts(Compiler.interpolation_parts(text))
+      text.include?('#{') ? emit_parts(Compiler.interpolation_parts(text)) : emit_static(text)
     end
 
     def compile_embedded(embedded)
@@ -488,25 +502,29 @@ module SuperSlim
       @static << text
     end
 
+    # The buffers write their statements straight into the compiled code: no string for each one.
     def emit_output(code, escape)
-      emit_code(escape ? @buffer.escaped(code) : @buffer.raw(code))
+      flush_static
+      separate_statement
+      escape ? @buffer.escaped(@code, code) : @buffer.raw(@code, code)
     end
 
     def emit_code(code)
       flush_static
-      append(code)
+      separate_statement
+      @code << code
     end
 
     def flush_static
       return if @static.empty?
 
-      append(@buffer.static(@static))
-      @static = +""
+      separate_statement
+      @buffer.static(@code, @static)
+      @static.clear
     end
 
-    def append(code)
+    def separate_statement
       @code << "; " unless @code.empty? || @code.end_with?("\n")
-      @code << code
     end
 
     def new_variable
@@ -521,17 +539,17 @@ module SuperSlim
 
       def open = "#{@name} = +\"\""
       def close = @name
-      def static(text) = "#{@name} << #{text.inspect}.freeze"
-      def escaped(code) = "#{@name} << #{@escape_function}((#{code}))"
-      def raw(code) = "#{@name} << (#{code}).to_s"
+      def static(code, text) = code << @name << " << " << text.inspect << ".freeze"
+      def escaped(code, ruby) = code << @name << " << " << @escape_function << "((" << ruby << "))"
+      def raw(code, ruby) = code << @name << " << (" << ruby << ").to_s"
     end
 
     class OutputBuffer
       def open = "@output_buffer = output_buffer || ActionView::OutputBuffer.new"
       def close = "@output_buffer"
-      def static(text) = "@output_buffer.safe_concat(#{text.inspect}.freeze)"
-      def escaped(code) = "@output_buffer << (#{code})"
-      def raw(code) = "@output_buffer.safe_concat((#{code}).to_s)"
+      def static(code, text) = code << "@output_buffer.safe_concat(" << text.inspect << ".freeze)"
+      def escaped(code, ruby) = code << "@output_buffer << (" << ruby << ")"
+      def raw(code, ruby) = code << "@output_buffer.safe_concat((" << ruby << ").to_s)"
     end
   end
 end
