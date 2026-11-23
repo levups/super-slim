@@ -321,15 +321,15 @@ module SuperSlim
 
     def compile_runtime_attributes(attributes)
       builder = new_variable
-      emit_code("#{builder} = ::SuperSlim::Runtime::Attributes.new(#{@html_safe})")
+      emit_code("#{builder} = ::SuperSlim::Runtime::#{@html_safe ? "HtmlSafeAttributes" : "Attributes"}.new")
       attributes.each do |attribute|
         case attribute
         when Splat
           emit_code("#{builder}.splat_attrs((#{attribute.code}))")
         when CodeAttribute
-          emit_code("#{builder}.code_attr(#{attribute.name.inspect}, #{attribute.escape}, (#{attribute.code}))")
+          emit_code("#{builder}.code_attr(#{frozen_literal(attribute.name)}, #{attribute.escape}, (#{attribute.code})#{unchecked_name(attribute.name)})")
         else
-          emit_code("#{builder}.attr(#{attribute.name.inspect}, #{string_expression(attribute_parts(attribute))})")
+          emit_code("#{builder}.attr(#{frozen_literal(attribute.name)}, #{string_expression(attribute_parts(attribute))}#{unchecked_name(attribute.name)})")
         end
       end
       builder
@@ -376,6 +376,7 @@ module SuperSlim
         return "#{@escape_function}((#{value}))" if kind == :dynamic && escape
         return value if kind == :raw
       end
+      return frozen_literal(parts.map { _1[1] }.join) if parts.all? { _1[0] == :static }
 
       literal = parts.map do |kind, value, escape|
         case kind
@@ -385,6 +386,17 @@ module SuperSlim
         end
       end
       %("#{literal.join}")
+    end
+
+    # A name found valid now needs no check at render time; the parser lets through some the runtime refuses, such
+    # as control characters, which still raise when they render.
+    def unchecked_name(name)
+      ", false" unless name.match?(Runtime::Attributes::INVALID_NAME)
+    end
+
+    # Rails compiles templates without `frozen_string_literal`: a bare literal would allocate on every render.
+    def frozen_literal(text)
+      "#{text.inspect}.freeze"
     end
 
     def emit_interpolated(text)

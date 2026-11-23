@@ -12,6 +12,10 @@ class RuntimeTest < Minitest::Test
     end
   end
 
+  def test_a_template_name_with_a_control_character_next_to_a_splat_raises
+    assert_raises(SuperSlim::InvalidAttributeNameError) { render(%(a*attributes x\u0001y="1"), attributes: {}) }
+  end
+
   def test_separators_in_a_splat_key_cannot_add_an_attribute
     assert_raises(SuperSlim::InvalidAttributeNameError) { render("a*attributes", attributes: {"title\nonclick" => "alert(1)"}) }
     assert_raises(SuperSlim::InvalidAttributeNameError) { render("a*attributes", attributes: {"" => "x"}) }
