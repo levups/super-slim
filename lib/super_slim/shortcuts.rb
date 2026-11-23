@@ -3,7 +3,6 @@
 module SuperSlim
   # `#name` sets the id and `.name` a class, on a div unless a tag name comes first.
   module Shortcuts
-    ATTRIBUTE_BY_SHORTCUT = {"#" => "id", "." => "class"}.freeze
     DEFAULT_TAG = "div"
 
     SLIM_NAME_PART = /\p{Word}|-|\/\d+|:(?:\w|-)+/
@@ -21,8 +20,8 @@ module SuperSlim
       | (?<=-)\( (?:[^()\s] | \([^()\s]*\))+ \)
     }x
 
-    ATTRIBUTE_PATTERN = /\A([#.]+)((?:#{SLIM_NAME_PART})*)/
-    TAILWIND_ATTRIBUTE_PATTERN = /\A([#.]+)((?:#{TAILWIND_NAME_PART})*)/
-    TAG_PATTERN = /\A(?:[#.]|\*(?=[^\s]+)|(\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
+    ATTRIBUTE_PATTERN = /\A[#.]+((?:#{SLIM_NAME_PART})*)/
+    TAILWIND_ATTRIBUTE_PATTERN = /\A[#.]+((?:#{TAILWIND_NAME_PART})*)/
+    TAG_PATTERN = /\A(?:[#.]|\*(?=[^\s]+)|(?:\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
   end
 end

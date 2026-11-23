@@ -14,6 +14,12 @@ class HostileTemplatesTest < Minitest::Test
     assert_equal "<p>a {b} c</p>", render("p a \#{\"{b}\"} c")
   end
 
+  def test_a_tag_with_many_attributes_compiles_in_linear_time
+    source = "div(#{Array.new(40_000) { %(a#{_1}="1") }.join(" ")})\n"
+    assert_fast { SuperSlim.compile(source) }
+    assert_fast { SuperSlim::Formatter.new.call(source) }
+  end
+
   # Each line after a bracket left open lexed the code read so far again: 4,000 lines took 21 seconds.
   def test_code_continued_over_many_lines_parses_in_linear_time
     assert_fast { SuperSlim::Linter.new.call("t.slim", "= foo(\n" + "  1 +\n" * 20_000 + "  1)\n") }
