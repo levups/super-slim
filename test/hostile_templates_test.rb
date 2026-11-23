@@ -25,6 +25,7 @@ class HostileTemplatesTest < Minitest::Test
     assert_fast { SuperSlim::Linter.new.call("t.slim", "= foo(\n" + "  1 +\n" * 20_000 + "  1)\n") }
     assert_fast { SuperSlim.compile("= foo(\n" + "  [\n" * 2_000 + "  1" + "]" * 2_000 + ")\n") }
     assert_fast { SuperSlim.compile("= foo(\n  " + "\"\#{" * 5_000 + "1" + "}\"" * 5_000 + ")\n") }
+    assert_fast { SuperSlim::Linter.new.call("t.slim", "- x = 1 + # x,\n" + "  1 + # x,\n" * 20_000 + "  1\n") }
   end
 
   # Outline columns counted each attribute from the start of the line, and rules scanned every ancestor.

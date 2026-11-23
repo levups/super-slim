@@ -41,6 +41,7 @@ EXAMPLE_BY_RULE = {
     "ul\n  - tags.each do |tag|\n    li = tag.name\n"),
   "UnescapedOutput" => Example.new("p == post.intro\n", "p = t(\".intro_html\")\n"),
   "SlimSyntax" => Example.new("= render Card.new(post:) # the card of the post\n", "/ The card of the post\n= render Card.new(post:)\n"),
+  "CommentContinuation" => Example.new("- count = posts.size # the posts,\np = count\n", "/ The posts\n- count = posts.size\np = count\n"),
   "EmbeddedEngines" => Example.new("javascript:\n  track(\"view\")\n", "div data-controller=\"tracking\"\n"),
   "HardcodedText" => Example.new("h1 Welcome\n", "h1 = t(\".welcome\")\n", "shop/show.html.slim"),
   "SoleNestedConditional" => Example.new("- if post.published?\n  - if current_user.admin?\n    = link_to \"Edit\", edit_post_path(post)\n",
@@ -76,7 +77,7 @@ RULES_BY_GROUP = {
     %w[LineLength CommentControlStatement EmptyControlStatement ConsecutiveControlStatements TagCase Zwsp],
   "Ruby in templates, from haml-lint and erb_lint" =>
     %w[UnnecessaryInterpolation UnnecessaryStringOutput DeprecatedClasses DeprecatedAttributes InlineStyles InlineEventHandlers UnescapedOutput DatabaseQueries
-      SlimSyntax EmbeddedEngines HardcodedText],
+      SlimSyntax CommentContinuation EmbeddedEngines HardcodedText],
   "Conditionals, from RuboCop" => %w[SoleNestedConditional NegatedIfElseCondition UnlessElse],
   "Rails conventions" => %w[InstanceVariables StrictLocals UnusedLocals],
   "HTML and accessibility, from Herb and jsx-a11y" =>
@@ -119,6 +120,8 @@ WHY_BY_RULE = {
     "turn the rule on with `include:`, or silence a line with the disable comment.",
   "SlimSyntax" => "SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: " \
     "it reports such a template as an error and checks none of its Ruby.",
+  "CommentContinuation" => "Slim carries a line ending with a comma or a backslash on to the next one, even inside a comment: " \
+    "the next template line then runs as Ruby, and renders nothing, without an error.",
   "EmbeddedEngines" => "Inline JavaScript and CSS are sent again with every page, cached nowhere, " \
     "and blocked by a strict Content Security Policy.",
   "HardcodedText" => "Text written in the template cannot be translated. " \
@@ -179,6 +182,7 @@ SUMMARY_BY_RULE = {
   "UnescapedOutput" => "No output that skips HTML escaping",
   "DatabaseQueries" => "No `where`, `find_by`, `pluck` or `Model.all` in templates",
   "SlimSyntax" => "Only lines Slim and Brakeman can read",
+  "CommentContinuation" => "No comma or backslash ending a comment",
   "EmbeddedEngines" => "No `javascript:` or `css:` blocks you forbid",
   "HardcodedText" => "Text goes through translations",
   "SoleNestedConditional" => "`&&` rather than an `if` alone inside another",

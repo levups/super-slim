@@ -751,6 +751,53 @@ module SuperSlim
         end
       end
 
+      # Slim, and SuperSlim with it, carries a line that ends with a comma or a backslash on to the next one, even when
+      # they end a comment: the next template line then runs as Ruby, and renders nothing.
+      class CommentContinuation < Rule
+        MESSAGE = "`%s` at the end of this comment carries the next line into the Ruby code: remove it, " \
+          "or write the comment with `/` on a line of its own"
+        CONTINUED = /[,\\]\z/
+        SEPARATOR_BYTES = " \t\n".bytes.freeze
+        # Ruby ends the statement after a value, a call, a closing bracket or block parameters, but not after a keyword
+        # that asks for more.
+        EXPRESSION_END = /(?:[\w)\]}"'`]|(?:\bdo|\{)\s*\|[^|]*\|)\z/
+        CONTINUING_KEYWORD = /(?<![\w.:])(?:and|or|not|if|unless|while|until|when|in|then|elsif|case)\z/
+
+        def offenses(document, _source)
+          document.enum_for(:each_node).filter_map do |node, ancestors|
+            next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
+            next unless (index, character = swallowing_comment(node.code))
+
+            offense(document, line_near(document, node, ancestors) + index, format(MESSAGE, character))
+          end
+        end
+
+        private
+
+        # The index of the first code line, the last one aside, that a comment ends with a comma or a backslash. A
+        # comment alone on a later line is left out: the line before it already carries the code on.
+        def swallowing_comment(code)
+          return unless code.include?("\n") && code.include?("#")
+
+          brackets = nil
+          code.split("\n")[0...-1].each_with_index do |line, index|
+            brackets = brackets ? (brackets << line) : Parser::RubyBrackets.new(line)
+            next unless line.match?(CONTINUED) && (offset = brackets.trailing_comment_offset)
+
+            # `#` right after code is more likely a misread regexp or character than a comment.
+            next unless offset.zero? || SEPARATOR_BYTES.include?(brackets.code.getbyte(offset - 1))
+
+            # The comment ends the code read so far, so it is on this line: no need to scan the lines before.
+            code_before = line.byteslice(0, offset - (brackets.code.bytesize - line.bytesize)).rstrip
+            # Alone on a later line, the line before carries the code on; after an operator, Ruby goes on anyway.
+            next if code_before.empty? ? index > 0 : !code_before.match?(EXPRESSION_END) || code_before.match?(CONTINUING_KEYWORD)
+
+            return [index, line[-1]]
+          end
+          nil
+        end
+      end
+
       # Ruby that a plainer line of Slim says better, after haml-lint.
 
       class UnnecessaryInterpolation < Rule

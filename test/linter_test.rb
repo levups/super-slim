@@ -324,6 +324,35 @@ class LinterTest < Minitest::Test
     assert_equal "Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own", offenses[1].message
   end
 
+  def test_comment_continuation
+    linter = SuperSlim::Linter.new("CommentContinuation" => {"enabled" => true})
+    source = <<~'SLIM'
+      - count = posts.size # the posts,
+      p = count
+      - # the total \
+      p = total
+      = link_to post.title,
+        post_path(post) # the link,
+      p after
+      - items.each do |item| # each,
+        li = item
+      = format "%s/%s", # comma before the comment,
+          "alice", "bob"
+      - total = count + # with the fee,
+          1
+      = text.gsub /#/,
+          "-"
+      = link_to post.title,
+        # alone on a continued line,
+        post_path(post)
+    SLIM
+    offenses = linter.call("show.html.slim", source).select { _1.rule == "CommentContinuation" }
+
+    assert_equal [1, 3, 6, 8], offenses.map(&:lineno)
+    assert_equal "`,` at the end of this comment carries the next line into the Ruby code: remove it, " \
+      "or write the comment with `/` on a line of its own", offenses.first.message
+  end
+
   def test_embedded_engines
     linter = SuperSlim::Linter.new("EmbeddedEngines" => {"enabled" => true, "forbidden_engines" => %w[javascript css]})
 

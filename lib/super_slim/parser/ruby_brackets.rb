@@ -52,6 +52,11 @@ module SuperSlim
         @open_brackets.any?
       end
 
+      # The code read so far, which the offsets count in.
+      def code
+        @scanner.string
+      end
+
       private
 
       def read
