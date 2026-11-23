@@ -752,49 +752,64 @@ module SuperSlim
       end
 
       # Slim, and SuperSlim with it, carries a line that ends with a comma or a backslash on to the next one, even when
-      # they end a comment: the next template line then runs as Ruby, and renders nothing.
+      # they end a comment: the next template line then runs as Ruby, so it renders nothing or raises.
       class CommentContinuation < Rule
         MESSAGE = "`%s` at the end of this comment carries the next line into the Ruby code: remove it, " \
           "or write the comment with `/` on a line of its own"
-        CONTINUED = /[,\\]\z/
-        SEPARATOR_BYTES = " \t\n".bytes.freeze
-        # Ruby ends the statement after a value, a call, a closing bracket or block parameters, but not after a keyword
-        # that asks for more.
-        EXPRESSION_END = /(?:[\w)\]}"'`]|(?:\bdo|\{)\s*\|[^|]*\|)\z/
-        CONTINUING_KEYWORD = /(?<![\w.:])(?:and|or|not|if|unless|while|until|when|in|then|elsif|case)\z/
+        CONTINUED = /[,\\]\s*\z/
+        OPENING_TOKEN = /\A(?:(?:PARENTHESIS|BRACKET|BRACE)_LEFT|EMBEXPR_BEGIN)/
+        CLOSING_TOKEN = /\A(?:(?:PARENTHESIS|BRACKET|BRACE)_RIGHT|EMBEXPR_END)\z/
+        BLOCK_KEYWORDS = %i[KEYWORD_DO KEYWORD_DO_LOOP].freeze
+        # Prism tells a newline that ends a statement from one Ruby goes on after, even after a comment, only since
+        # 0.20: before, the rule stays silent rather than guess.
+        STATEMENT_NEWLINES = Prism.lex("a # c\nb").value.any? { |token,| token.type == :NEWLINE }
 
         def offenses(document, _source)
+          return [] unless STATEMENT_NEWLINES
+
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
-            next unless (index, character = swallowing_comment(node.code))
+            next unless (lineno, character = swallowing_comment(node.code))
 
-            offense(document, line_near(document, node, ancestors) + index, format(MESSAGE, character))
+            offense(document, line_near(document, node, ancestors) + lineno - 1, format(MESSAGE, character))
           end
         end
 
         private
 
-        # The index of the first code line, the last one aside, that a comment ends with a comma or a backslash. A
-        # comment alone on a later line is left out: the line before it already carries the code on.
+        # The code line, from 1, of the first comment that ends with a comma or a backslash where Ruby itself ends the
+        # statement, outside any bracket: only Slim's reading carries the next line on. Removing the character changes
+        # nothing anywhere else, so those are left alone.
         def swallowing_comment(code)
           return unless code.include?("\n") && code.include?("#")
 
-          brackets = nil
-          code.split("\n")[0...-1].each_with_index do |line, index|
-            brackets = brackets ? (brackets << line) : Parser::RubyBrackets.new(line)
-            next unless line.match?(CONTINUED) && (offset = brackets.trailing_comment_offset)
-
-            # `#` right after code is more likely a misread regexp or character than a comment.
-            next unless offset.zero? || SEPARATOR_BYTES.include?(brackets.code.getbyte(offset - 1))
-
-            # The comment ends the code read so far, so it is on this line: no need to scan the lines before.
-            code_before = line.byteslice(0, offset - (brackets.code.bytesize - line.bytesize)).rstrip
-            # Alone on a later line, the line before carries the code on; after an operator, Ruby goes on anyway.
-            next if code_before.empty? ? index > 0 : !code_before.match?(EXPRESSION_END) || code_before.match?(CONTINUING_KEYWORD)
-
-            return [index, line[-1]]
+          depth = 0
+          # The token after which a `do` block's body starts: the `do`, or the `|` closing its parameters.
+          block_start = nil
+          in_parameters = false
+          tokens = Prism.lex(code).value
+          tokens.each_with_index do |(token, _state), index|
+            type = token.type
+            if type == :PIPE && (in_parameters || block_start == index - 1)
+              in_parameters = !in_parameters
+              block_start = index
+            elsif BLOCK_KEYWORDS.include?(type)
+              block_start = index
+            elsif type.name.match?(OPENING_TOKEN)
+              depth += 1
+            elsif type.name.match?(CLOSING_TOKEN)
+              depth -= 1
+            elsif type == :COMMENT && depth.zero? && (comment = token.value).match?(CONTINUED) &&
+                (index.zero? || statement_end?(tokens[index + 1]&.first&.type, block_start == index - 1 && !in_parameters))
+              return [token.location.start_line, comment.rstrip[-1]]
+            end
           end
           nil
+        end
+
+        # Ruby ends the statement there, or starts the body of a block, which Slim reads from the lines nested below.
+        def statement_end?(next_type, after_block_start)
+          next_type == :NEWLINE || (next_type == :IGNORED_NEWLINE && after_block_start)
         end
       end
 

@@ -121,7 +121,8 @@ WHY_BY_RULE = {
   "SlimSyntax" => "SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: " \
     "it reports such a template as an error and checks none of its Ruby.",
   "CommentContinuation" => "Slim carries a line ending with a comma or a backslash on to the next one, even inside a comment: " \
-    "the next template line then runs as Ruby, and renders nothing, without an error.",
+    "the next template line then runs as Ruby, so it renders nothing or raises. Ruby's own reading decides, " \
+    "through Prism 0.20 or later.",
   "EmbeddedEngines" => "Inline JavaScript and CSS are sent again with every page, cached nowhere, " \
     "and blocked by a strict Content Security Policy.",
   "HardcodedText" => "Text written in the template cannot be translated. " \
