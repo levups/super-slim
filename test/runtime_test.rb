@@ -29,11 +29,17 @@ class RuntimeTest < Minitest::Test
     assert_equal "<div>Hello</div>", render("*attributes Hello", attributes: {tag: ""})
   end
 
+  def test_a_falsy_html_safe_option_renders_dynamic_classes_and_splats
+    [nil, false].each do |html_safe|
+      assert_equal %(<p class="a b"></p><a href="/"></a>), render(%(p class=klass\na*{href: "/"}), html_safe:, klass: %w[a b])
+    end
+  end
+
   private
 
-  def render(source, **locals)
+  def render(source, html_safe: String.method_defined?(:html_safe?), **locals)
     scope = binding
     locals.each { |name, value| scope.local_variable_set(name, value) }
-    scope.eval(SuperSlim.compile(source))
+    scope.eval(SuperSlim.compile(source, html_safe:))
   end
 end
