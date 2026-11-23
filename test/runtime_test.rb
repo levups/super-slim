@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "active_support/core_ext/string/output_safety"
 require "super_slim"
 
 # Names known only at render time come from data: they must not open an attribute or a tag of their own.
@@ -37,6 +38,30 @@ class RuntimeTest < Minitest::Test
     [nil, false].each do |html_safe|
       assert_equal %(<p class="a b"></p><a href="/"></a>), render(%(p class=klass\na*{href: "/"}), html_safe:, klass: %w[a b])
     end
+  end
+
+  # Slim calls html_safe? on the value itself, which only Rails defines on every object.
+  def test_an_output_without_html_safe_of_its_own_is_escaped
+    count = Class.new do
+      undef_method :html_safe? if method_defined?(:html_safe?)
+
+      def to_s
+        "<5>"
+      end
+    end.new
+
+    assert_equal "<p>&lt;5&gt;</p>", render("p = count", html_safe: true, count:)
+  end
+
+  def test_an_error_inside_html_safe_still_raises
+    broken = Class.new do
+      def html_safe?
+        missing_helper
+      end
+    end.new
+
+    error = assert_raises(NameError) { render("p = broken", html_safe: true, broken:) }
+    assert_equal :missing_helper, error.name
   end
 
   private
