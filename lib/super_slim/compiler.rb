@@ -48,7 +48,7 @@ module SuperSlim
       @xml = format == :xml
       @doctypes = DOCTYPES.fetch(format)
       @rails = rails
-      @html_safe = html_safe
+      @html_safe = html_safe ? true : false
       @escape_function = html_safe ? "::SuperSlim::Runtime.escape_html_safe" : "::ERB::Escape.html_escape"
       @preamble = preamble
       @postamble = postamble
