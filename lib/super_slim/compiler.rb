@@ -8,6 +8,7 @@ module SuperSlim
 
     VOID_ELEMENTS = %w[area base br col embed hr img input keygen link menuitem meta param source track wbr].to_h { [_1, true] }.freeze
     HYPHENATED_ATTRIBUTES = %w[data aria].freeze
+    MAX_SCANNED_ATTRIBUTES = 8
     DOCTYPES = {
       html: {
         "5" => "<!DOCTYPE html>",
@@ -226,10 +227,18 @@ module SuperSlim
       return if attributes.empty?
       return emit_output(compile_runtime_attributes(attributes), false) if attributes.any? { runtime_attribute?(_1) }
 
-      # A tag has a handful of attributes: scanning them again costs less than a hash of their names.
+      # A tag has a handful of attributes: scanning them again costs less than a hash of their names, which only a
+      # long list needs, as the scans grow with its square.
+      seen_names = {} if attributes.size > MAX_SCANNED_ATTRIBUTES
       attributes.each_with_index do |attribute, index|
         name = attribute.name
-        next if name == "class" || attributes.index { _1.name == name } == index
+        next if name == "class"
+
+        if seen_names
+          next seen_names[name] = true unless seen_names.key?(name)
+        elsif attributes.index { _1.name == name } == index
+          next
+        end
 
         # Reported on the last line of the attributes, like the tag's compiled code, which follows their code.
         lines_ahead = attributes.sum { |other| code_newlines(other) }
@@ -539,17 +548,35 @@ module SuperSlim
 
       def open = "#{@name} = +\"\""
       def close = @name
-      def static(code, text) = code << @name << " << " << text.inspect << ".freeze"
-      def escaped(code, ruby) = code << @name << " << " << @escape_function << "((" << ruby << "))"
-      def raw(code, ruby) = code << @name << " << (" << ruby << ").to_s"
+
+      def static(code, text)
+        code << @name << " << " << text.inspect << ".freeze"
+      end
+
+      def escaped(code, ruby)
+        code << @name << " << " << @escape_function << "((" << ruby << "))"
+      end
+
+      def raw(code, ruby)
+        code << @name << " << (" << ruby << ").to_s"
+      end
     end
 
     class OutputBuffer
       def open = "@output_buffer = output_buffer || ActionView::OutputBuffer.new"
       def close = "@output_buffer"
-      def static(code, text) = code << "@output_buffer.safe_concat(" << text.inspect << ".freeze)"
-      def escaped(code, ruby) = code << "@output_buffer << (" << ruby << ")"
-      def raw(code, ruby) = code << "@output_buffer.safe_concat((" << ruby << ").to_s)"
+
+      def static(code, text)
+        code << "@output_buffer.safe_concat(" << text.inspect << ".freeze)"
+      end
+
+      def escaped(code, ruby)
+        code << "@output_buffer << (" << ruby << ")"
+      end
+
+      def raw(code, ruby)
+        code << "@output_buffer.safe_concat((" << ruby << ").to_s)"
+      end
     end
   end
 end

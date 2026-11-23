@@ -20,8 +20,8 @@ module SuperSlim
       | (?<=-)\( (?:[^()\s] | \([^()\s]*\))+ \)
     }x
 
-    ATTRIBUTE_PATTERN = /\A([#.]+)((?:#{SLIM_NAME_PART})*)/
-    TAILWIND_ATTRIBUTE_PATTERN = /\A([#.]+)((?:#{TAILWIND_NAME_PART})*)/
-    TAG_PATTERN = /\A(?:[#.]|\*(?=[^\s]+)|(\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
+    ATTRIBUTE_PATTERN = /\A[#.]+((?:#{SLIM_NAME_PART})*)/
+    TAILWIND_ATTRIBUTE_PATTERN = /\A[#.]+((?:#{TAILWIND_NAME_PART})*)/
+    TAG_PATTERN = /\A(?:[#.]|\*(?=[^\s]+)|(?:\p{Word}(?:\p{Word}|:|-)*\p{Word}|\p{Word}+))/
   end
 end

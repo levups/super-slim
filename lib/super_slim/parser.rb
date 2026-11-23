@@ -489,7 +489,7 @@ module SuperSlim
         next_byte = @scanner.string.getbyte(@scanner.pos + 1)
         syntax_error!("Illegal shortcut") if next_byte == HASH || next_byte == DOT
 
-        value = @scanner[2]
+        value = @scanner[1]
         # Tailwind arbitrary values may hold quotes and ampersands, which Slim names never do.
         value = ERB::Escape.html_escape(value) if value.match?(SHORTCUT_VALUE_TO_ESCAPE)
         attributes << StaticAttribute.new((@scanner.peek_byte == HASH) ? "id" : "class", value)
