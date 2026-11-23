@@ -368,8 +368,6 @@ compiled code is the same, so render time is too.
 
 Like Slim, SuperSlim escapes for HTML everything that `=`, `#{}` and attribute values output. `==` and `#{{}}`
 output raw HTML, so only use them on content you trust. In Rails, strings marked `html_safe` aren't escaped again.
-When `String` defines `html_safe?` but other objects don't, as in Slim's own tests, Slim raises `NoMethodError` on
-any other value, such as a number or `nil`; SuperSlim escapes it like any other value.
 
 Some names are only known when the page renders: the keys of a `*splat` hash, of a `data:` or `aria:` hash, and
 the tag of `*{tag: …}`. SuperSlim checks those names and raises an error instead of rendering one that would break
