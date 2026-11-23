@@ -40,31 +40,19 @@ class RuntimeTest < Minitest::Test
     end
   end
 
-  # Slim calls html_safe? on the value itself, which only Rails defines on every object.
-  def test_an_output_without_html_safe_of_its_own_is_escaped
-    count = Class.new do
-      undef_method :html_safe? if method_defined?(:html_safe?)
-
-      def to_s
-        "<5>"
-      end
-    end.new
-
-    assert_equal "<p>&lt;5&gt;</p>", render("p = count", html_safe: true, count:)
-  end
-
-  def test_an_error_inside_html_safe_still_raises
-    other = Class.new { undef_method :html_safe? if method_defined?(:html_safe?) }.new
-    [
-      Class.new { define_method(:html_safe?) { self.missing_helper } }.new, # rubocop:disable Style/RedundantSelf -- a NoMethodError, not a NameError
-      Class.new { define_method(:html_safe?) { other.html_safe? } }.new,
-      Class.new { define_method(:html_safe?) { raise NoMethodError.new("gone", :html_safe?) } }.new,
-      Class.new do
-        undef_method :html_safe? if method_defined?(:html_safe?)
-        define_method(:to_s) { html_safe?.to_s }
-      end.new
-    ].each do |broken|
-      assert_raises(NoMethodError) { render("p = broken", html_safe: true, broken:) }
+  # With Rails, every object answers html_safe?: escaping is Temple's, and any NoMethodError is the template's own.
+  def test_with_rails_a_missing_method_raises_as_in_slim
+    without_html_safe = Class.new { undef_method :html_safe? }
+    other = without_html_safe.new
+    cases = {
+      without_html_safe.new => [:html_safe?, :value],
+      Class.new { define_method(:html_safe?) { other.html_safe? } }.new => [:html_safe?, other],
+      Class.new { define_method(:html_safe?) { self.missing_helper } }.new => [:missing_helper, :value] # rubocop:disable Style/RedundantSelf -- a NoMethodError, not a NameError
+    }
+    cases.each do |value, (name, receiver)|
+      exception = assert_raises(NoMethodError) { render("p = value", html_safe: true, value:) }
+      assert_equal name, exception.name
+      assert_same((receiver == :value) ? value : receiver, exception.receiver)
     end
   end
 

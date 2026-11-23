@@ -10,25 +10,24 @@ module SuperSlim
       ERB::Escape.html_escape(value.to_s)
     end
 
-    # Only Rails defines html_safe? on every object: where String alone does, a number or nil has none and is escaped.
-    # Rescued rather than checked, so that Rails pays nothing; those other setups pay an exception per such value.
+    # Temple's escaping, which Rails pays nothing more for. Where Object has no html_safe?, only String may define it,
+    # and a number or nil raised: the value is then asked only if it answers.
     def escape_html_safe(value)
       string = value.to_s
       (string.html_safe? || value.html_safe?) ? string : ERB::Escape.html_escape(string)
-    rescue NoMethodError => error
-      # Raised by to_s, by a String without html_safe?, or inside the value's own html_safe?: not ours to handle.
-      raise unless string && !value.equal?(string) && missing_html_safe?(error, value)
+    rescue NoMethodError
+      raise if Object.method_defined?(:html_safe?)
 
-      ERB::Escape.html_escape(string)
+      escape_html_safe_without_object_html_safe(value)
     end
 
-    def missing_html_safe?(error, value)
-      receiver = begin
-        error.receiver
-      rescue ArgumentError # A NoMethodError raised by hand may have none.
-      end
-      error.name == :html_safe? && receiver.equal?(value) && !value.respond_to?(:html_safe?, true)
+    def escape_html_safe_without_object_html_safe(value)
+      string = value.to_s
+      safe = string.html_safe? ||
+        (!value.equal?(string) && Kernel.instance_method(:respond_to?).bind_call(value, :html_safe?) && value.html_safe?)
+      safe ? string : ERB::Escape.html_escape(string)
     end
+    private_class_method :escape_html_safe_without_object_html_safe
 
     def class_value(value, escape, html_safe)
       if value.is_a?(Array)
