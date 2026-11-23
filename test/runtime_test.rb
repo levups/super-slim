@@ -54,14 +54,18 @@ class RuntimeTest < Minitest::Test
   end
 
   def test_an_error_inside_html_safe_still_raises
-    broken = Class.new do
-      def html_safe?
-        missing_helper
-      end
-    end.new
-
-    error = assert_raises(NameError) { render("p = broken", html_safe: true, broken:) }
-    assert_equal :missing_helper, error.name
+    other = Class.new { undef_method :html_safe? if method_defined?(:html_safe?) }.new
+    [
+      Class.new { define_method(:html_safe?) { self.missing_helper } }.new, # rubocop:disable Style/RedundantSelf -- a NoMethodError, not a NameError
+      Class.new { define_method(:html_safe?) { other.html_safe? } }.new,
+      Class.new { define_method(:html_safe?) { raise NoMethodError.new("gone", :html_safe?) } }.new,
+      Class.new do
+        undef_method :html_safe? if method_defined?(:html_safe?)
+        define_method(:to_s) { html_safe?.to_s }
+      end.new
+    ].each do |broken|
+      assert_raises(NoMethodError) { render("p = broken", html_safe: true, broken:) }
+    end
   end
 
   private
