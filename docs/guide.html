@@ -42,6 +42,7 @@
       <li><a href="#tailwind">Tailwind class names</a></li>
       <li><a href="#embedded">Embedded engines</a></li>
       <li><a href="#migrating">Migrating from Slim</a></li>
+      <li><a href="#agents">Migrating with an AI agent</a></li>
       <li><a href="#left-out">What SuperSlim leaves out</a></li>
     </ul>
   </header>
@@ -136,6 +137,26 @@
       <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call. Custom shortcuts are gone: write the attribute instead.</li>
       <li>Run <code>super-slim format</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim format --check</code> to CI.</li>
     </ol>
+  </section>
+
+  <section id="agents" aria-labelledby="agents-title">
+    <h2 id="agents-title">Migrating with an AI agent</h2>
+    <div class="prose">
+      <p>A coding agent (Claude Code, Codex, Cursor…) can take the steps above in one sitting. Give it this prompt from the root of your app: each step lands in its own commit, and it stops rather than change the rendered HTML without a reason.</p>
+<pre class="prompt"><code>Migrate this app's templates from Slim to SuperSlim (https://github.com/levups/super-slim). SuperSlim renders the HTML Slim renders with `format: :html, sort_attrs: false`, byte for byte. Read https://levups.github.io/super-slim/guide.html and the gem's README before you start.
+
+Rules: one commit per step below, the full test suite green after each one. The migration must not change the rendered HTML, except in step 1, where each change gets its reason in the commit message. If a test fails and you cannot explain why, stop and report.
+
+1. Slim options. Find every Slim setting (Slim::Engine.set_options, with_options, Slim::Engine.options, slim-rails configuration). If the app keeps Slim's defaults (format: :xhtml, sort_attrs: true), set `Slim::Engine.set_options(format: :html, sort_attrs: false)` while still on Slim, run the tests, and fix whatever relied on XHTML output (`&lt;br /&gt;`) or on sorted attributes.
+2. Unsupported features. List every use of what SuperSlim leaves out: custom shortcuts, embedded engines other than ruby:, javascript:, css: and markdown:, `/[if IE]` comments, the logic_less, translator, include and smart plugins, and Temple options (attr_quote, pretty, js_wrapper…). Show me the list, then rewrite each use in plain Slim, still on Slim: an attribute instead of a shortcut, a partial instead of include.
+3. Swap the gem. Replace slim-rails and slim with `gem "super-slim"` (plus `gem "markly"` if a template uses markdown:) and delete the Slim configuration. Compile every template without rendering it (XML formats compile as XML), then run the tests:
+   bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'
+4. Linting. Replace slim-lint with `super-slim lint`: move the .slim-lint.yml settings that have an equivalent into .super-slim.yml and name the ones that have none. Replace rubocop-slim with SuperSlim's RuboCop plugin, as the README shows. Fix new offenses.
+5. Formatting. Run `super-slim format` alone in its own commit, and check that the diff only moves whitespace and layout. Then add `super-slim lint` and `super-slim format --check` to CI.
+
+Finish with a summary: what you rewrote by hand, the HTML that changed in step 1, and anything left to decide. If the app uses Tailwind, suggest `SuperSlim.tailwind_classes = true` as a follow-up, without turning it on.</code></pre>
+      <p>Step 3 compiles without rendering, so it runs none of your templates’ Ruby: a syntax error shows up with its file and line before any test does.</p>
+    </div>
   </section>
 
   <section id="left-out" aria-labelledby="left-out-title">

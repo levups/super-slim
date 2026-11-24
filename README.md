@@ -17,19 +17,19 @@ template renders and again after you edit it in development. Then it runs that c
 makes both cheaper.
 
 `bench/compare.rb` renders the same blog page (24 post cards) with five engines and checks that they all produce
-the same HTML. On the last run (November 2026, Ruby 4.0 with YJIT), SuperSlim compiled the page 9.3 times faster
-than Slim and rendered it 2.3 times faster, with a quarter of the allocations:
+the same HTML. On the last run (November 2026, Ruby 4.0 with YJIT), SuperSlim compiled the page 11 times faster
+than Slim and rendered it 2.2 times faster, with a quarter of the allocations:
 
 | Engine | Compiles per second | Renders per second | Objects allocated per render |
 |---|---:|---:|---:|
-| SuperSlim 1.0.0 | 12,423 | 60,725 | 111 |
-| Slim 5.2.2 | 1,341 | 26,786 | 480 |
-| Haml 7.5.2 | 1,559 | 37,704 | 471 |
-| Herb 0.11.1 | 5,600 | 17,496 | 830 |
-| Erubi 1.13.1 (ERB) | 51,144 | 62,746 | 115 |
+| SuperSlim 3.7.0 | 16,384 | 69,202 | 111 |
+| Slim 5.2.2 | 1,441 | 31,452 | 480 |
+| Haml 7.5.2 | 1,772 | 42,477 | 471 |
+| Herb 0.11.2 | 6,478 | 19,513 | 830 |
+| Erubi 1.13.1 (ERB) | 56,668 | 68,360 | 115 |
 
-On whole apps, the 1,399 templates of a production Rails app compile in 108 ms instead of 522 ms, and 6,053
-templates from 30 open-source projects in 529 ms instead of 2,472 ms. The linter takes about a third of the CPU
+On whole apps, the 1,214 templates of a production Rails app compile in 69 ms instead of 361 ms, and 6,056
+templates from 30 open-source projects in 421 ms instead of 2,309 ms. The linter takes about half the CPU
 time slim-lint takes on the same templates. The [benchmarks page](https://levups.github.io/super-slim/benchmarks.html)
 has the charts and the steps to reproduce them.
 
@@ -96,6 +96,9 @@ defaults are different (`format: :xhtml, sort_attrs: true`), so if you never cha
    sorted attributes.
 2. Replace `slim-rails` with `super-slim` in your Gemfile and remove any `Slim::Engine.set_options` or
    `with_options` call.
+
+To hand the migration to a coding agent, the guide has [a prompt](https://levups.github.io/super-slim/guide.html#agents)
+that takes it step by step, one commit each, through the linter and formatter switch.
 
 Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically, with `<link />` and
 `doctype xml`.
