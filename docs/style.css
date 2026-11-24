@@ -165,3 +165,17 @@ p code, li code { overflow-wrap: anywhere; }
 .charts + .prose { margin-top: 2.5rem; }
 @media (max-width: 40rem) { .options td:first-child { white-space: normal; padding-right: 0.75rem; } .options td { overflow-wrap: anywhere; } }
 .options + .prose { margin-top: 2rem; }
+
+/* The home page tour: numbered stops, each a short paragraph, an example and a link. */
+.tour { list-style: none; margin: 0; padding: 0; }
+.stop { margin-top: 3.5rem; scroll-margin-top: 1rem; }
+.stop > h3 { display: flex; align-items: baseline; gap: 0.75rem; font-size: 1.5rem; line-height: 1.25; margin: 0 0 0.75rem; }
+.stop-number { flex: none; font: 800 2.4rem/0.8 "Big Shoulders Display", sans-serif; color: var(--accent); min-width: 1.4rem; }
+.stop .split, .stop .tiles, .stop .proof, .stop .cards, .stop > pre { margin-bottom: 1rem; }
+.stop > pre { max-width: 60rem; }
+.card h4 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+.fit { display: grid; gap: 1rem 2.5rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); max-width: 60rem; }
+.fit > * { min-width: 0; }
+.fit ul { padding-left: 1.25rem; margin: 0; }
+.fit li { margin-bottom: 0.5rem; }
+.checklist li { margin-bottom: 0.6rem; }
