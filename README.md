@@ -228,7 +228,7 @@ linters, so most will look familiar:
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
 | DatabaseQueries (`where`, `find_by`, `pluck`, `exists?`, `Model.all`, `Model.order`… in a template) | Rails guides | off |
 | SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
-| CommentContinuation (a comment ending with `,` or `\`, which carries the next line into the Ruby code; needs Prism 0.20+) | Slim's parser | on |
+| CommentContinuation (a comment ending with `,` or `\`, which carries the next line into the Ruby code) | Slim's parser | on |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text that should be translated) | erb_lint | off |
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |

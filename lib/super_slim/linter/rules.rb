@@ -757,19 +757,22 @@ module SuperSlim
         MESSAGE = "`%s` at the end of this comment carries the next line into the Ruby code: remove it, " \
           "or write the comment with `/` on a line of its own"
         CONTINUED = /[,\\]\s*\z/
-        OPENING_TOKEN = /\A(?:(?:PARENTHESIS|BRACKET|BRACE)_LEFT|EMBEXPR_BEGIN)/
-        CLOSING_TOKEN = /\A(?:(?:PARENTHESIS|BRACKET|BRACE)_RIGHT|EMBEXPR_END)\z/
-        BLOCK_KEYWORDS = %i[KEYWORD_DO KEYWORD_DO_LOOP].freeze
-        # Prism tells a newline that ends a statement from one Ruby goes on after, even after a comment, only since
-        # 0.20: before, the rule stays silent rather than guess.
-        STATEMENT_NEWLINES = Prism.lex("a # c\nb").value.any? { |token,| token.type == :NEWLINE }
+        OPENING_TOKENS = %i[PARENTHESIS_LEFT PARENTHESIS_LEFT_PARENTHESES BRACKET_LEFT BRACKET_LEFT_ARRAY BRACE_LEFT
+          LAMBDA_BEGIN EMBEXPR_BEGIN].freeze
+        CLOSING_TOKENS = %i[PARENTHESIS_RIGHT BRACKET_RIGHT BRACE_RIGHT EMBEXPR_END].freeze
+        LINE_END_TOKENS = %i[NEWLINE IGNORED_NEWLINE EOF].freeze
+        # The code may open a block whose body Slim reads from the nested lines, or continue an `if`, a `case` or a
+        # `begin` from an earlier line: each wrapper, as what goes before the code and after it.
+        WRAPPERS = [["", ""], ["", "\nend"], ["if _\n", "\nend"], ["case _\n", "\nend"], ["begin\n", "\nend"]].freeze
+        # Output compiles between parentheses, where a newline before `: value` does not end the statement.
+        OUTPUT_WRAPPERS = [["(", "\n)"], ["(", "\nend\n)"]].freeze
+        # Stands for a swallowed line that is Slim rather than Ruby.
+        PLACEHOLDER = "__swallowed_line__"
 
         def offenses(document, _source)
-          return [] unless STATEMENT_NEWLINES
-
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
-            next unless (lineno, character = swallowing_comment(node.code))
+            next unless (lineno, character = swallowing_comment(node.code, output: node.is_a?(AST::Output)))
 
             offense(document, line_near(document, node, ancestors) + lineno - 1, format(MESSAGE, character))
           end
@@ -777,39 +780,67 @@ module SuperSlim
 
         private
 
-        # The code line, from 1, of the first comment that ends with a comma or a backslash where Ruby itself ends the
-        # statement, outside any bracket: only Slim's reading carries the next line on. Removing the character changes
-        # nothing anywhere else, so those are left alone.
-        def swallowing_comment(code)
+        # The code line, from 1, of a comment ending with a comma or a backslash after which Ruby starts a new
+        # statement: Slim alone carries the next line on there. Where Ruby goes on anyway (a bracket left open, a
+        # `.method` or `: value` on the next line), removing the character would break the code, so it is left alone.
+        def swallowing_comment(code, output:)
           return unless code.include?("\n") && code.include?("#")
+          return unless (candidates = candidate_comments(code, output:)).any?
+          return unless (statement_lines = statement_lines(code, output ? OUTPUT_WRAPPERS : WRAPPERS))
 
+          lineno, comment = candidates.find { |line, _| statement_lines.include?(line + 1) }
+          [lineno, comment.rstrip[-1]] if lineno
+        end
+
+        # [line, text] of each comment that ends with a comma or a backslash, outside brackets, before the last line.
+        # An output's code needs something before its comment: an empty `=` is no output.
+        def candidate_comments(code, output:)
+          last_line = code.count("\n") + 1
           depth = 0
-          # The token after which a `do` block's body starts: the `do`, or the `|` closing its parameters.
-          block_start = nil
-          in_parameters = false
-          tokens = Prism.lex(code).value
-          tokens.each_with_index do |(token, _state), index|
+          code_seen = false
+          Prism.lex(code).value.filter_map do |pair|
+            token = pair[0]
             type = token.type
-            if type == :PIPE && (in_parameters || block_start == index - 1)
-              in_parameters = !in_parameters
-              block_start = index
-            elsif BLOCK_KEYWORDS.include?(type)
-              block_start = index
-            elsif type.name.match?(OPENING_TOKEN)
-              depth += 1
-            elsif type.name.match?(CLOSING_TOKEN)
-              depth -= 1
-            elsif type == :COMMENT && depth.zero? && (comment = token.value).match?(CONTINUED) &&
-                (index.zero? || statement_end?(tokens[index + 1]&.first&.type, block_start == index - 1 && !in_parameters))
-              return [token.location.start_line, comment.rstrip[-1]]
+            if type == :COMMENT
+              line = token.location.start_line
+              next [line, token.value] if depth.zero? && line < last_line && token.value.match?(CONTINUED) && (code_seen || !output)
+            elsif !LINE_END_TOKENS.include?(type)
+              code_seen = true
+              depth += 1 if OPENING_TOKENS.include?(type)
+              depth -= 1 if CLOSING_TOKENS.include?(type)
+            end
+            nil
+          end
+        end
+
+        # The lines where a statement starts, read from the first wrapping that parses, with the last line as it is or,
+        # when it is Slim, as a placeholder. Nil when no reading parses: the rule then stays silent.
+        def statement_lines(code, wrappers)
+          [code, code.sub(/[^\n]*\z/, PLACEHOLDER)].uniq.each do |candidate|
+            wrappers.each do |before, after|
+              result = Prism.parse("#{before}#{candidate}#{after}")
+              next unless result.errors.empty?
+
+              return statement_starts(result.value, before.count("\n"))
             end
           end
           nil
         end
 
-        # Ruby ends the statement there, or starts the body of a block, which Slim reads from the lines nested below.
-        def statement_end?(next_type, after_block_start)
-          next_type == :NEWLINE || (next_type == :IGNORED_NEWLINE && after_block_start)
+        # The branches of a ternary are statements to Prism, but one expression to whoever wrote it.
+        def statement_starts(root, offset)
+          lines = []
+          stack = [[root, false]]
+          until stack.empty?
+            node, in_ternary = stack.pop
+            lines.concat(node.body.map { _1.location.start_line - offset }) if node.is_a?(Prism::StatementsNode) && !in_ternary
+            ternary = node.is_a?(Prism::IfNode) && node.if_keyword_loc.nil?
+            node.compact_child_nodes.each do |child|
+              branch = ternary || (in_ternary && node.is_a?(Prism::ElseNode))
+              stack << [child, branch && (child.is_a?(Prism::StatementsNode) || child.is_a?(Prism::ElseNode))]
+            end
+          end
+          lines
         end
       end
 

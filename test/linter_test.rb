@@ -325,8 +325,6 @@ class LinterTest < Minitest::Test
   end
 
   def test_comment_continuation
-    skip "Prism #{Prism::VERSION} has no statement newlines after a comment" unless SuperSlim::Linter::Rules::CommentContinuation::STATEMENT_NEWLINES
-
     linter = SuperSlim::Linter.new("CommentContinuation" => {"enabled" => true})
     source = <<~'SLIM'
       - count = posts.size # the posts,
@@ -364,10 +362,22 @@ class LinterTest < Minitest::Test
       p = x
       - total = count | # either,
           1
+      = form_with model: post do |form| # the form,
+        = form.text_field :title
+      - if !published
+        p Live
+      - else # otherwise,
+        p Draft
+      p = published ? "Live" # when published \
+        : "Draft"
+      - titles = items.map do |item| item # each item \
+          end
+      = # the title,
+        title
     SLIM
     offenses = linter.call("show.html.slim", source).select { _1.rule == "CommentContinuation" }
 
-    assert_equal [1, 3, 6, 8, 19, 32], offenses.map(&:lineno)
+    assert_equal [1, 3, 6, 8, 19, 32, 36, 40], offenses.map(&:lineno)
     assert_equal "`,` at the end of this comment carries the next line into the Ruby code: remove it, " \
       "or write the comment with `/` on a line of its own", offenses.first.message
   end

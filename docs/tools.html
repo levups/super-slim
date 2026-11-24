@@ -499,7 +499,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
 <article class="rule" id="CommentContinuation">
   <h4><a href="#CommentContinuation">CommentContinuation</a></h4>
   <p class="rule-badges"><span class="badge on">On by default</span></p>
-  <p class="rule-why">Slim carries a line ending with a comma or a backslash on to the next one, even inside a comment: the next template line then runs as Ruby, so it renders nothing or raises. Ruby&#39;s own reading decides, through Prism 0.20 or later.</p>
+  <p class="rule-why">Slim carries a line ending with a comma or a backslash on to the next one, even inside a comment: the next template line then runs as Ruby, so it renders nothing or raises. Prism&#39;s reading of the code decides: nothing is reported where Ruby goes on to that line anyway.</p>
   <div class="rule-examples">
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="n">count</span> <span class="o">=</span> <span class="n">posts</span><span class="p">.</span><span class="nf">size</span> <span class="c1"># the posts</span><span class="p">,</span>
 <span class="nb">p</span> <span class="o">=</span> <span class="n">count</span>
