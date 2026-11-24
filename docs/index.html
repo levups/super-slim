@@ -85,7 +85,7 @@
         <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SuperSlim">
           <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
           <div class="proof-row"><span>SuperSlim</span><code data-sha="SuperSlim">…</code></div>
-          <p class="proof-verdict">The same check runs on Slim’s own test suite, on a production app’s templates, and on 10,000 new random templates at every CI run.</p>
+          <p class="proof-verdict">The same check runs on Slim’s own test suite, on the templates of a large European e-commerce site, and on 10,000 new random templates at every CI run.</p>
         </div>
         <p class="more"><a href="testing.html">How SuperSlim is tested</a></p>
       </li>
@@ -225,7 +225,7 @@ bundle <span class="nb">exec </span>super-slim format <span class="nt">--check</
         <ul>
           <li>you rely on the XHTML format, custom shortcuts or Slim’s plugins: see <a href="guide.html#left-out">what SuperSlim leaves out</a>;</li>
           <li>you run JRuby or TruffleRuby: SuperSlim relies on <code>erb/escape</code>, a C extension only CRuby has;</li>
-          <li>you need a project with years behind it: SuperSlim’s first version came out in November 2026. We use it every day on our own production app, and Slim’s own tests keep it honest, but it is young.</li>
+          <li>you need a project with years behind it: SuperSlim’s first version came out in November 2026. It renders every page of a large European e-commerce site, ours, every day, and Slim’s own tests keep it honest, but it is young.</li>
         </ul>
       </div>
     </div>
