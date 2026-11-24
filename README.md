@@ -97,7 +97,7 @@ defaults are different (`format: :xhtml, sort_attrs: true`), so if you never cha
 2. Replace `slim-rails` with `super-slim` in your Gemfile and remove any `Slim::Engine.set_options` or
    `with_options` call.
 
-To hand the migration to a coding agent, the guide has [a prompt](https://levups.github.io/super-slim/guide.html#agents)
+To hand the migration to a coding agent, the website has [a prompt](https://levups.github.io/super-slim/migrate.html#agents)
 that takes it step by step, one commit each, through the linter and formatter switch.
 
 Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically, with `<link />` and
@@ -384,7 +384,8 @@ unquoted attribute of inline HTML, or in the URL of a `markdown:` link can still
 
 ## What SuperSlim leaves out
 
-These parts of Slim aren't supported. Each one fails when the template compiles, with an error that names it:
+These parts of Slim aren't supported. Each one fails when the template compiles, with an error that names it, except a custom
+shortcut written after a tag (`input&text`), which reads as text:
 
 - the XHTML format, the `sort_attrs`, `attr_quote`, `pretty` and `js_wrapper` options, and every Temple option;
 - the `coffee:`, `sass:`, `scss:`, `less:`, `erb:`, `builder:`, `textile:`, `rdoc:`, `asciidoc:` and wiki
@@ -398,7 +399,7 @@ come back if people ask for them, as long as they don't slow down rendering.
 
 ## Learn more
 
-The website has a [guide](https://levups.github.io/super-slim/guide.html) with every option, a page on the
+The website has [a step-by-step switch from Slim](https://levups.github.io/super-slim/migrate.html), a [guide](https://levups.github.io/super-slim/guide.html) with every option, a page on the
 [formatter and linter](https://levups.github.io/super-slim/tools.html) with an example for each rule, the
 [benchmarks](https://levups.github.io/super-slim/benchmarks.html) and the
 [test setup](https://levups.github.io/super-slim/testing.html). [CHANGELOG.md](CHANGELOG.md) lists the changes in

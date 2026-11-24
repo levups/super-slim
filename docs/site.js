@@ -64,18 +64,19 @@ function measuredOn(benchmarks) {
 
 function renderHome(benchmarks) {
   const ratio = speedups(benchmarks);
-  fill("#byline-speed", `Slim templates, compiled ${formatRatio(ratio.compile)} faster.`);
   fill("[data-sha='Slim']", benchmarks.html_sha256.Slim);
   fill("[data-sha='SuperSlim']", benchmarks.html_sha256["SuperSlim"]);
   fill("[data-version='Slim']", `Slim ${named(benchmarks.engines, "Slim").version}`);
 
   const tiles = document.getElementById("tiles");
   if (!tiles) return;
-  const largest = benchmarks.corpora.reduce((largest, corpus) => corpus.templates > largest.templates ? corpus : largest);
+  // The corpus behind the headline ratio, so its detail matches the number above it.
+  const compileRatio = (corpus) => named(corpus.engines, "Slim").milliseconds / named(corpus.engines, "SuperSlim").milliseconds;
+  const slowest = benchmarks.corpora.reduce((slowest, corpus) => compileRatio(corpus) < compileRatio(slowest) ? corpus : slowest);
   const tile = (value, label, detail) => element("div", { class: "tile" },
     element("span", { class: "tile-value" }, value), element("span", { class: "tile-label" }, label), element("span", { class: "tile-detail" }, detail));
   tiles.append(
-    tile(formatRatio(ratio.compile), "faster compilation", `${formatNumber(largest.templates)} real templates: ${formatSeconds(named(largest.engines, "SuperSlim").milliseconds)} instead of ${formatSeconds(named(largest.engines, "Slim").milliseconds)}`),
+    tile(formatRatio(ratio.compile), "faster compilation", `${formatNumber(slowest.templates)} templates of ${slowest.label.replace(/^A /, "a ")}: ${formatSeconds(named(slowest.engines, "SuperSlim").milliseconds)} instead of ${formatSeconds(named(slowest.engines, "Slim").milliseconds)}`),
     tile(formatRatio(ratio.render), "faster rendering", `${formatNumber(named(benchmarks.engines, "SuperSlim").renders_per_second)} pages a second; plain ERB with Erubi: ${formatNumber(named(benchmarks.engines, "Erubi").renders_per_second)}`),
     tile(formatRatio(ratio.renderAllocations), "fewer allocations per render", `${named(benchmarks.engines, "SuperSlim").render_allocations} objects instead of ${named(benchmarks.engines, "Slim").render_allocations}`));
   if (ratio.lint) {

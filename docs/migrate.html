@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switching from Slim to SuperSlim</title>
+<meta name="description" content="Move a Ruby or Rails app from Slim to SuperSlim one small step at a time, each step useful on its own and easy to undo, by hand or with an AI coding agent.">
+<link rel="canonical" href="https://levups.github.io/super-slim/migrate.html">
+<meta property="og:title" content="Switching from Slim to SuperSlim">
+<meta property="og:description" content="Move a Ruby or Rails app from Slim to SuperSlim one small step at a time, by hand or with an AI coding agent.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://levups.github.io/super-slim/migrate.html">
+<meta property="og:site_name" content="Level UP Solutions">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#2340e8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800&family=Inter+Tight:wght@400;600&family=Fira+Code&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<div class="page">
+  <nav class="site-nav" aria-label="Site">
+    <a class="brand" href="./">SuperSlim</a>
+    <a href="migrate.html" aria-current="page">Switching</a>
+    <a href="guide.html">Guide</a>
+    <a href="tools.html">Formatter &amp; linter</a>
+    <a href="benchmarks.html">Benchmarks</a>
+    <a href="testing.html">Testing</a>
+    <a href="https://github.com/levups/super-slim">GitHub</a>
+  </nav>
+
+  <main id="content">
+  <header>
+    <h1 class="page-title">Switching from Slim</h1>
+    <p class="lede">There is no need to switch all at once. The steps below each stand on their own: stop after any of them and you still have something useful, and nothing you cannot undo.</p>
+    <ul class="toc">
+      <li><a href="#before">Before you start</a></li>
+      <li><a href="#tools-first">1. Try the tools</a></li>
+      <li><a href="#options">2. Line up Slim’s options</a></li>
+      <li><a href="#swap">3. Swap the engine</a></li>
+      <li><a href="#back">Going back</a></li>
+      <li><a href="#agents">With an AI agent</a></li>
+      <li><a href="#help">If something looks wrong</a></li>
+    </ul>
+  </header>
+
+  <section id="before" aria-labelledby="before-title">
+    <h2 id="before-title">Before you start</h2>
+    <div class="prose">
+      <p>A quick look at these saves surprises later:</p>
+      <ul class="checklist">
+        <li><strong>Ruby 3.3 or later</strong>, the C Ruby (SuperSlim relies on <code>erb/escape</code>, a C extension, so not JRuby or TruffleRuby). Rails is optional; SuperSlim is tested on Rails 8.0 and later.</li>
+        <li><strong>A test suite that renders your views</strong>, even a modest one. It is what tells you, at each step, that nothing moved.</li>
+        <li><strong>The few parts of Slim that SuperSlim leaves out</strong>: the XHTML format, custom shortcuts, a handful of embedded engines and plugins. They are <a href="guide.html#left-out">listed in the guide</a>, and most fail loudly when the template compiles. One doesn’t: a custom shortcut after a tag (<code>input&amp;text</code>) renders as text, so search for those by hand.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="tools-first" aria-labelledby="tools-first-title">
+    <h2 id="tools-first-title">1. Try the tools, keep Slim</h2>
+    <div class="prose">
+      <p>The gentlest start: keep Slim as your engine and only borrow SuperSlim’s formatter and linter. With <code>require: false</code>, Rails never loads SuperSlim and goes on rendering with Slim, while the commands still find it.</p>
+<pre><code class="language-ruby"><span class="c1"># Gemfile</span>
+<span class="n">gem</span> <span class="s2">"super-slim"</span><span class="p">,</span> <span class="ss">require: </span><span class="kp">false</span></code></pre>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>super-slim lint            <span class="c"># what it would point out</span>
+bundle <span class="nb">exec </span>super-slim format <span class="nt">--check</span>  <span class="c"># which files it would tidy</span></code></pre>
+      <p>Nothing about your pages changes here. Have a look at what the linter finds, turn off the rules you don’t want in <code>.super-slim.yml</code>, and run <code>super-slim format</code> once when you like what it does: the formatter <a href="tools.html#formatter">refuses any change</a> that would alter the compiled Ruby. Coming from slim-lint or rubocop-slim? The <a href="tools.html#rules">rules page</a> says where each rule comes from, and the <a href="tools.html#rubocop">RuboCop plugin</a> takes over from rubocop-slim.</p>
+      <p>One thing to know: SuperSlim also reads <a href="guide.html#additions">a few things Slim can’t</a>, such as Ruby continued after an opening bracket. While Slim renders your pages, keep them out of your templates: the <code>SlimSyntax</code> rule, on by default, points them out.</p>
+    </div>
+  </section>
+
+  <section id="options" aria-labelledby="options-title">
+    <h2 id="options-title">2. Line up Slim’s options</h2>
+    <div class="prose">
+      <p>SuperSlim renders exactly what Slim renders with <code>format: :html, sort_attrs: false</code>. Slim’s own defaults are <code>format: :xhtml, sort_attrs: true</code>, so if you never changed them, set the two options first, still on Slim:</p>
+<pre><code class="language-ruby"><span class="c1"># config/initializers/slim.rb</span>
+<span class="no">Slim</span><span class="o">::</span><span class="no">Engine</span><span class="p">.</span><span class="nf">set_options</span><span class="p">(</span><span class="ss">format: :html</span><span class="p">,</span> <span class="ss">sort_attrs: </span><span class="kp">false</span><span class="p">)</span></code></pre>
+      <p>Run your tests. What might change: void tags lose their slash (<code>&lt;br&gt;</code> instead of <code>&lt;br /&gt;</code>), boolean attributes lose their <code>=""</code> (<code>checked</code> instead of <code>checked=""</code>), and attributes keep the order you wrote them in. Browsers don’t mind either; a test or a cached fragment comparing raw HTML might. Fix those, deploy if you like, and this step is done. It is the only one that changes your HTML, and it does so on Slim, where you know your way around.</p>
+      <p>While you are there, look for <code>Slim::Engine.set_options</code> and <code>with_options</code> calls that set anything else, and for the parts SuperSlim <a href="guide.html#left-out">leaves out</a>. Rewrite those in plain Slim now: an attribute instead of a custom shortcut, a partial instead of <code>include</code>.</p>
+    </div>
+  </section>
+
+  <section id="swap" aria-labelledby="swap-title">
+    <h2 id="swap-title">3. Swap the engine</h2>
+    <div class="prose">
+      <p>Replace Slim with SuperSlim in your Gemfile. It also replaces <code>slim-rails</code>: a railtie registers the <code>.slim</code> handler, with nothing to configure.</p>
+<pre><code class="language-ruby"><span class="c1"># Gemfile</span>
+<span class="n">gem</span> <span class="s2">"super-slim"</span>   <span class="c1"># instead of slim-rails or slim</span>
+<span class="n">gem</span> <span class="s2">"markly"</span>       <span class="c1"># only if a template uses markdown:</span></code></pre>
+      <p>Delete the Slim initializer from step 2. Then compile every template once, without rendering it: this runs none of your Ruby, and a syntax error shows up with its file and line before any test does.</p>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>ruby <span class="nt">-rsuper_slim</span> <span class="nt">-e</span> <span class="s1">'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'</span></code></pre>
+      <p>Then run your tests. They should pass without a change: same HTML, byte for byte. Templates for XML formats (<code>.xml</code>, <code>.rss</code>, <code>.atom</code>) render as XML on their own.</p>
+      <p>Once you are on SuperSlim, the extras are yours if you want them: <a href="guide.html#tailwind">Tailwind class names</a> and <a href="guide.html#additions">Ruby spread over several lines</a>. They stay off, or unused, until you choose them.</p>
+    </div>
+  </section>
+
+  <section id="back" aria-labelledby="back-title">
+    <h2 id="back-title">Going back</h2>
+    <div class="prose">
+      <p>If SuperSlim isn’t for you, put <code>slim-rails</code> back in your Gemfile, with the options from step 2: your pages render as they did. Formatted templates stay readable by Slim too, since the formatter only writes what Slim reads.</p>
+      <p>The one thing that ties you to SuperSlim is what Slim can’t read: Ruby continued after an opening bracket, a comment after code, and Tailwind class names in <code>.class</code> shortcuts. <code>super-slim lint</code> flags the first two; for the third, compiling alone won’t tell you, since Slim reads most Tailwind names without an error, only wrongly (<code>.size-2.5</code> becomes two classes). Compare each template compiled with and without the option instead:</p>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>ruby <span class="nt">-rsuper_slim</span> <span class="nt">-e</span> <span class="s1">'Dir["app/**/*.slim"].each { |f| s = File.read(f); puts f if SuperSlim.compile(s, tailwind_classes: true) != SuperSlim.compile(s, tailwind_classes: false) }'</span></code></pre>
+      <p>We would rather you knew this before you start than after.</p>
+    </div>
+  </section>
+
+  <section id="agents" aria-labelledby="agents-title">
+    <h2 id="agents-title">With an AI agent</h2>
+    <div class="prose">
+      <p>A coding agent (Claude Code, Codex, Cursor…) can take the steps above in one sitting. Give it this prompt from the root of your app: each step lands in its own commit, and it stops rather than change the rendered HTML without a reason. Read its commits as you would a colleague’s.</p>
+<pre class="prompt"><code>Migrate this app's templates from Slim to SuperSlim (https://github.com/levups/super-slim). SuperSlim renders the HTML Slim renders with `format: :html, sort_attrs: false`, byte for byte. Read https://levups.github.io/super-slim/migrate.html, https://levups.github.io/super-slim/guide.html and the gem's README before you start.
+
+Rules: one commit per step below, the full test suite green after each one. The migration must not change the rendered HTML, except in step 1, where each change gets its reason in the commit message. If a test fails and you cannot explain why, stop and report.
+
+1. Slim options. Find every Slim setting (Slim::Engine.set_options, with_options, Slim::Engine.options, slim-rails configuration). If the app keeps Slim's defaults (format: :xhtml, sort_attrs: true), set `Slim::Engine.set_options(format: :html, sort_attrs: false)` while still on Slim, run the tests, and fix whatever relied on XHTML output (`&lt;br /&gt;`) or on sorted attributes.
+2. Unsupported features. List every use of what SuperSlim leaves out: custom shortcuts, embedded engines other than ruby:, javascript:, css: and markdown:, `/[if IE]` comments, the logic_less, translator, include and smart plugins, and Temple options (attr_quote, pretty, js_wrapper…). Show me the list, then rewrite each use in plain Slim, still on Slim: an attribute instead of a shortcut, a partial instead of include.
+3. Swap the gem. Replace slim-rails and slim with `gem "super-slim"` (plus `gem "markly"` if a template uses markdown:) and delete the Slim configuration. Compile every template without rendering it (XML formats compile as XML), then run the tests:
+   bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'
+4. Linting. Replace slim-lint with `super-slim lint`: move the .slim-lint.yml settings that have an equivalent into .super-slim.yml and name the ones that have none. Replace rubocop-slim with SuperSlim's RuboCop plugin, as the README shows. Fix new offenses.
+5. Formatting. Run `super-slim format` alone in its own commit, and check that the diff only moves whitespace and layout. Then add `super-slim lint` and `super-slim format --check` to CI.
+
+Finish with a summary: what you rewrote by hand, the HTML that changed in step 1, and anything left to decide. If the app uses Tailwind, suggest `SuperSlim.tailwind_classes = true` as a follow-up, without turning it on.</code></pre>
+      <p>The agent swaps the engine before the tools, the reverse of the order above: in one sitting, with the tests as a safety net, that order makes fewer commits. Either way ends in the same place.</p>
+    </div>
+  </section>
+
+  <section id="help" aria-labelledby="help-title">
+    <h2 id="help-title">If something looks wrong</h2>
+    <div class="prose">
+      <p>If a template renders differently on SuperSlim than on Slim with the options of step 2, that is a bug, and we would really like to hear about it. <a href="https://github.com/levups/super-slim/issues/new">Open an issue</a> with the smallest template that shows it and the HTML each engine renders. The same goes for a formatter change you didn’t expect, a lint rule that gets it wrong, or a step on this page that left you stuck.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="family">
+    <p>Gems by <a href="https://github.com/levups">Level UP Solutions</a></p>
+    <nav aria-label="Level UP Solutions gems">
+      <ul>
+        <li><a href="https://levups.github.io/super-slim/" aria-current="page">SuperSlim</a></li>
+        <li><a href="https://levups.github.io/agentry/">Agentry</a></li>
+        <li><a href="https://levups.github.io/gamba/">Gamba</a></li>
+        <li><a href="https://levups.github.io/crumbly/">Crumbly</a></li>
+        <li><a href="https://levups.github.io/maptain/">Maptain</a></li>
+      </ul>
+    </nav>
+    <p><a href="https://github.com/levups/super-slim">Source on GitHub</a></p>
+  </footer>
+</div>
+</body>
+</html>

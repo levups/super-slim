@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SuperSlim Guide</title>
-<meta name="description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and migrate from Slim.">
+<meta name="description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and read what it adds to Slim.">
 <link rel="canonical" href="https://levups.github.io/super-slim/guide.html">
 <meta property="og:title" content="SuperSlim Guide">
-<meta property="og:description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and migrate from Slim.">
+<meta property="og:description" content="Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and read what it adds to Slim.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://levups.github.io/super-slim/guide.html">
 <meta property="og:site_name" content="Level UP Solutions">
@@ -24,6 +24,7 @@
 <div class="page">
   <nav class="site-nav" aria-label="Site">
     <a class="brand" href="./">SuperSlim</a>
+    <a href="migrate.html">Switching</a>
     <a href="guide.html" aria-current="page">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
@@ -34,15 +35,17 @@
   <main id="content">
   <header>
     <h1 class="page-title">Guide</h1>
-    <p class="lede">SuperSlim reads the Slim 5 grammar and renders the HTML Slim renders. Installing it is swapping a gem; this page covers the rest.</p>
+    <p class="lede">SuperSlim reads the Slim 5 grammar and renders the HTML Slim renders. This page is the reference: setup, options, and the few places where SuperSlim reads more than Slim, or less. To switch an app over, start with <a href="migrate.html">Switching from Slim</a>.</p>
     <ul class="toc">
       <li><a href="#rails">Rails</a></li>
       <li><a href="#ruby">Plain Ruby</a></li>
       <li><a href="#options">Options</a></li>
       <li><a href="#tailwind">Tailwind class names</a></li>
       <li><a href="#embedded">Embedded engines</a></li>
-      <li><a href="#migrating">Migrating from Slim</a></li>
-      <li><a href="#agents">Migrating with an AI agent</a></li>
+      <li><a href="#additions">Additions to Slim</a></li>
+      <li><a href="#errors">Errors and line numbers</a></li>
+      <li><a href="#escaping">Escaping</a></li>
+      <li><a href="migrate.html">Switching from Slim</a></li>
       <li><a href="#left-out">What SuperSlim leaves out</a></li>
     </ul>
   </header>
@@ -129,40 +132,56 @@
     </div>
   </section>
 
-  <section id="migrating" aria-labelledby="migrating-title">
-    <h2 id="migrating-title">Migrating from Slim</h2>
-    <ol class="steps">
-      <li>Slim defaults to <code>format: :xhtml</code> and <code>sort_attrs: true</code>. If you never changed them, first switch Slim to <code>format: :html, sort_attrs: false</code> and run your test suite: that is the HTML SuperSlim renders.</li>
-      <li>Replace <code>slim-rails</code> (or <code>slim</code>) with <code>gem "super-slim"</code>.</li>
-      <li>Remove any <code>Slim::Engine.set_options</code> or <code>with_options</code> call. Custom shortcuts are gone: write the attribute instead.</li>
-      <li>Run <code>super-slim format</code> once and review the diff, then add <code>super-slim lint</code> and <code>super-slim format --check</code> to CI.</li>
-    </ol>
+  <section id="additions" aria-labelledby="additions-title">
+    <h2 id="additions-title">Additions to Slim</h2>
+    <div class="prose">
+      <p>A few things Slim refuses or misreads, SuperSlim reads. None changes a template that already works with Slim. Slim, and Brakeman, which parses views with Slim, still can’t read the first two: the <code>SlimSyntax</code> lint rule flags them, so turn it off once neither reads your templates.</p>
+      <h3>Ruby over several lines</h3>
+      <p>Slim continues a line of Ruby after a comma or a backslash. SuperSlim also continues it after an opening <code>(</code>, <code>[</code> or <code>{</code> at the end of a line, until the bracket closes:</p>
+<pre><code class="language-slim"><span class="p">=</span> <span class="n">render</span> <span class="no">ProductCardComponent</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span>
+    <span class="nt">product</span>:,
+    <span class="nt">variant</span>:<span class="w"> </span>:compact,
+  <span class="err">)
+</span><span class="p">-</span> <span class="n">columns</span> <span class="o">=</span> <span class="sx">%w[</span>
+    <span class="nt">name</span>
+    <span class="nt">price</span>
+  <span class="err">]</span></code></pre>
+      <p>A bracket opened in the middle of a line, as in <code>- items.each { |item|</code>, works as before: the lines below it are its children.</p>
+      <h3>Comments after code</h3>
+      <p>Slim compiles <code>= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason</code> into a syntax error: the comment swallows the parenthesis that closes the output, or the <code>do</code> of a block. SuperSlim leaves a comment that follows code out of the compiled Ruby, after <code>=</code>, <code>==</code> and <code>-</code> alike, so a RuboCop directive can sit on the line it is about.</p>
+      <h3>Tailwind class names</h3>
+      <p>Off by default, one setting away: see <a href="#tailwind">Tailwind class names</a>.</p>
+    </div>
   </section>
 
-  <section id="agents" aria-labelledby="agents-title">
-    <h2 id="agents-title">Migrating with an AI agent</h2>
+  <section id="errors" aria-labelledby="errors-title">
+    <h2 id="errors-title">Errors and line numbers</h2>
     <div class="prose">
-      <p>A coding agent (Claude Code, Codex, Cursor…) can take the steps above in one sitting. Give it this prompt from the root of your app: each step lands in its own commit, and it stops rather than change the rendered HTML without a reason.</p>
-<pre class="prompt"><code>Migrate this app's templates from Slim to SuperSlim (https://github.com/levups/super-slim). SuperSlim renders the HTML Slim renders with `format: :html, sort_attrs: false`, byte for byte. Read https://levups.github.io/super-slim/guide.html and the gem's README before you start.
+      <p>Errors keep Slim’s messages, but those found while compiling also name their file and line: <code>Explicit end statements are forbidden</code>, <code>Multiple id attributes specified</code>, an <code>xml</code> directive in HTML, an unknown doctype. They are raised as <code>SuperSlim::SyntaxError</code>, so Rails’ error page shows the template line.</p>
+      <p>Every <code>-</code> and <code>=</code> line, and every line of a <code>ruby:</code> block, compiles onto its template line, where Slim moves the lines after a <code>ruby:</code> block or a multi-line attribute list. An exception or a <code>__LINE__</code> reports the line you see.</p>
+    </div>
+  </section>
 
-Rules: one commit per step below, the full test suite green after each one. The migration must not change the rendered HTML, except in step 1, where each change gets its reason in the commit message. If a test fails and you cannot explain why, stop and report.
+  <section id="escaping" aria-labelledby="escaping-title">
+    <h2 id="escaping-title">Escaping</h2>
+    <div class="prose">
+      <p>Like Slim, SuperSlim escapes for HTML everything that <code>=</code>, <code>#{}</code> and attribute values output. <code>==</code> and <code>#{{}}</code> output raw HTML, so keep them for content you trust. In Rails, strings marked <code>html_safe</code> aren’t escaped again.</p>
+      <p>Some names are only known when the page renders: the keys of a <code>*splat</code> hash, of a <code>data:</code> or <code>aria:</code> hash, and the tag of <code>*{tag: …}</code>. SuperSlim checks them and raises <code>SuperSlim::InvalidAttributeNameError</code> or <code>SuperSlim::InvalidTagNameError</code> rather than render one that would break the HTML. Slim doesn’t check them: with Slim, <code>data: {"x\tonclick" =&gt; code}</code> renders an <code>onclick</code> attribute.</p>
+      <p>HTML escaping protects HTML, and nothing else. A <code>#{}</code> of user input inside <code>javascript:</code> or <code>css:</code>, inside an unquoted attribute of inline HTML, or in the URL of a <code>markdown:</code> link can still inject code. In scripts, write <code>#{{json_escape(value.to_json)}}</code> (Rails), always quote attributes, and check URLs before they reach a template.</p>
+    </div>
+  </section>
 
-1. Slim options. Find every Slim setting (Slim::Engine.set_options, with_options, Slim::Engine.options, slim-rails configuration). If the app keeps Slim's defaults (format: :xhtml, sort_attrs: true), set `Slim::Engine.set_options(format: :html, sort_attrs: false)` while still on Slim, run the tests, and fix whatever relied on XHTML output (`&lt;br /&gt;`) or on sorted attributes.
-2. Unsupported features. List every use of what SuperSlim leaves out: custom shortcuts, embedded engines other than ruby:, javascript:, css: and markdown:, `/[if IE]` comments, the logic_less, translator, include and smart plugins, and Temple options (attr_quote, pretty, js_wrapper…). Show me the list, then rewrite each use in plain Slim, still on Slim: an attribute instead of a shortcut, a partial instead of include.
-3. Swap the gem. Replace slim-rails and slim with `gem "super-slim"` (plus `gem "markly"` if a template uses markdown:) and delete the Slim configuration. Compile every template without rendering it (XML formats compile as XML), then run the tests:
-   bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'
-4. Linting. Replace slim-lint with `super-slim lint`: move the .slim-lint.yml settings that have an equivalent into .super-slim.yml and name the ones that have none. Replace rubocop-slim with SuperSlim's RuboCop plugin, as the README shows. Fix new offenses.
-5. Formatting. Run `super-slim format` alone in its own commit, and check that the diff only moves whitespace and layout. Then add `super-slim lint` and `super-slim format --check` to CI.
-
-Finish with a summary: what you rewrote by hand, the HTML that changed in step 1, and anything left to decide. If the app uses Tailwind, suggest `SuperSlim.tailwind_classes = true` as a follow-up, without turning it on.</code></pre>
-      <p>Step 3 compiles without rendering, so it runs none of your templates’ Ruby: a syntax error shows up with its file and line before any test does.</p>
+  <section id="migrating" aria-labelledby="migrating-title">
+    <h2 id="migrating-title">Migrating from Slim</h2>
+    <div class="prose">
+      <p id="agents">Switching has its own page now, one small step at a time: <a href="migrate.html">Switching from Slim</a>. The prompt for a coding agent is there too, under <a href="migrate.html#agents">With an AI agent</a>.</p>
     </div>
   </section>
 
   <section id="left-out" aria-labelledby="left-out-title">
     <h2 id="left-out-title">What SuperSlim leaves out</h2>
     <div class="prose">
-      <p>Each fails at compile time with a clear error instead of being silently ignored:</p>
+      <p>Each fails at compile time with a clear error instead of being silently ignored, with one exception: a custom shortcut written after a tag (<code>input&amp;text</code>) reads as text, as it would in Slim without that shortcut.</p>
     </div>
     <ul class="left-out">
       <li>the XHTML format, <code>sort_attrs</code>, <code>attr_quote</code>, <code>pretty</code>, <code>js_wrapper</code> and every Temple option;</li>

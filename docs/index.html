@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SuperSlim: Slim templates, compiled faster</title>
-<meta name="description" content="SuperSlim is a new engine for Slim, the Ruby template language: the same HTML, byte for byte, compiled and rendered faster, with a formatter and a linter.">
-<meta property="og:title" content="SuperSlim: Slim templates, compiled faster">
-<meta property="og:description" content="A new engine for Slim templates in Ruby and Rails: the same HTML, byte for byte, compiled and rendered faster, with a formatter and a linter.">
+<title>SuperSlim: your Slim templates, as they are, with a faster engine, a formatter and a linter</title>
+<meta name="description" content="SuperSlim is a new engine for Slim, the Ruby template language: your templates render the same HTML, byte for byte, faster and with fewer allocations, and it brings a formatter, a linter and Tailwind class names.">
+<meta property="og:title" content="SuperSlim: your Slim templates, as they are">
+<meta property="og:description" content="A new engine for Slim templates in Ruby and Rails: the same HTML, byte for byte, faster, with a formatter, a linter and Tailwind class names.">
 <meta property="og:type" content="website">
 <link rel="canonical" href="https://levups.github.io/super-slim/">
 <meta property="og:url" content="https://levups.github.io/super-slim/">
 <meta property="og:site_name" content="Level UP Solutions">
 <meta name="twitter:card" content="summary">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"SuperSlim","description":"Slim templates, rewritten: faster to compile and render, with a formatter and a linter","url":"https://levups.github.io/super-slim/","codeRepository":"https://github.com/levups/super-slim","programmingLanguage":"Ruby","runtimePlatform":"Ruby 3.3 or later","license":"https://spdx.org/licenses/MIT.html","author":{"@type":"Organization","name":"Level UP Solutions","url":"https://levups.com"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareSourceCode","name":"SuperSlim","description":"A new engine for Slim templates: the same HTML, faster, with a formatter, a linter and Tailwind class names","url":"https://levups.github.io/super-slim/","codeRepository":"https://github.com/levups/super-slim","programmingLanguage":"Ruby","runtimePlatform":"Ruby 3.3 or later","license":"https://spdx.org/licenses/MIT.html","author":{"@type":"Organization","name":"Level UP Solutions","url":"https://levups.com"}}</script>
 <meta name="theme-color" content="#2340e8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +25,7 @@
 <div class="page">
   <nav class="site-nav" aria-label="Site">
     <a class="brand" href="./" aria-current="page">SuperSlim</a>
+    <a href="migrate.html">Switching</a>
     <a href="guide.html">Guide</a>
     <a href="tools.html">Formatter &amp; linter</a>
     <a href="benchmarks.html">Benchmarks</a>
@@ -35,31 +36,38 @@
   <main id="content">
   <header class="hero">
     <h1 class="wordmark">SuperSlim</h1>
-    <p class="byline"><span id="byline-speed">Slim templates, compiled faster.</span><span class="byline-sub">Same HTML, byte for byte.</span></p>
+    <p class="byline"><span>Your Slim templates, as they are.</span><span class="byline-sub">A lighter engine, with a formatter and a linter to keep them tidy.</span></p>
     <div>
-      <p class="summary">Slim is a Ruby template language that writes HTML with indentation instead of closing tags. SuperSlim is a new engine for it, written from scratch: your <code>.slim</code> files keep working and render faster. It comes with a formatter and a linter.</p>
+      <p class="summary">Slim is a Ruby template language that writes HTML with indentation instead of closing tags. SuperSlim is a second engine for it, written from scratch: your <code>.slim</code> files render the same HTML, faster, and come with a formatter and a linter.</p>
       <code class="install">gem "super-slim"</code>
-      <p class="links"><a href="guide.html">Get started</a><a href="guide.html#migrating">Migrating from Slim</a><a href="benchmarks.html">Benchmarks</a></p>
+      <p class="links"><a href="#tour">Take the tour</a><a href="migrate.html">Switching from Slim</a><a href="benchmarks.html">Benchmarks</a></p>
     </div>
   </header>
 
-  <section aria-labelledby="example-title">
-    <h2 id="example-title">What a template looks like</h2>
+  <section aria-labelledby="tour-title" id="tour">
+    <h2 id="tour-title">A short tour</h2>
     <div class="prose">
-      <p>Nesting replaces closing tags. Lines starting with <code>-</code> run Ruby, <code>=</code> outputs a value escaped for HTML, and the rest are tags, attributes and text. The <a href="https://github.com/slim-template/slim#readme">Slim documentation</a> describes the whole language.</p>
+      <p>Seven stops, a minute each. Every one links to the page with the details, if you want them.</p>
     </div>
-    <div class="split">
-      <div>
-        <p class="code-label">app/views/posts/index.html.slim</p>
+
+    <ol class="tour">
+      <li class="stop" id="same-html">
+        <h3><span class="stop-number" aria-hidden="true">1</span>It reads the Slim you already write</h3>
+        <div class="prose">
+          <p>Nesting replaces closing tags. Lines starting with <code>-</code> run Ruby, <code>=</code> outputs a value escaped for HTML, and the rest are tags, attributes and text. SuperSlim reads Slim 5’s grammar, all but <a href="guide.html#left-out">a few parts</a>, and renders what Slim renders with <code>format: :html, sort_attrs: false</code>, down to the byte.</p>
+        </div>
+        <div class="split">
+          <div>
+            <p class="code-label">app/views/posts/index.html.slim</p>
 <pre><code class="language-slim"><span class="nt">ul</span><span class="nc">.posts</span>
   <span class="p">-</span> <span class="n">posts</span><span class="p">.</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">post</span><span class="o">|</span>
     <span class="nt">li</span>
       <span class="nt">a</span><span class="w"> </span><span class="na">href</span><span class="p">=</span><span class="n">post</span><span class="nc">.url</span><span class="w"> </span><span class="p">=</span> <span class="n">post</span><span class="p">.</span><span class="nf">title</span>
       <span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
         <span class="nt">span</span><span class="nc">.badge</span><span class="w"> </span>Draft</code></pre>
-      </div>
-      <div>
-        <p class="code-label">HTML, with two posts, the second a draft (indented here: SuperSlim writes it on one line)</p>
+          </div>
+          <div>
+            <p class="code-label">HTML, with two posts, the second a draft (indented here: SuperSlim writes it on one line)</p>
 <pre><code class="language-html"><span class="nt">&lt;ul</span> <span class="na">class=</span><span class="s">"posts"</span><span class="nt">&gt;</span>
   <span class="nt">&lt;li&gt;</span>
     <span class="nt">&lt;a</span> <span class="na">href=</span><span class="s">"/posts/1"</span><span class="nt">&gt;</span>Hello <span class="ni">&amp;amp;</span> welcome<span class="nt">&lt;/a&gt;</span>
@@ -69,74 +77,164 @@
     <span class="nt">&lt;span</span> <span class="na">class=</span><span class="s">"badge"</span><span class="nt">&gt;</span>Draft<span class="nt">&lt;/span&gt;</span>
   <span class="nt">&lt;/li&gt;</span>
 <span class="nt">&lt;/ul&gt;</span></code></pre>
+          </div>
+        </div>
+        <div class="prose">
+          <p>You don’t have to take our word for “the same HTML”. Here is the benchmark page, rendered by both engines:</p>
+        </div>
+        <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SuperSlim">
+          <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
+          <div class="proof-row"><span>SuperSlim</span><code data-sha="SuperSlim">…</code></div>
+          <p class="proof-verdict">The same check runs on Slim’s own test suite, on the templates of a large European e-commerce site, and on 10,000 new random templates at every CI run.</p>
+        </div>
+        <p class="more"><a href="testing.html">How SuperSlim is tested</a></p>
+      </li>
+
+      <li class="stop" id="faster">
+        <h3><span class="stop-number" aria-hidden="true">2</span>It does the same work with less</h3>
+        <div class="prose">
+          <p>Compiling a template, which Rails does on the first requests after a deploy and on every reload in development, takes a fraction of the time. Rendering, which happens on every request, is quicker too, and leaves fewer objects behind for Ruby’s garbage collector.</p>
+        </div>
+        <div class="tiles" id="tiles"></div>
+        <p class="note more" id="tiles-note">Loading the latest numbers…</p>
+        <div class="prose">
+          <p>To be fair about it: in most apps, templates are not what makes a page slow; the database and the network usually weigh more. Expect a snappier reload in development and a lighter load on your servers, not a different app.</p>
+        </div>
+        <p class="more"><a href="benchmarks.html">Every measurement, and how to reproduce it</a></p>
+      </li>
+
+      <li class="stop" id="formatter">
+        <h3><span class="stop-number" aria-hidden="true">3</span>It tidies templates, without touching the page</h3>
+        <div class="prose">
+          <p><code>super-slim format</code> gives every template the same layout, so reviews are about what changed, not about spaces. Before writing a file, it compiles the old and the new version and compares the Ruby they produce: if anything but layout differs, it leaves the file alone and tells you.</p>
+        </div>
+        <div class="split">
+          <div>
+            <p class="code-label">Before</p>
+<pre><code class="language-slim"><span class="nt">div</span><span class="nc">.card</span>
+    <span class="p">-</span><span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+        <span class="nt">span</span><span class="nc">.badge</span><span class="w"> </span><span class="na">Draft</span><span class="w">
+    </span><span class="p">=</span><span class="n">link_to</span><span class="w"> </span>post<span class="nc">.title</span>,<span class="w"> </span>post
+
+
+    <span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span></code></pre>
+          </div>
+          <div>
+            <p class="code-label">After <code>super-slim format</code></p>
+<pre><code class="language-slim"><span class="nc">.card</span>
+  <span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">draft?</span>
+    <span class="nt">span</span><span class="nc">.badge</span><span class="w"> </span><span class="na">Draft</span><span class="w">
+  </span><span class="p">=</span><span class="w"> </span><span class="n">link_to</span><span class="w"> </span>post<span class="nc">.title</span>,<span class="w"> </span>post
+
+  <span class="nt">img</span><span class="w"> </span><span class="na">src</span><span class="p">=</span><span class="n">post</span><span class="nc">.image_url</span></code></pre>
+          </div>
+        </div>
+        <p class="more"><a href="tools.html#formatter">The formatter, and its options</a></p>
+      </li>
+
+      <li class="stop" id="linter">
+        <h3><span class="stop-number" aria-hidden="true">4</span>It points out what is easy to miss</h3>
+        <div class="prose">
+          <p>On the tidy template above, <code>super-slim lint</code> still finds something: an image without a text alternative. Its rules come from tools you may know (slim-lint, haml-lint, erb_lint, RuboCop, Herb, jsx-a11y): layout, Rails conventions, HTML and accessibility. Each has an entry with why it exists, a flagged and a clean example, and its settings.</p>
+        </div>
+<pre><code class="language-console"><span class="gp">$</span><span class="w"> </span>super-slim lint
+<span class="go">_card.html.slim:6: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`</span></code></pre>
+        <div class="prose">
+          <p>For the Ruby inside templates, a RuboCop plugin hands each <code>-</code> and <code>=</code> line to RuboCop, and reports offenses at their line and column in the <code>.slim</code> file.</p>
+        </div>
+        <p class="more"><a href="tools.html#rules">Every lint rule, with examples</a></p>
+      </li>
+
+      <li class="stop" id="tailwind">
+        <h3><span class="stop-number" aria-hidden="true">5</span>It understands Tailwind, if you ask</h3>
+        <div class="prose">
+          <p>Slim cuts <code>.rounded-b-[3px]</code> at the bracket, renders <code>.size-2.5</code> as <code>class="size-2 5"</code>, and stops at <code>ul.*:p-2</code> with an error. Turn on one option and the <code>.</code> shortcut takes any Tailwind class name. It is off by default, so switching engines changes nothing until you choose it.</p>
+        </div>
+        <div class="split">
+          <div>
+            <p class="code-label">Template</p>
+<pre><code class="language-slim"><span class="nc">.p-1.rounded-b-</span>[3px]<span class="nc">.lg</span>:hover:underline
+<span class="nc">.font-</span>['Open_Sans']<span class="nc">.mx-0.5.w-1</span>/2
+<span class="nt">ul</span><span class="nc">.</span>*:p-2</code></pre>
+          </div>
+          <div>
+            <p class="code-label">config/initializers/super_slim.rb</p>
+<pre><code class="language-ruby"><span class="no">SuperSlim</span><span class="p">.</span><span class="nf">tailwind_classes</span> <span class="o">=</span> <span class="kp">true</span></code></pre>
+          </div>
+        </div>
+        <p class="more"><a href="guide.html#tailwind">Tailwind class names</a></p>
+      </li>
+
+      <li class="stop" id="extras">
+        <h3><span class="stop-number" aria-hidden="true">6</span>It smooths a few rough edges</h3>
+        <div class="cards">
+          <div class="card">
+            <h4>Ruby over several lines</h4>
+            <p>A call can go on after an opening <code>(</code>, <code>[</code> or <code>{</code> until the bracket closes, the way you would write it in a <code>.rb</code> file.</p>
+          </div>
+          <div class="card">
+            <h4>Comments after code</h4>
+            <p><code>= render card # rubocop:disable …</code> compiles, where Slim turns the line into a syntax error.</p>
+          </div>
+          <div class="card">
+            <h4>Line numbers you can trust</h4>
+            <p>Each <code>-</code> and <code>=</code> line compiles onto its template line, so a backtrace points where you look, even after a <code>ruby:</code> block.</p>
+          </div>
+          <div class="card">
+            <h4>Safer attribute names</h4>
+            <p>Names only known at render time, like the keys of a <code>data:</code> hash, are checked, so they can’t sneak an <code>onclick</code> into the page.</p>
+          </div>
+        </div>
+        <p class="more"><a href="guide.html#additions">Additions to Slim</a></p>
+      </li>
+
+      <li class="stop" id="try">
+        <h3><span class="stop-number" aria-hidden="true">7</span>You can try it a little at a time</h3>
+        <div class="prose">
+          <p>Start with the tools alone: with <code>require: false</code>, Rails keeps rendering with Slim, and you get the formatter and the linter. Switch the engine later, or never. Going back is a line in your Gemfile.</p>
+        </div>
+        <div class="split">
+          <div>
+            <p class="code-label">Gemfile, tools only</p>
+<pre><code class="language-ruby"><span class="n">gem</span> <span class="s2">"super-slim"</span><span class="p">,</span> <span class="ss">require: </span><span class="kp">false</span></code></pre>
+          </div>
+          <div>
+            <p class="code-label">Terminal</p>
+<pre><code class="language-sh">bundle <span class="nb">exec </span>super-slim lint
+bundle <span class="nb">exec </span>super-slim format <span class="nt">--check</span></code></pre>
+          </div>
+        </div>
+        <p class="more"><a href="migrate.html">Switching from Slim, step by step (or with an AI agent)</a></p>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="fit-title">
+    <h2 id="fit-title">Is it for you?</h2>
+    <div class="fit">
+      <div>
+        <h3>A good fit if…</h3>
+        <ul>
+          <li>your app has Slim templates and runs on Ruby 3.3 or later (Rails 8.0 or later, if Rails);</li>
+          <li>you would like a formatter and a linter that read templates exactly as the engine does;</li>
+          <li>you write Tailwind classes and are tired of moving them into <code>class=""</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Maybe not yet if…</h3>
+        <ul>
+          <li>you rely on the XHTML format, custom shortcuts or Slim’s plugins: see <a href="guide.html#left-out">what SuperSlim leaves out</a>;</li>
+          <li>you run JRuby or TruffleRuby: SuperSlim relies on <code>erb/escape</code>, a C extension only CRuby has;</li>
+          <li>you need a project with years behind it: SuperSlim’s first version came out in November 2026. It renders every page of a large European e-commerce site, ours, every day, and Slim’s own tests keep it honest, but it is young.</li>
+        </ul>
       </div>
     </div>
   </section>
 
-  <section aria-labelledby="numbers-title">
-    <h2 id="numbers-title">In numbers</h2>
-    <div class="tiles" id="tiles"></div>
-    <p class="note more" id="tiles-note">Loading the latest numbers…</p>
-    <p class="more"><a href="benchmarks.html">Every measurement, and how to reproduce it</a></p>
-  </section>
-
-  <section aria-labelledby="proof-title">
-    <h2 id="proof-title">Same HTML</h2>
+  <section aria-labelledby="thanks-title">
+    <h2 id="thanks-title">With thanks</h2>
     <div class="prose">
-      <p>SuperSlim renders what Slim 5 renders with <code>format: :html, sort_attrs: false</code>, down to the byte. Here is the benchmark page, rendered by both engines:</p>
-    </div>
-    <div class="proof" role="group" aria-label="SHA-256 of the same page rendered by Slim and SuperSlim">
-      <div class="proof-row"><span data-version="Slim">Slim</span><code data-sha="Slim">…</code></div>
-      <div class="proof-row"><span>SuperSlim</span><code data-sha="SuperSlim">…</code></div>
-      <p class="proof-verdict">Identical on 295 of Slim's own tests, on the 1,400 templates of a production app, and on 10,000 new random templates at every CI run.</p>
-    </div>
-    <p class="more"><a href="testing.html">How SuperSlim is tested</a></p>
-  </section>
-
-  <section aria-labelledby="box-title">
-    <h2 id="box-title">In the box</h2>
-    <div class="cards">
-      <div class="card">
-        <h3>An engine for Rails</h3>
-        <p>Add the gem and Rails renders every <code>.slim</code> view with it, with nothing to configure. Outside Rails, <code>SuperSlim.compile</code> returns plain Ruby. Each <code>-</code> and <code>=</code> line compiles onto its template line, so backtraces point at the right one.</p>
-        <p><a href="guide.html">Guide</a></p>
-      </div>
-      <div class="card">
-        <h3>A formatter that cannot change a page</h3>
-        <p><code>super-slim format</code> rewrites templates in one layout. Before writing a file, it compiles the old and the new version, and leaves the file alone if the Ruby differs.</p>
-        <p><a href="tools.html#formatter">Formatter</a></p>
-      </div>
-      <div class="card">
-        <h3>A linter with HTML and accessibility rules</h3>
-        <p>Rules from slim-lint, haml-lint, erb_lint, Herb and jsx-a11y, each shown with a flagged and a clean example. A RuboCop plugin checks the Ruby inside templates.</p>
-        <p><a href="tools.html#linter">Linter rules</a></p>
-      </div>
-      <div class="card">
-        <h3>Tailwind class names</h3>
-        <p>Slim splits or refuses class shortcuts such as <code>.rounded-b-[3px]</code>, <code>.size-2.5</code> or <code>.lg:hover:underline</code>. Turn on one option and they work. Attribute lists keep their meaning.</p>
-        <p><a href="guide.html#tailwind">Tailwind</a></p>
-      </div>
-      <div class="card">
-        <h3>Nothing new to learn</h3>
-        <p>The whole Slim 5 grammar, the same HTML, the same errors. The few parts SuperSlim leaves out fail when the template compiles, so nothing renders wrong. The grammar is Slim's, by the Slim Team.</p>
-        <p><a href="guide.html#left-out">What SuperSlim leaves out</a></p>
-      </div>
-    </div>
-  </section>
-
-  <section aria-labelledby="start-title">
-    <h2 id="start-title">Quick start</h2>
-    <div class="split">
-      <div>
-        <p class="code-label">Gemfile</p>
-<pre><code class="language-ruby"><span class="n">gem</span> <span class="s2">"super-slim"</span> <span class="c1"># instead of slim-rails</span></code></pre>
-      </div>
-      <div>
-        <p class="code-label">Terminal</p>
-<pre><code class="language-sh">bundle <span class="nb">exec </span>super-slim format          <span class="c"># once</span>
-bundle <span class="nb">exec </span>super-slim lint         <span class="c"># in CI</span>
-bundle <span class="nb">exec </span>super-slim format <span class="nt">--check</span>  <span class="c"># in CI</span></code></pre>
-      </div>
+      <p>The language is Slim’s, designed by the <a href="https://github.com/slim-template/slim">Slim Team</a>, and SuperSlim is tested against Slim’s own suites. Its lint rules owe their ideas to slim-lint, haml-lint, erb_lint, RuboCop, Herb and eslint-plugin-jsx-a11y. SuperSlim is made by <a href="https://github.com/levups">Level UP Solutions</a>, a small team who write Slim every day. Questions, bugs and ideas are welcome <a href="https://github.com/levups/super-slim/issues">on GitHub</a>.</p>
     </div>
   </section>
 
