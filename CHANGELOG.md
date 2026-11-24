@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-11-24
+
+Faster rendering of splats and data hashes, faster compiling, and one fix.
+
+**Faster**
+- Tags with a splat (`*attrs`) or a `data=`/`aria=` hash allocate a third fewer objects per render: a form of twelve
+  fields went from 258 to 138 allocations per render, 4% faster without JIT and 9% with YJIT. Rails compiles
+  templates without `frozen_string_literal`, so each attribute name passed to the runtime allocated a string.
+- Compiling allocates 30% fewer objects and takes 5% less time on 6,097 public templates, with and without YJIT.
+  The compiled Ruby is unchanged.
+
+**Fixed**
+- `SuperSlim.compile(source, html_safe: nil)` no longer compiles a dynamic class or a splat into code that raises
+  `ArgumentError` when it renders: `nil` works like `false`.
+
 ## [3.6.3] — 2026-11-21
 
 One fix: a line break inside an interpolation of a quoted attribute no longer shifts the lines that follow.
@@ -330,7 +345,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.6.3...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/levups/super-slim/compare/v3.6.3...v3.7.0
 [3.6.3]: https://github.com/levups/super-slim/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/levups/super-slim/compare/v3.6.1...v3.6.2
 [3.6.1]: https://github.com/levups/super-slim/compare/v3.6.0...v3.6.1
