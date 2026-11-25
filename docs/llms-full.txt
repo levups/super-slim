@@ -1,0 +1,2059 @@
+# SuperSlim
+
+SuperSlim renders [Slim](https://github.com/slim-template/slim) templates in Ruby and Rails apps. Slim is a template
+language that writes HTML with indentation instead of closing tags, and SuperSlim is a new engine for it, written
+from scratch: your existing `.slim` files produce the same HTML, but they compile about nine times faster and
+render about twice as fast.
+
+It also comes with a formatter, a linter and a RuboCop plugin. All three read templates with the engine's own
+parser, so they never disagree with it about what a template means.
+
+Website and guide: https://levups.github.io/super-slim/
+
+Coding agents can start from <https://levups.github.io/super-slim/llms.txt>, or read this README and the
+website's pages as one Markdown file: <https://levups.github.io/super-slim/llms-full.txt>.
+
+## Why SuperSlim
+
+A template engine does two jobs. It compiles each template into Ruby code, which Rails does the first time a
+template renders and again after you edit it in development. Then it runs that code on every request. SuperSlim
+makes both cheaper.
+
+`bench/compare.rb` renders the same blog page (24 post cards) with five engines and checks that they all produce
+the same HTML. On the last run (November 2026, Ruby 4.0 with YJIT), SuperSlim compiled the page 11 times faster
+than Slim and rendered it 2.2 times faster, with a quarter of the allocations:
+
+| Engine | Compiles per second | Renders per second | Objects allocated per render |
+|---|---:|---:|---:|
+| SuperSlim 3.7.0 | 16,384 | 69,202 | 111 |
+| Slim 5.2.2 | 1,441 | 31,452 | 480 |
+| Haml 7.5.2 | 1,772 | 42,477 | 471 |
+| Herb 0.11.2 | 6,478 | 19,513 | 830 |
+| Erubi 1.13.1 (ERB) | 56,668 | 68,360 | 115 |
+
+On whole apps, the 1,214 templates of a production Rails app compile in 69 ms instead of 361 ms, and 6,056
+templates from 30 open-source projects in 421 ms instead of 2,309 ms. The linter takes about half the CPU
+time slim-lint takes on the same templates. The [benchmarks page](https://levups.github.io/super-slim/benchmarks.html)
+has the charts and the steps to reproduce them.
+
+## Installation
+
+SuperSlim needs Ruby 3.3 or later. In a Rails app, add it to your Gemfile, and remove `slim-rails` if you have it:
+SuperSlim replaces it.
+
+```ruby
+gem "super-slim"
+```
+
+Rails then renders every `.slim` view with SuperSlim, and the digest of a `cache` block changes when a partial it
+renders changes. A partial whose name is computed needs a `/# Template Dependency: orders/line` comment, as in ERB.
+There is nothing to configure. Rails itself is optional, and SuperSlim is tested on Rails 8.0 and later.
+
+To keep Slim as your engine and use only the [linter](https://github.com/levups/super-slim#linter), the [formatter](https://github.com/levups/super-slim#formatter) or the
+[RuboCop plugin](https://github.com/levups/super-slim#rubocop-plugin), add SuperSlim with `require: false`. Rails then never loads it and goes on
+rendering with Slim, while `super-slim lint`, `super-slim format` and `rubocop` still find it:
+
+```ruby
+gem "super-slim", require: false
+```
+
+They read templates as SuperSlim does, [additions](https://github.com/levups/super-slim#additions-to-slim) included, which Slim can't render.
+
+Without Rails, `SuperSlim.compile` turns a template into Ruby code, which you evaluate where the template's
+variables and methods are defined:
+
+```ruby
+require "super_slim"
+
+ruby_code = SuperSlim.compile(File.read("page.slim"), file: "page.slim") # file: is shown in errors and backtraces
+html = eval(ruby_code, binding)
+```
+
+## A first template
+
+```slim
+ul.posts
+  - posts.each do |post|
+    li
+      a href=post.url = post.title
+      - if post.draft?
+        span.badge Draft
+```
+
+With two posts, the second one a draft, this renders:
+
+```html
+<ul class="posts"><li><a href="/posts/1">Hello &amp; welcome</a></li><li><a href="/posts/2">Next steps</a><span class="badge">Draft</span></li></ul>
+```
+
+Lines starting with `-` run Ruby, `=` outputs the result of Ruby code (escaped for HTML), and everything else is a
+tag, text or an attribute. The [Slim documentation](https://github.com/slim-template/slim#readme) describes the whole
+language. SuperSlim reads all of it, except the few parts listed in [What SuperSlim leaves out](https://github.com/levups/super-slim#what-superslim-leaves-out).
+
+## Switching from Slim
+
+SuperSlim renders what Slim renders with the options `format: :html, sort_attrs: false`, byte for byte. Slim's
+defaults are different (`format: :xhtml, sort_attrs: true`), so if you never changed them, switch in two steps:
+
+1. Set those two options on Slim and run your test suite. Fix anything that depended on XHTML output or on
+   sorted attributes.
+2. Replace `slim-rails` with `super-slim` in your Gemfile and remove any `Slim::Engine.set_options` or
+   `with_options` call.
+
+To hand the migration to a coding agent, the website has [a prompt](https://levups.github.io/super-slim/migrate.html#agents)
+that takes it step by step, one commit each, through the linter and formatter switch.
+
+Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML automatically, with `<link />` and
+`doctype xml`.
+
+Errors keep Slim's messages, but those found while compiling also name their file and line, which Slim leaves out:
+`Explicit end statements are forbidden`, `Multiple id attributes specified`, an `xml` directive in HTML and an
+unknown doctype. SuperSlim raises them as `SuperSlim::SyntaxError`, like a parse error, so Rails' error page shows
+the template line. Every line of a `ruby:` block also stays on its template line, where Slim moves the lines after
+it, so an error or a `__LINE__` there reports the line you see in the template.
+
+## Formatter
+
+`super-slim format` rewrites templates in one layout: two spaces per level, a space after `-` and `=`, no `div`
+where a `.class` or `#id` is enough, no trailing whitespace unless it renders, single blank lines and a final
+newline. A block starts right after the line that opens it, a partial's `/# locals:` signature stands apart from its
+body, and Ruby code with children ends with the `do` that Slim would add. Tags nested inline (`tr: td`) go one per
+line, three `-` lines in a row or more make a `ruby:` block, and a `ruby:` block of one or two lines turns back into
+`-` lines. `- if !condition` with no `else` reads as `- unless condition` when the `!` covers the whole condition.
+This template:
+
+```slim
+div.card
+    -if post.draft?
+        span.badge Draft
+    =link_to post.title, post
+
+
+    img src=post.image_url
+```
+
+comes out as:
+
+```slim
+.card
+  - if post.draft?
+    span.badge Draft
+  = link_to post.title, post
+
+  img src=post.image_url
+```
+
+```sh
+super-slim format            # every .slim file under the current directory (except .git, node_modules, tmp, vendor)
+super-slim format --check    # list the files that would change, and fail if there are any
+super-slim format app/views/posts
+```
+
+`fmt` is an alias of `format`.
+
+The formatter can't change what a page renders. Before writing a file, it compiles the old and the new version and
+compares the Ruby code they produce, using [Prism](https://github.com/ruby/prism). Line breaks, spaces, a trailing
+comma or the parentheses of a call may differ. If anything else does, it leaves the file alone and reports it. Text
+blocks move together with their whitespace for the same reason.
+
+To also wrap long lines, set a maximum length in `.super-slim.yml`:
+
+```yaml
+format:
+  max_line_length: 120
+  attribute_delimiters: "()" # or "[]" or "{}"
+```
+
+The formatter then gives each line one layout, whatever its author chose. Ruby code spread over several lines is
+joined back when it fits. A longer line spreads the arguments of its call, or the elements of its array or hash, one
+per line, each line but the last ending with a comma:
+
+```slim
+= link_to "Read the whole post",
+  post_path(post),
+  class: "btn btn-primary"
+```
+
+Slim, and so Brakeman, reads a line that ends with a comma or a backslash as going on, but not one that ends with an
+opening bracket. A call whose only argument is a call spreads that one: `= render Card.new(title: post.title,`. A
+first argument that would pass the limit goes to the next line after a backslash, and so do the brackets or the `do`
+that close the last one when they would. The lines after the first go two spaces deep, two more when the line opens a
+block. Code spread by hand stays as it is when it holds a comment, or when this layout would leave a line longer than
+the limit and Slim can read it. Arguments to `new` go in parentheses.
+
+A tag whose only child is one `=` output or one line of `|` text takes it on its own line when both fit:
+`td = total`, `p Hello`. Text that starts with anything but a letter, a digit or `&`, or whose first word is followed
+by `=`, stays below, where it can't read as an attribute.
+
+A tag's attributes stand without delimiters when they fit on its line, and one per line inside the delimiters when
+they don't, unless its shortcuts alone pass the limit. A literal `id` or `class` becomes a shortcut, a class shortcut
+named twice goes, and the other attributes follow one order: `id`, `class`, what the element is (`type`, `name`,
+`href`, `src`, `value`, `for`, `action`, `method`), the rest, `data-controller`, `data-action` and targets, other
+`data-*`, then `aria-*` and `role`. Delimiters stay around a boolean attribute and before text that would read as
+an attribute, and a tag with a `*splat` keeps its order. The formatter takes attribute values to have no side
+effects: reordering two Ruby values changes the order they run in.
+
+Lines the formatter should leave alone go between two comments. Without `on`, the rest of the block that holds the
+comment stays as written, the rest of the template at the top level. The lines keep their text and only move with
+their block, and the lint rules that `super-slim format` would fix stay quiet there:
+
+```slim
+table
+  / super-slim:format off
+  tr: td colspan=8 = t(".empty")
+  / super-slim:format on
+```
+
+## Linter
+
+```sh
+super-slim lint              # every .slim file under the current directory
+super-slim lint app/views/posts
+```
+
+On the formatted template above, it still finds the image without a text alternative:
+
+```
+_card.html.slim:6: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`
+```
+
+The linter reads its settings from `.super-slim.yml`, in the directory you run it from. Its rules come from other
+linters, so most will look familiar:
+
+| Rule | Comes from | Default |
+|---|---|---|
+| Indentation, Tab, TrailingWhitespace, EmptyLines, TrailingBlankLines, ControlStatementSpacing, RedundantDiv | slim-lint (`super-slim format` fixes them) | on |
+| LineLength (`max: 120`), CommentControlStatement, EmptyControlStatement, ConsecutiveControlStatements (`max: 2`), TagCase | slim-lint | on |
+| SoleNestedConditional, NegatedIfElseCondition, UnlessElse (conditionals spread over `-` lines, out of the RuboCop plugin's reach) | RuboCop | on |
+| InstanceVariables (in partials) | haml-lint, Rails conventions | on |
+| StrictLocals (partials declare `/# locals:`) | Rails 7.1 strict locals | off |
+| UnusedLocals (a local declared in `/# locals:` that the partial never reads) | Rails 7.1 strict locals | on |
+| DuplicateId, ImageAlt, IframeTitle, AnchorHref (also `href="#"` and `javascript:`), NestedLinks, PositiveTabindex, BooleanAttributeValue, AriaBooleanValue (`aria-*=true` renders no value, `aria-*=false` no attribute), AriaRole, AriaAttribute | Herb, eslint-plugin-jsx-a11y | on |
+| ButtonType, InlineStyles, InlineEventHandlers (`onclick` and other `on*` attributes) | eslint-plugin-react, haml-lint | off |
+| DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
+| UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
+| DatabaseQueries (`where`, `find_by`, `pluck`, `exists?`, `Model.all`, `Model.order`… in a template) | Rails guides | off |
+| SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
+| EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
+| HardcodedText (text that should be translated) | erb_lint | off |
+| UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
+| Zwsp (invisible characters) | slim-lint | on |
+
+The website gives [each rule](https://levups.github.io/super-slim/tools.html#rules) its own entry: why it exists,
+an example, its settings with their defaults, and whether `super-slim format` fixes it. `super-slim lint` prints
+the link to each rule it reports, on stderr. A configuration file looks like this:
+
+```yaml
+# .super-slim.yml
+linters:
+  LineLength:
+    max: 150
+  ButtonType:
+    enabled: true
+  DeprecatedClasses:
+    preset: bootstrap5 # Bootstrap 4 classes that Bootstrap 5.3 renamed or dropped
+    classes:
+      media: ~ # removes this entry from the preset
+      legacy-*: modern-*
+  DeprecatedAttributes:
+    preset: bootstrap5 # data-toggle becomes data-bs-toggle, and so on
+  InlineStyles:
+    enabled: true
+    exclude: ["app/views/*_mailer/**/*"]
+  HardcodedText:
+    enabled: true
+    include: ["app/views/shop/**/*.slim"]
+```
+
+Every rule accepts `include:` and `exclude:`, lists of glob patterns matched against paths relative to
+`.super-slim.yml` (`**/` matches any number of directories). A rule, an option or a setting the file misspells
+stops `lint` and `format` with an error that names it, rather than being ignored.
+
+A comment silences rules on the next tag or code line, blank lines and comments skipped, and on the lines it goes on
+over. The linter reports a rule name it doesn't know:
+
+```slim
+/ super-slim:disable ButtonType, InlineStyles
+button style="all: unset" Close
+```
+
+The `bootstrap5` preset lists the classes and data attributes that Bootstrap 5.3 renamed, including the ones with
+breakpoints such as `text-md-right`. Its data attributes are only those of Bootstrap's own components
+(`data-toggle`, `data-target` and the like). If your app also uses generic ones such as `data-content`, add them
+under `attributes:`. If your own JavaScript still reads an attribute the preset renames, remove that entry with `~`.
+
+## RuboCop plugin
+
+The linter checks the Slim side of a template. For the Ruby inside it, SuperSlim has a RuboCop plugin, which
+replaces rubocop-slim (and with it slimi and Temple). It passes every `-` and `=` line, Ruby attribute, splat,
+`#{}` interpolation and `ruby:` block to RuboCop. Offenses point at the right line and column of the `.slim` file,
+and `rubocop -a` writes its corrections back into it.
+
+```yaml
+# .rubocop-slim.yml, run with: rubocop -c .rubocop-slim.yml
+inherit_from: .rubocop.yml
+plugins:
+  - super-slim
+AllCops:
+  Include:
+    - "**/*.slim"
+```
+
+Some cops make no sense inside a template, such as indentation and alignment across lines, the frozen string
+comment, or `Lint/UselessAssignment` on a variable that a later line uses. The plugin turns them off for `.slim`
+files, as rubocop-slim does. SuperSlim also reads code that slimi skips, for example the output of a tag with
+attributes and whitespace markers (`span> title="x" = name`), so you may see a few new offenses after switching.
+
+## Additions to Slim
+
+Three additions read templates that Slim refuses or misreads. None changes a template that already works with
+Slim.
+
+### Ruby code over several lines
+
+Slim lets a line of Ruby continue on the next line after a comma or a backslash. SuperSlim also continues it after
+an opening `(`, `[` or `{` at the end of a line, until the bracket is closed:
+
+```slim
+= render ProductCardComponent.new(
+    product:,
+    variant: :compact,
+  )
+- columns = %w[
+    name
+    price
+  ]
+```
+
+A bracket opened in the middle of a line, as in `- items.each { |item|`, works as before: the lines below it are
+its children.
+
+### Comments after Ruby code
+
+Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason` into a syntax error: the
+comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
+follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
+the line it is about.
+Slim still can't read such a template, and neither can Brakeman, which parses views with Slim: it reports the
+template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines; turn it off if you
+don't run Brakeman.
+
+### Tailwind class names
+
+Slim stops a `.class` shortcut at characters such as `[`, `:` or `/`, which Tailwind uses all the time. It renders
+`.size-2.5` as `class="size-2 5"`, and refuses `.lg:[&:nth-child(3)]:hover:underline`. With `tailwind_classes` on,
+the shortcut takes any Tailwind class name:
+
+```slim
+.p-1.rounded-b-[3px].lg:[&:nth-child(3)]:hover:underline
+.font-['Open_Sans'].bg-(--brand).mx-0.5.w-1/2.!font-bold.@lg:flex
+ul.*:p-2
+```
+
+Turn it on for the engine, in `config/initializers/super_slim.rb` for example (or per call with
+`SuperSlim.compile(source, tailwind_classes: true)`):
+
+```ruby
+SuperSlim.tailwind_classes = true
+```
+
+And for the formatter and the linter, in `.super-slim.yml`:
+
+```yaml
+tailwind_classes: true
+```
+
+Everything else reads as before. Tailwind never puts a bracket right after a letter or a digit, so in
+`a.btn[href="/"]` the brackets are still an attribute list. `li.item: a` still nests a tag, and a final `/` still
+closes one. On 7,505 templates from 31 apps, 16 compiled differently with the option on, and each time it was a
+Tailwind class that Slim broke. The option is off by default anyway, so that switching to SuperSlim changes
+nothing. It costs nothing measurable: compile time on 1,408 templates moved by 0.5%, within noise, and the
+compiled code is the same, so render time is too.
+
+## Escaping
+
+Like Slim, SuperSlim escapes for HTML everything that `=`, `#{}` and attribute values output. `==` and `#{{}}`
+output raw HTML, so only use them on content you trust. In Rails, strings marked `html_safe` aren't escaped again.
+
+Some names are only known when the page renders: the keys of a `*splat` hash, of a `data:` or `aria:` hash, and
+the tag of `*{tag: …}`. SuperSlim checks those names and raises an error instead of rendering one that would break
+the HTML. Slim does not check them. With Slim, `data: {"x\tonclick" => code}` renders an `onclick` attribute, and
+`*{tag: "img src=x onerror=…"}` renders an image with an `onerror` handler. SuperSlim raises
+`SuperSlim::InvalidAttributeNameError` and `SuperSlim::InvalidTagNameError` instead.
+
+HTML escaping protects HTML, and nothing else. A `#{}` of user input inside `javascript:` or `css:`, inside an
+unquoted attribute of inline HTML, or in the URL of a `markdown:` link can still inject code. In scripts, write
+`#{{json_escape(value.to_json)}}` (Rails), always quote attributes, and check URLs before they reach a template.
+
+## What SuperSlim leaves out
+
+These parts of Slim aren't supported. Each one fails when the template compiles, with an error that names it, except a custom
+shortcut written after a tag (`input&text`), which reads as text:
+
+- the XHTML format, the `sort_attrs`, `attr_quote`, `pretty` and `js_wrapper` options, and every Temple option;
+- the `coffee:`, `sass:`, `scss:`, `less:`, `erb:`, `builder:`, `textile:`, `rdoc:`, `asciidoc:` and wiki
+  engines, and `/[if IE]` conditional comments;
+- the `logic_less`, `translator`, `include` and `smart` plugins, and custom shortcuts (only `#id` and `.class`
+  exist).
+
+The embedded engines that do work are `ruby:`, `javascript:`, `css:` and `markdown:`. `markdown:` uses
+[Markly](https://github.com/ioquatix/markly), so add `gem "markly"` to your Gemfile if you use it. The rest can
+come back if people ask for them, as long as they don't slow down rendering.
+
+## Learn more
+
+The website has [a step-by-step switch from Slim](https://levups.github.io/super-slim/migrate.html), a [guide](https://levups.github.io/super-slim/guide.html) with every option, a page on the
+[formatter and linter](https://levups.github.io/super-slim/tools.html) with an example for each rule, the
+[benchmarks](https://levups.github.io/super-slim/benchmarks.html) and the
+[test setup](https://levups.github.io/super-slim/testing.html). [CHANGELOG.md](https://github.com/levups/super-slim/blob/main/CHANGELOG.md) lists the changes in
+each version.
+
+## How it is tested
+
+Slim is the reference. Its own test suite, including the examples of its specification (`TESTS.md`), runs against
+SuperSlim: every template is rendered by both engines, and the HTML has to match.
+
+On top of that:
+
+- A fuzzer builds thousands of random templates from the grammar and compares the output of both engines. CI runs
+  10,000 new ones on every build.
+- Snapshots in `test/golden` record the HTML, the compiled Ruby, the formatted template and the lint offenses for
+  templates covering the whole grammar, its errors and Tailwind class names. `UPDATE_GOLDEN=1` rewrites them after
+  a deliberate change.
+- `bench/compiled_digests.rb` checks that a refactoring leaves the compiled Ruby of a whole set of templates
+  unchanged.
+
+Real templates come from 30 open-source apps, pinned to a commit in `corpus/manifest.yml`. `rake corpus:fetch`
+downloads only their `.slim` files, into `corpus/cache` (ignored by Git). `rake corpus:check` compiles, formats
+and lints each of them and compares the result with Slim. `rake corpus:diff BASE=rev` shows what a change does to
+them: compiled Ruby, formatting and lint offenses. It fails when formatting changes, unless `FORMATTING_CHANGES=1`
+says the change means to; in CI, a pull request says so with the `formatting change` label. These templates are
+never rendered, because rendering would run their Ruby code. Your own templates can be rendered too: pass their directories in `SUPER_SLIM_CORPUS`.
+
+## Development
+
+```sh
+bundle install
+bundle exec rake test                                            # SuperSlim's tests, then Slim's own suites
+BUNDLE_GEMFILE=gemfiles/rails_8_0.gemfile bundle exec rake test  # the same on Rails 8.0
+bundle exec rubocop
+FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
+bundle exec ruby -Ilib bench/corpus.rb path/to/app               # compile time and allocations against Slim
+bundle exec ruby --yjit -Ilib bench/render.rb                    # render speed and allocations against Slim
+bundle exec rake docs                                            # rebuild the linter rules page of the website
+```
+
+The website's numbers come from `docs/benchmarks.json`, which `rake bench` rewrites by running `bench/compare.rb`.
+If `corpus/cache` is there, it also times the open-source templates, and compares `super-slim lint` and `format`
+with slim-lint when slim-lint is installed. Run it on a quiet machine:
+
+```sh
+bundle exec rake bench                                       # with YJIT, 5 seconds per measurement
+SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench   # also times compiling a whole app against Slim
+BENCH_LOCK=path/to/.bench.lock bundle exec rake bench        # waits while another benchmark holds the lock
+```
+
+[CONTRIBUTING.md](https://github.com/levups/super-slim/blob/main/CONTRIBUTING.md) explains how to propose a change. Please report security issues privately, as
+[SECURITY.md](https://github.com/levups/super-slim/blob/main/SECURITY.md) describes.
+
+### Releasing
+
+Pull requests don't touch `CHANGELOG.md`. A release starts by writing its notes under `## [Unreleased]`, from the
+pull requests merged since the last tag, without committing them. Refresh the numbers on the website first, on a
+quiet machine (`SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench`), and merge them in their own pull
+request. Then, from an up-to-date `main` with green CI:
+
+```sh
+bin/release minor --dry-run   # shows the notes and the changes, writes nothing
+bin/release minor             # or patch, major, or an exact version such as 1.2.0
+```
+
+`main` takes no direct push, so `bin/release` dates the notes and bumps the version on a `release/vX.Y.Z` branch,
+opens a pull request that merges itself once CI is green, and waits for it (`bin/release --wait X.Y.Z` if you
+stopped it). The merge starts the Release workflow, which waits for a maintainer's approval, tags the merge commit
+`vX.Y.Z`, publishes the gem to RubyGems through trusted publishing and creates the GitHub release with the notes
+and the `.gem`.
+
+## License
+
+MIT, by [Level UP Solutions](https://github.com/levups). The parser follows the grammar and the parsing algorithm
+of [Slim](https://github.com/slim-template/slim), by the Slim Team (MIT).
+
+## SuperSlim Guide
+
+<https://levups.github.io/super-slim/guide.html>
+
+SuperSlim reads the Slim 5 grammar and renders the HTML Slim renders. This page is the reference: setup, options, and the few places where SuperSlim reads more than Slim, or less. To switch an app over, start with [Switching from Slim](https://levups.github.io/super-slim/migrate.html).
+
+### Rails
+
+```ruby
+# Gemfile
+gem "super-slim" # instead of slim-rails
+```
+
+A railtie registers the `.slim` handler with Action View. Nothing else to configure:
+
+- output is escaped with Rails’ `html_safe` rules, and `==` outputs raw;
+- templates whose format is XML (`.xml`, `.rss`, `.atom`) render as XML, with `<link />` and `doctype xml`;
+- `annotate_rendered_view_with_filenames` adds its `BEGIN`/`END` comments, and streaming works;
+- every `-` and `=` line compiles onto its template line, so an exception’s backtrace points at the right line, even after a `ruby:` block or a multi-line attribute list, where Slim drifts;
+- `/# locals: (post:)` declares a partial’s strict locals.
+
+### Plain Ruby
+
+```ruby
+require "super_slim"
+
+code = SuperSlim.compile(source, file: "page.slim")
+# Ruby that builds the HTML in _buf and returns it
+```
+
+### Options
+
+One setting applies everywhere, typically in `config/initializers/super_slim.rb`:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `SuperSlim.tailwind_classes = true` | off | Let class shortcuts read Tailwind class names. [Tailwind](https://levups.github.io/super-slim/guide.html#tailwind) |
+
+It can be overridden per compile, alongside the options of `SuperSlim.compile`:
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `file:` | `nil` | The path shown in syntax errors and backtraces. |
+| `format:` | `:html` | `:xml` closes void tags (`<br />`) and allows `doctype xml`. |
+| `html_safe:` | when `String#html_safe?` exists | Leave `html_safe` strings unescaped, the way Rails expects. |
+| `tailwind_classes:` | `SuperSlim.tailwind_classes` | Tailwind class names for this template. |
+
+### Tailwind class names
+
+Slim cuts `.rounded-b-[3px]` at the bracket, renders `.size-2.5` as `class="size-2 5"`, and refuses `.lg:[&:nth-child(3)]:hover:underline`. Turn on `tailwind_classes` and the `.` shortcut takes any Tailwind class name:
+
+Template
+
+```slim
+.p-1.rounded-b-[3px].lg:[&:nth-child(3)]:hover:underline
+.font-['Open_Sans'].bg-(--brand).mx-0.5.w-1/2.!font-bold
+ul.*:p-2
+```
+
+config/initializers/super_slim.rb, and .super-slim.yml for the CLI
+
+```ruby
+SuperSlim.tailwind_classes = true
+```
+
+```yaml
+tailwind_classes: true
+```
+
+Attribute lists keep their meaning: Tailwind never puts a bracket right after a letter or a digit, so `a.btn[href="/"]` is still a link with a class and an `href`. A colon followed by a space still nests a tag (`li.item: a`), and a final `/` still closes one.
+
+Checked on 7,505 templates from 31 apps: 16 compile differently with the option, every one of them a Tailwind class Slim breaks. It stays off by default all the same, so that switching from Slim changes no template. It only changes how templates are read: the compiled Ruby, so the render time, is the same.
+
+### Embedded engines
+
+`ruby:`, `javascript:`, `css:` and `markdown:` work as in Slim, interpolation included. `markdown:` renders through [Markly](https://github.com/ioquatix/markly): add `gem "markly"` to use it. SuperSlim itself needs only strscan 3.1.1 or later, a gem Ruby ships with; on Ruby 3.3, whose own strscan is older, Bundler installs the newer one.
+
+### Additions to Slim
+
+A few things Slim refuses or misreads, SuperSlim reads. None changes a template that already works with Slim. Slim, and Brakeman, which parses views with Slim, still can’t read the first two: the `SlimSyntax` lint rule flags them, so turn it off once neither reads your templates.
+
+#### Ruby over several lines
+
+Slim continues a line of Ruby after a comma or a backslash. SuperSlim also continues it after an opening `(`, `[` or `{` at the end of a line, until the bracket closes:
+
+```slim
+= render ProductCardComponent.new(
+    product:,
+    variant: :compact,
+  )
+- columns = %w[
+    name
+    price
+  ]
+```
+
+A bracket opened in the middle of a line, as in `- items.each { |item|`, works as before: the lines below it are its children.
+
+#### Comments after code
+
+Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- reason` into a syntax error: the comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that follows code out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on the line it is about.
+
+#### Tailwind class names
+
+Off by default, one setting away: see [Tailwind class names](https://levups.github.io/super-slim/guide.html#tailwind).
+
+### Errors and line numbers
+
+Errors keep Slim’s messages, but those found while compiling also name their file and line: `Explicit end statements are forbidden`, `Multiple id attributes specified`, an `xml` directive in HTML, an unknown doctype. They are raised as `SuperSlim::SyntaxError`, so Rails’ error page shows the template line.
+
+Every `-` and `=` line, and every line of a `ruby:` block, compiles onto its template line, where Slim moves the lines after a `ruby:` block or a multi-line attribute list. An exception or a `__LINE__` reports the line you see.
+
+### Escaping
+
+Like Slim, SuperSlim escapes for HTML everything that `=`, `#{}` and attribute values output. `==` and `#{{}}` output raw HTML, so keep them for content you trust. In Rails, strings marked `html_safe` aren’t escaped again.
+
+Some names are only known when the page renders: the keys of a `*splat` hash, of a `data:` or `aria:` hash, and the tag of `*{tag: …}`. SuperSlim checks them and raises `SuperSlim::InvalidAttributeNameError` or `SuperSlim::InvalidTagNameError` rather than render one that would break the HTML. Slim doesn’t check them: with Slim, `data: {"x\tonclick" => code}` renders an `onclick` attribute.
+
+HTML escaping protects HTML, and nothing else. A `#{}` of user input inside `javascript:` or `css:`, inside an unquoted attribute of inline HTML, or in the URL of a `markdown:` link can still inject code. In scripts, write `#{{json_escape(value.to_json)}}` (Rails), always quote attributes, and check URLs before they reach a template.
+
+### Migrating from Slim
+
+Switching has its own page now, one small step at a time: [Switching from Slim](https://levups.github.io/super-slim/migrate.html). The prompt for a coding agent is there too, under [With an AI agent](https://levups.github.io/super-slim/migrate.html#agents).
+
+### What SuperSlim leaves out
+
+Each fails at compile time with a clear error instead of being silently ignored, with one exception: a custom shortcut written after a tag (`input&text`) reads as text, as it would in Slim without that shortcut.
+
+- the XHTML format, `sort_attrs`, `attr_quote`, `pretty`, `js_wrapper` and every Temple option;
+- the `coffee:`, `sass:`, `scss:`, `less:`, `erb:`, `builder:`, `textile:`, `rdoc:`, `asciidoc:` and wiki engines, and `/[if IE]` conditional comments;
+- the `logic_less`, `translator`, `include` and `smart` plugins, and custom shortcuts (only `#id` and `.class`).
+
+They can come back if people ask, as long as they cost nothing at render time.
+
+## Switching from Slim to SuperSlim
+
+<https://levups.github.io/super-slim/migrate.html>
+
+There is no need to switch all at once. The steps below each stand on their own: stop after any of them and you still have something useful, and nothing you cannot undo.
+
+### Before you start
+
+A quick look at these saves surprises later:
+
+- **Ruby 3.3 or later**, the C Ruby (SuperSlim relies on `erb/escape`, a C extension, so not JRuby or TruffleRuby). Rails is optional; SuperSlim is tested on Rails 8.0 and later.
+- **A test suite that renders your views**, even a modest one. It is what tells you, at each step, that nothing moved.
+- **The few parts of Slim that SuperSlim leaves out**: the XHTML format, custom shortcuts, a handful of embedded engines and plugins. They are [listed in the guide](https://levups.github.io/super-slim/guide.html#left-out), and most fail loudly when the template compiles. One doesn’t: a custom shortcut after a tag (`input&text`) renders as text, so search for those by hand.
+
+### 1. Try the tools, keep Slim
+
+The gentlest start: keep Slim as your engine and only borrow SuperSlim’s formatter and linter. With `require: false`, Rails never loads SuperSlim and goes on rendering with Slim, while the commands still find it.
+
+```ruby
+# Gemfile
+gem "super-slim", require: false
+```
+
+```sh
+bundle exec super-slim lint            # what it would point out
+bundle exec super-slim format --check  # which files it would tidy
+```
+
+Nothing about your pages changes here. Have a look at what the linter finds, turn off the rules you don’t want in `.super-slim.yml`, and run `super-slim format` once when you like what it does: the formatter [refuses any change](https://levups.github.io/super-slim/tools.html#formatter) that would alter the compiled Ruby. Coming from slim-lint or rubocop-slim? The [rules page](https://levups.github.io/super-slim/tools.html#rules) says where each rule comes from, and the [RuboCop plugin](https://levups.github.io/super-slim/tools.html#rubocop) takes over from rubocop-slim.
+
+One thing to know: SuperSlim also reads [a few things Slim can’t](https://levups.github.io/super-slim/guide.html#additions), such as Ruby continued after an opening bracket. While Slim renders your pages, keep them out of your templates: the `SlimSyntax` rule, on by default, points them out.
+
+### 2. Line up Slim’s options
+
+SuperSlim renders exactly what Slim renders with `format: :html, sort_attrs: false`. Slim’s own defaults are `format: :xhtml, sort_attrs: true`, so if you never changed them, set the two options first, still on Slim:
+
+```ruby
+# config/initializers/slim.rb
+Slim::Engine.set_options(format: :html, sort_attrs: false)
+```
+
+Run your tests. What might change: void tags lose their slash (`<br>` instead of `<br />`), boolean attributes lose their `=""` (`checked` instead of `checked=""`), and attributes keep the order you wrote them in. Browsers don’t mind either; a test or a cached fragment comparing raw HTML might. Fix those, deploy if you like, and this step is done. It is the only one that changes your HTML, and it does so on Slim, where you know your way around.
+
+While you are there, look for `Slim::Engine.set_options` and `with_options` calls that set anything else, and for the parts SuperSlim [leaves out](https://levups.github.io/super-slim/guide.html#left-out). Rewrite those in plain Slim now: an attribute instead of a custom shortcut, a partial instead of `include`.
+
+### 3. Swap the engine
+
+Replace Slim with SuperSlim in your Gemfile. It also replaces `slim-rails`: a railtie registers the `.slim` handler, with nothing to configure.
+
+```ruby
+# Gemfile
+gem "super-slim"   # instead of slim-rails or slim
+gem "markly"       # only if a template uses markdown:
+```
+
+Delete the Slim initializer from step 2. Then compile every template once, without rendering it: this runs none of your Ruby, and a syntax error shows up with its file and line before any test does.
+
+```sh
+bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'
+```
+
+Then run your tests. They should pass without a change: same HTML, byte for byte. Templates for XML formats (`.xml`, `.rss`, `.atom`) render as XML on their own.
+
+Once you are on SuperSlim, the extras are yours if you want them: [Tailwind class names](https://levups.github.io/super-slim/guide.html#tailwind) and [Ruby spread over several lines](https://levups.github.io/super-slim/guide.html#additions). They stay off, or unused, until you choose them.
+
+### Going back
+
+If SuperSlim isn’t for you, put `slim-rails` back in your Gemfile, with the options from step 2: your pages render as they did. Formatted templates stay readable by Slim too, since the formatter only writes what Slim reads.
+
+The one thing that ties you to SuperSlim is what Slim can’t read: Ruby continued after an opening bracket, a comment after code, and Tailwind class names in `.class` shortcuts. `super-slim lint` flags the first two; for the third, compiling alone won’t tell you, since Slim reads most Tailwind names without an error, only wrongly (`.size-2.5` becomes two classes). Compare each template compiled with and without the option instead:
+
+```sh
+bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| s = File.read(f); puts f if SuperSlim.compile(s, tailwind_classes: true) != SuperSlim.compile(s, tailwind_classes: false) }'
+```
+
+We would rather you knew this before you start than after.
+
+### With an AI agent
+
+A coding agent (Claude Code, Codex, Cursor…) can take the steps above in one sitting. Give it this prompt from the root of your app: each step lands in its own commit, and it stops rather than change the rendered HTML without a reason. Read its commits as you would a colleague’s.
+
+```
+Migrate this app's templates from Slim to SuperSlim (https://github.com/levups/super-slim). SuperSlim renders the HTML Slim renders with `format: :html, sort_attrs: false`, byte for byte. Read https://levups.github.io/super-slim/migrate.html, https://levups.github.io/super-slim/guide.html and the gem's README before you start.
+
+Rules: one commit per step below, the full test suite green after each one. The migration must not change the rendered HTML, except in step 1, where each change gets its reason in the commit message. If a test fails and you cannot explain why, stop and report.
+
+1. Slim options. Find every Slim setting (Slim::Engine.set_options, with_options, Slim::Engine.options, slim-rails configuration). If the app keeps Slim's defaults (format: :xhtml, sort_attrs: true), set `Slim::Engine.set_options(format: :html, sort_attrs: false)` while still on Slim, run the tests, and fix whatever relied on XHTML output (`<br />`) or on sorted attributes.
+2. Unsupported features. List every use of what SuperSlim leaves out: custom shortcuts, embedded engines other than ruby:, javascript:, css: and markdown:, `/[if IE]` comments, the logic_less, translator, include and smart plugins, and Temple options (attr_quote, pretty, js_wrapper…). Show me the list, then rewrite each use in plain Slim, still on Slim: an attribute instead of a shortcut, a partial instead of include.
+3. Swap the gem. Replace slim-rails and slim with `gem "super-slim"` (plus `gem "markly"` if a template uses markdown:) and delete the Slim configuration. Compile every template without rendering it (XML formats compile as XML), then run the tests:
+   bundle exec ruby -rsuper_slim -e 'Dir["app/**/*.slim"].each { |f| SuperSlim.compile(File.read(f), file: f, format: f.match?(/\.(xml|rss|atom)\.slim\z/) ? :xml : :html) }'
+4. Linting. Replace slim-lint with `super-slim lint`: move the .slim-lint.yml settings that have an equivalent into .super-slim.yml and name the ones that have none. Replace rubocop-slim with SuperSlim's RuboCop plugin, as the README shows. Fix new offenses.
+5. Formatting. Run `super-slim format` alone in its own commit, and check that the diff only moves whitespace and layout. Then add `super-slim lint` and `super-slim format --check` to CI.
+
+Finish with a summary: what you rewrote by hand, the HTML that changed in step 1, and anything left to decide. If the app uses Tailwind, suggest `SuperSlim.tailwind_classes = true` as a follow-up, without turning it on.
+```
+
+The agent swaps the engine before the tools, the reverse of the order above: in one sitting, with the tests as a safety net, that order makes fewer commits. Either way ends in the same place.
+
+### If something looks wrong
+
+If a template renders differently on SuperSlim than on Slim with the options of step 2, that is a bug, and we would really like to hear about it. [Open an issue](https://github.com/levups/super-slim/issues/new) with the smallest template that shows it and the HTML each engine renders. The same goes for a formatter change you didn’t expect, a lint rule that gets it wrong, or a step on this page that left you stuck.
+
+## SuperSlim Testing
+
+<https://levups.github.io/super-slim/testing.html>
+
+A rewrite is only worth it if nobody can tell from the HTML. Slim itself is the reference: wherever possible, a test renders through both engines and requires the same bytes.
+
+### Slim’s own suites
+
+Slim’s test suite and its literate specification, `TESTS.md`, run against SuperSlim unchanged: 295 tests pass. The others test what SuperSlim [leaves out](https://levups.github.io/super-slim/guide.html#left-out) on purpose, or Markdown output that depends on which library Tilt picks — and one pins a Slim bug, a `=` reported one line too low after a `ruby:` block.
+
+### Fuzzer
+
+A seeded generator writes random templates from the grammar (nested tags, shortcuts, every attribute form, splats, control flow, blocks, comments, embedded engines, whitespace markers) and renders each through Slim and SuperSlim. The HTML must match, or both must fail with the same error. A second pass formats each template and requires the same HTML and an idempotent result.
+
+The suite runs a fixed seed; CI adds 10,000 templates from a new seed on every run, and prints it when they disagree.
+
+### Golden snapshots
+
+Nineteen templates cover the grammar, its errors and Tailwind class names. Next to each, a snapshot holds the rendered HTML, the Ruby compiled for Tilt and for Rails, the formatted source and the lint offenses: any change shows up in review. Whatever its snapshot says, each template must also:
+
+- render the HTML Slim renders, with and without `html_safe`, or fail with Slim’s message;
+- render the same through Rails and through Tilt;
+- compile to Ruby that parses, with every `-` and `=` on its template line;
+- format idempotently, to the same HTML, passing the layout rules.
+
+### Real templates
+
+6,094 templates from 30 open-source projects, pinned to a commit in `corpus/manifest.yml`. `rake corpus:fetch` downloads only their `.slim` files; they are never copied into the repository. For each one:
+
+- Slim and SuperSlim both compile it, or both refuse it;
+- SuperSlim’s Ruby parses, with every line where it belongs;
+- `super-slim format` is idempotent, and refuses any change to the compiled Ruby;
+- the linter runs, and its offenses go to a report.
+
+Downloaded templates are never rendered: rendering runs their Ruby. A production Rails app of about 1,400 templates, whose code we trust, is rendered through both engines against a stub that answers every helper, before and after formatting, with identical HTML.
+
+`rake corpus:diff BASE=main` compares two revisions over the whole corpus (compiled Ruby, formatting, lint offenses), so a refactoring that changes nothing proves it.
+
+- [fjordllc/bootcamp](https://github.com/fjordllc/bootcamp)712
+- [shikimori/shikimori](https://github.com/shikimori/shikimori)555
+- [DFE-Digital/teaching-vacancies](https://github.com/DFE-Digital/teaching-vacancies)541
+- [betagouv/rdv-service-public](https://github.com/betagouv/rdv-service-public)491
+- [benwbrum/fromthepage](https://github.com/benwbrum/fromthepage)350
+- [solectrus/solectrus](https://github.com/solectrus/solectrus)281
+- [fairmondo/fairmondo](https://github.com/fairmondo/fairmondo)242
+- [tryzealot/zealot](https://github.com/tryzealot/zealot)239
+- [catarse/catarse](https://github.com/catarse/catarse)236
+- [nbgallery/nbgallery](https://github.com/nbgallery/nbgallery)175
+- [brave-intl/publishers](https://github.com/brave-intl/publishers)173
+- [openHPI/codeocean](https://github.com/openHPI/codeocean)170
+- [freeats/freeats](https://github.com/freeats/freeats)170
+- [wearefine/fae](https://github.com/wearefine/fae)165
+- [weg-li/weg-li](https://github.com/weg-li/weg-li)155
+- [pivorakmeetup/pivorak-web-app](https://github.com/pivorakmeetup/pivorak-web-app)146
+- [windy/cywin](https://github.com/windy/cywin)145
+- [hpyhacking/peatio](https://github.com/hpyhacking/peatio)137
+- [noosfero/noosfero](https://github.com/noosfero/noosfero)119
+- [ujh/fountainpencompanion](https://github.com/ujh/fountainpencompanion)112
+- [locomotivecms/engine](https://github.com/locomotivecms/engine)110
+- [asciidoctor/asciidoctor-backends](https://github.com/asciidoctor/asciidoctor-backends)109
+- [amahi/platform](https://github.com/amahi/platform)109
+- [square/shuttle](https://github.com/square/shuttle)102
+- [rubytoolbox/rubytoolbox](https://github.com/rubytoolbox/rubytoolbox)87
+- [chloerei/writings](https://github.com/chloerei/writings)77
+- [annict/annict](https://github.com/annict/annict)59
+- [Coursemology/coursemology2](https://github.com/Coursemology/coursemology2)55
+- [jirutka/asciidoctor-html5s](https://github.com/jirutka/asciidoctor-html5s)44
+- [codetriage/CodeTriage](https://github.com/codetriage/CodeTriage)31
+
+### Every commit
+
+GitHub Actions runs the suite and Slim’s suites on every maintained Ruby (3.3, 3.4 and 4.0), and ruby-head, the fuzzer with a new seed, and the corpus check; on a pull request, the corpus diff against its base too. It takes under a minute.
+
+```sh
+bundle exec rake test
+FUZZ_SEED=42 FUZZ_CASES=20000 bundle exec ruby -Ilib -Itest test/fuzz_test.rb
+bundle exec rake corpus:fetch corpus:check
+```
+
+## SuperSlim Formatter and Linter
+
+<https://levups.github.io/super-slim/tools.html>
+
+One parser serves the compiler, the formatter and the linter, so all three read a template the same way. Both commands split the templates between every core.
+
+### Formatter
+
+```sh
+super-slim format [PATH…]           # rewrite templates in place
+super-slim format --check [PATH…]   # list the ones it would rewrite, exit 1 if any
+```
+
+One layout: two spaces per level, `- code` and `= output` spacing, `p = output` after a tag, no redundant `div`, no trailing whitespace unless it renders, single blank lines, one final newline. Text blocks move as a whole, so the whitespace they render stays put.
+
+Before writing a file, the formatter compiles the template before and after, and refuses if the Ruby differs: formatting cannot change a page. A refused file is reported and left untouched, and the command exits 1.
+
+With `format: max_line_length` in `.super-slim.yml`, each line gets one layout: Ruby code spread over several lines is joined back when it fits, and a longer line spreads the arguments of its call one per line, each line but the last ending with a comma, the layout Slim and Brakeman read too. A first argument that would pass the limit goes to the next line after a backslash, and so do the brackets or the `do` that close the last one when they would. The lines after the first go two spaces deep, four when the line opens a block. Code spread by hand stays as it is when this layout would leave a line longer than the limit, unless Slim can’t read it: code continued after an opening bracket. A tag’s attributes stand without delimiters when they fit on its line, and one per line inside `attribute_delimiters` (`()` by default, or `[]`, `{}`) when they don’t; a literal `id` or `class` becomes a shortcut, a class shortcut named twice goes, and the others follow one order: what the element is, what it does, then how it reads aloud. A layout is only kept when Prism reads the same compiled Ruby.
+
+```slim
+a.btn(
+  href=edit_post_path(post)
+  data-turbo-frame="modal"
+) = t ".edit",
+  title: post.title
+```
+
+Paths default to the current directory; `.git`, `node_modules`, `tmp` and `vendor` are skipped.
+
+### Linter
+
+```console
+$ super-slim lint [PATH…]
+app/views/posts/_card.html.slim:3: [ImageAlt] Describe the image with `alt`, or mark it decorative with `alt=""`
+```
+
+41 rules taken from slim-lint, haml-lint, erb_lint, RuboCop, Herb and eslint-plugin-jsx-a11y: layout, template hygiene, Ruby in templates, conditionals, Rails conventions, HTML and accessibility. It exits 1 when it reports an offense.
+
+### Ruby in templates
+
+The Ruby inside templates is RuboCop’s job. SuperSlim ships a RuboCop plugin that hands it each `-` and `=` line, code attribute, splat, `#{}` interpolation and `ruby:` block, read by SuperSlim’s own parser:
+
+```yaml
+# .rubocop-slim.yml
+inherit_from: .rubocop.yml
+plugins:
+  - super-slim
+AllCops:
+  Include:
+    - "**/*.slim"
+```
+
+```console
+$ bundle exec rubocop -c .rubocop-slim.yml app
+app/views/posts/show.html.slim:4:20: C: [Correctable] Style/StringLiterals: Prefer single-quoted strings…
+```
+
+Offenses point at their line and column in the `.slim` file, and `--autocorrect` writes back into it. The cops that cannot hold in a template, such as indentation across lines or frozen string comments, are off for `.slim` files. It replaces rubocop-slim, and with it slimi and Temple.
+
+### Configuration
+
+Both commands read `.super-slim.yml` from the current directory. Every key is optional:
+
+```yaml
+tailwind_classes: true     # read templates the way the app compiles them
+
+format:
+  max_line_length: 120     # wrap longer lines, default off
+  attribute_delimiters: "{}" # around wrapped attributes: "()", "[]" or "{}", default "()"
+
+linters:
+  LineLength:
+    max: 150                 # default 120
+  ConsecutiveControlStatements:
+    max: 3                   # lines of `-` before asking for a ruby: block, default 2
+  ButtonType:
+    enabled: true            # off by default: ButtonType, DatabaseQueries, EmbeddedEngines, HardcodedText, InlineEventHandlers, InlineStyles, StrictLocals, UnescapedOutput
+  DeprecatedClasses:
+    preset: bootstrap5       # Bootstrap 4 classes that Bootstrap 5.3 renamed or dropped
+    classes:
+      media: ~               # drops an entry of the preset
+      legacy-*: modern-*     # a prefix: legacy-card becomes modern-card
+  DeprecatedAttributes:
+    preset: bootstrap5       # data-toggle becomes data-bs-toggle, and so on
+  EmbeddedEngines:
+    enabled: true
+    forbidden_engines: [javascript, css]
+  HardcodedText:
+    enabled: true
+    include: ["app/views/shop/**/*.slim"]   # every rule takes include: and exclude: globs
+  InlineStyles:
+    enabled: true
+    exclude: ["app/views/*_mailer/**/*"]   # relative to .super-slim.yml
+  InstanceVariables:
+    enabled: false
+```
+
+### In CI
+
+```yaml
+# .github/workflows/lint.yml
+- run: bundle exec super-slim format --check app
+- run: bundle exec super-slim lint app
+- run: bundle exec rubocop -c .rubocop-slim.yml app
+```
+
+Both print one line per file or offense, `path:line: [Rule] message` for the linter, and exit 0 when there is nothing to report, 1 otherwise, 64 on a usage error.
+
+### Rules
+
+Every example runs through the linter when this page is generated: the flagged one must be flagged and the clean one must pass. “Fixed by format” means `super-slim format` fixed the flagged example. Every rule also takes `include:` and `exclude:` globs, and `super-slim lint` links each rule it reports to its entry here.
+
+| Rule | Checks | Default | Fixed by format |
+| --- | --- | --- | --- |
+| Layout |  |  |  |
+| [Indentation](https://levups.github.io/super-slim/tools.html#Indentation) | Two spaces per level | on | yes |
+| [Tab](https://levups.github.io/super-slim/tools.html#Tab) | No tabs in indentation | on | yes |
+| [TrailingWhitespace](https://levups.github.io/super-slim/tools.html#TrailingWhitespace) | No whitespace at the end of a line | on | yes |
+| [EmptyLines](https://levups.github.io/super-slim/tools.html#EmptyLines) | No more than one empty line in a row | on | yes |
+| [TrailingBlankLines](https://levups.github.io/super-slim/tools.html#TrailingBlankLines) | No empty lines at the end of the file | on | yes |
+| [ControlStatementSpacing](https://levups.github.io/super-slim/tools.html#ControlStatementSpacing) | A space after `-` | on | yes |
+| [RedundantDiv](https://levups.github.io/super-slim/tools.html#RedundantDiv) | No `div` before a `.class` or `#id` shortcut | on | yes |
+| Template hygiene, from slim-lint |  |  |  |
+| [LineLength](https://levups.github.io/super-slim/tools.html#LineLength) | Lines of at most 120 characters, by default | on |  |
+| [CommentControlStatement](https://levups.github.io/super-slim/tools.html#CommentControlStatement) | Comments with `/`, not `- #` | on |  |
+| [EmptyControlStatement](https://levups.github.io/super-slim/tools.html#EmptyControlStatement) | No lone `-` | on |  |
+| [ConsecutiveControlStatements](https://levups.github.io/super-slim/tools.html#ConsecutiveControlStatements) | A `ruby:` block for runs of `-` lines | on | yes |
+| [TagCase](https://levups.github.io/super-slim/tools.html#TagCase) | Lowercase tag names | on |  |
+| [Zwsp](https://levups.github.io/super-slim/tools.html#Zwsp) | No invisible zero-width characters | on |  |
+| Ruby in templates, from haml-lint and erb_lint |  |  |  |
+| [UnnecessaryInterpolation](https://levups.github.io/super-slim/tools.html#UnnecessaryInterpolation) | `=` rather than text that only interpolates | on |  |
+| [UnnecessaryStringOutput](https://levups.github.io/super-slim/tools.html#UnnecessaryStringOutput) | `\|` rather than outputting a string literal | on |  |
+| [DeprecatedClasses](https://levups.github.io/super-slim/tools.html#DeprecatedClasses) | Classes your CSS framework renamed | on |  |
+| [DeprecatedAttributes](https://levups.github.io/super-slim/tools.html#DeprecatedAttributes) | Data attributes your framework renamed | on |  |
+| [InlineStyles](https://levups.github.io/super-slim/tools.html#InlineStyles) | No `style` attributes | off |  |
+| [InlineEventHandlers](https://levups.github.io/super-slim/tools.html#InlineEventHandlers) | No `onclick`, `onchange` and other `on*` attributes | off |  |
+| [UnescapedOutput](https://levups.github.io/super-slim/tools.html#UnescapedOutput) | No output that skips HTML escaping | off |  |
+| [DatabaseQueries](https://levups.github.io/super-slim/tools.html#DatabaseQueries) | No `where`, `find_by`, `pluck` or `Model.all` in templates | off |  |
+| [SlimSyntax](https://levups.github.io/super-slim/tools.html#SlimSyntax) | Only lines Slim and Brakeman can read | on |  |
+| [EmbeddedEngines](https://levups.github.io/super-slim/tools.html#EmbeddedEngines) | No `javascript:` or `css:` blocks you forbid | off |  |
+| [HardcodedText](https://levups.github.io/super-slim/tools.html#HardcodedText) | Text goes through translations | off |  |
+| Conditionals, from RuboCop |  |  |  |
+| [SoleNestedConditional](https://levups.github.io/super-slim/tools.html#SoleNestedConditional) | `&&` rather than an `if` alone inside another | on |  |
+| [NegatedIfElseCondition](https://levups.github.io/super-slim/tools.html#NegatedIfElseCondition) | No `if !x` with an `else` | on |  |
+| [UnlessElse](https://levups.github.io/super-slim/tools.html#UnlessElse) | No `unless` with an `else` | on |  |
+| Rails conventions |  |  |  |
+| [InstanceVariables](https://levups.github.io/super-slim/tools.html#InstanceVariables) | Partials take locals, not instance variables | on |  |
+| [StrictLocals](https://levups.github.io/super-slim/tools.html#StrictLocals) | Partials declare their locals | off |  |
+| [UnusedLocals](https://levups.github.io/super-slim/tools.html#UnusedLocals) | Partials read every local they declare | on |  |
+| HTML and accessibility, from Herb and jsx-a11y |  |  |  |
+| [DuplicateId](https://levups.github.io/super-slim/tools.html#DuplicateId) | Each `id` once per template | on |  |
+| [ImageAlt](https://levups.github.io/super-slim/tools.html#ImageAlt) | Images have `alt` | on |  |
+| [IframeTitle](https://levups.github.io/super-slim/tools.html#IframeTitle) | Frames have `title` | on |  |
+| [AnchorHref](https://levups.github.io/super-slim/tools.html#AnchorHref) | Links have `href`, and it goes somewhere | on |  |
+| [NestedLinks](https://levups.github.io/super-slim/tools.html#NestedLinks) | No link inside a link | on |  |
+| [PositiveTabindex](https://levups.github.io/super-slim/tools.html#PositiveTabindex) | No positive `tabindex` | on |  |
+| [BooleanAttributeValue](https://levups.github.io/super-slim/tools.html#BooleanAttributeValue) | Boolean attributes take `true` or `false` | on |  |
+| [AriaBooleanValue](https://levups.github.io/super-slim/tools.html#AriaBooleanValue) | ARIA states are strings | on |  |
+| [AriaRole](https://levups.github.io/super-slim/tools.html#AriaRole) | Roles that exist | on |  |
+| [AriaAttribute](https://levups.github.io/super-slim/tools.html#AriaAttribute) | `aria-*` attributes that exist | on |  |
+| [ButtonType](https://levups.github.io/super-slim/tools.html#ButtonType) | Buttons have `type` | off |  |
+
+#### Layout
+
+##### [Indentation](https://levups.github.io/super-slim/tools.html#Indentation)
+
+On by default · Fixed by `super-slim format`
+
+Slim reads a template's structure from its indentation: one width everywhere keeps the nesting easy to see.
+
+Flagged
+
+```slim
+ul
+   li Home
+```
+
+Indent with 2 spaces, not 3
+
+Clean
+
+```slim
+ul
+  li Home
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [Tab](https://levups.github.io/super-slim/tools.html#Tab)
+
+On by default · Fixed by `super-slim format`
+
+A tab is as wide as each editor wants, so nesting that looks right in one looks wrong in another.
+
+Flagged
+
+```slim
+ul
+→   li Home
+```
+
+Indent with spaces, not tabs
+
+Clean
+
+```slim
+ul
+  li Home
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [TrailingWhitespace](https://levups.github.io/super-slim/tools.html#TrailingWhitespace)
+
+On by default · Fixed by `super-slim format`
+
+Invisible characters that only show up in diffs. At the end of text, Slim outputs them: `super-slim format` leaves those, and the rule asks to write the space with `'` or `>`.
+
+Flagged
+
+```slim
+ul·
+  li Home
+```
+
+Remove trailing whitespace
+
+Clean
+
+```slim
+ul
+  li Home
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [EmptyLines](https://levups.github.io/super-slim/tools.html#EmptyLines)
+
+On by default · Fixed by `super-slim format`
+
+One empty line is enough to separate two blocks.
+
+Flagged
+
+```slim
+h1 Title
+
+
+p Text
+```
+
+Remove this extra empty line
+
+Clean
+
+```slim
+h1 Title
+
+p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [TrailingBlankLines](https://levups.github.io/super-slim/tools.html#TrailingBlankLines)
+
+On by default · Fixed by `super-slim format`
+
+A file ends with one newline: empty lines after it only show up in diffs.
+
+Flagged
+
+```slim
+p Text
+
+```
+
+Remove the empty lines at the end of the file
+
+Clean
+
+```slim
+p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [ControlStatementSpacing](https://levups.github.io/super-slim/tools.html#ControlStatementSpacing)
+
+On by default · Fixed by `super-slim format`
+
+`- if` then reads like `= value` and `| text`: the marker, a space, the content.
+
+Flagged
+
+```slim
+-if admin?
+  p Admin
+```
+
+Put a space after `-`
+
+Clean
+
+```slim
+- if admin?
+  p Admin
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [RedundantDiv](https://levups.github.io/super-slim/tools.html#RedundantDiv)
+
+On by default · Fixed by `super-slim format`
+
+A `.class` or `#id` shortcut without a tag name already makes a `div`.
+
+Flagged
+
+```slim
+div.card
+  p Text
+```
+
+`div` is implied by the `.class` or `#id` shortcut
+
+Clean
+
+```slim
+.card
+  p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+#### Template hygiene, from slim-lint
+
+##### [LineLength](https://levups.github.io/super-slim/tools.html#LineLength)
+
+On by default
+
+The end of a long line hides past the edge of the editor and of a diff. `super-slim format` wraps attribute lists when `format.max_line_length` is set.
+
+Flagged
+
+```slim
+p word word word word word word word word word word word word word word word word word word word word word word word word word 
+```
+
+Line is too long [127/120]
+
+Clean
+
+```slim
+p
+  | word word word word word word word word word word
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+| `max` | `120` | the longest line, in characters |
+
+##### [CommentControlStatement](https://levups.github.io/super-slim/tools.html#CommentControlStatement)
+
+On by default
+
+A `- #` comment goes into the compiled Ruby, while a `/` comment is dropped at compile time.
+
+Flagged
+
+```slim
+- # TODO
+p Text
+```
+
+Write comments with `/`, not `- #`: they cost nothing at render time
+
+Clean
+
+```slim
+/ TODO
+p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [EmptyControlStatement](https://levups.github.io/super-slim/tools.html#EmptyControlStatement)
+
+On by default
+
+A lone `-` runs nothing: it is a leftover from an edit.
+
+Flagged
+
+```slim
+-
+p Text
+```
+
+Remove this empty `-`
+
+Clean
+
+```slim
+p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [ConsecutiveControlStatements](https://levups.github.io/super-slim/tools.html#ConsecutiveControlStatements)
+
+On by default · Fixed by `super-slim format`
+
+A run of `-` lines is a block of Ruby: a `ruby:` block shows it as one, and makes it plain when it belongs in a helper.
+
+Flagged
+
+```slim
+- a = 1
+- b = 2
+- c = 3
+p = a + b + c
+```
+
+Merge these 3 lines of Ruby into a `ruby:` block
+
+Clean
+
+```slim
+ruby:
+  a = 1
+  b = 2
+  c = 3
+p = a + b + c
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+| `max` | `2` | lines of `-` in a row before asking for a `ruby:` block |
+
+##### [TagCase](https://levups.github.io/super-slim/tools.html#TagCase)
+
+On by default
+
+HTML tag names are lowercase by convention. SVG tags such as `foreignObject` are left alone.
+
+Flagged
+
+```slim
+P Text
+```
+
+Write `p` in lowercase
+
+Clean
+
+```slim
+p Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [Zwsp](https://levups.github.io/super-slim/tools.html#Zwsp)
+
+On by default
+
+Zero-width characters, often pasted from a document, are invisible in the editor but break searches, links and line wrapping. The joiners inside emoji such as 👩🏻‍💻 are left alone.
+
+Flagged
+
+```slim
+p Hello\u200Bworld
+```
+
+Remove the invisible zero-width character
+
+Clean
+
+```slim
+p Hello world
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+#### Ruby in templates, from haml-lint and erb_lint
+
+##### [UnnecessaryInterpolation](https://levups.github.io/super-slim/tools.html#UnnecessaryInterpolation)
+
+On by default
+
+`#{}` around the whole text is an output in disguise: `=` says it plainly.
+
+Flagged
+
+```slim
+p #{post.title}
+```
+
+Write `= post.title` instead of interpolating it alone
+
+Clean
+
+```slim
+p = post.title
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [UnnecessaryStringOutput](https://levups.github.io/super-slim/tools.html#UnnecessaryStringOutput)
+
+On by default
+
+Outputting a string literal runs Ruby for text that `|` writes as it is.
+
+Flagged
+
+```slim
+p
+  = "Hello"
+```
+
+Write the text `| Hello` instead of outputting a string
+
+Clean
+
+```slim
+p
+  | Hello
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [DeprecatedClasses](https://levups.github.io/super-slim/tools.html#DeprecatedClasses)
+
+On by default
+
+A class your CSS framework renamed or dropped stops styling the page without an error. List them under `classes:`, or start from the `bootstrap5` preset.
+
+Flagged
+
+```slim
+p.text-muted Text
+```
+
+`text-muted` is deprecated: use `text-body-secondary`
+
+Clean
+
+```slim
+p.text-body-secondary Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+| `classes` | `{}` | `old: new`, or `old-*: new-*` for a prefix; `old: ~` drops an entry of the preset |
+| `preset` | `none` | adds a list under your own entries: `bootstrap5` |
+
+##### [DeprecatedAttributes](https://levups.github.io/super-slim/tools.html#DeprecatedAttributes)
+
+On by default
+
+The same for data attributes: Bootstrap 5 reads `data-bs-toggle`, so a `data-toggle` left over from Bootstrap 4 no longer opens anything.
+
+Flagged
+
+```slim
+button data-toggle="modal" type="button" Open
+```
+
+`data-toggle` is deprecated: use `data-bs-toggle`
+
+Clean
+
+```slim
+button data-bs-toggle="modal" type="button" Open
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+| `attributes` | `{}` | `old: new`; `old: ~` drops an entry of the preset |
+| `preset` | `none` | adds a list under your own entries: `bootstrap5` |
+
+##### [InlineStyles](https://levups.github.io/super-slim/tools.html#InlineStyles)
+
+Off by default
+
+A `style` attribute cannot be reused or changed by a media query, and a strict Content Security Policy blocks it.
+
+Flagged
+
+```slim
+p style="color: red" Text
+```
+
+Move inline styles to a stylesheet
+
+Clean
+
+```slim
+p.text-danger Text
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+##### [InlineEventHandlers](https://levups.github.io/super-slim/tools.html#InlineEventHandlers)
+
+Off by default
+
+An `on*` attribute such as `onchange` runs JavaScript written in the page, which a strict Content Security Policy blocks: the handler silently does nothing.
+
+Flagged
+
+```slim
+select name="sort" onchange="this.form.requestSubmit()"
+```
+
+Move the `onchange` handler to JavaScript: a strict Content Security Policy blocks it
+
+Clean
+
+```slim
+select name="sort" data-action="sort#submit"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+##### [UnescapedOutput](https://levups.github.io/super-slim/tools.html#UnescapedOutput)
+
+Off by default
+
+`==`, `html_safe`, `raw` and `#{{}}` output a string as HTML: if any of it comes from a user, it is a cross-site scripting hole.
+
+Flagged
+
+```slim
+p == post.intro
+```
+
+`==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
+
+Clean
+
+```slim
+p = t(".intro_html")
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+##### [DatabaseQueries](https://levups.github.io/super-slim/tools.html#DatabaseQueries)
+
+Off by default
+
+A query written in a template runs while the page renders, out of sight of the controller, and is easily repeated for each item of a list. Calls are matched by name, so a few may run on arrays: turn the rule on with `include:`, or silence a line with the disable comment.
+
+Flagged
+
+```slim
+ul
+  - Tag.order(:name).each do |tag|
+    li = tag.name
+```
+
+`Tag.order` queries the database from the template: load the records in the controller
+
+Clean
+
+```slim
+ul
+  - tags.each do |tag|
+    li = tag.name
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+##### [SlimSyntax](https://levups.github.io/super-slim/tools.html#SlimSyntax)
+
+On by default
+
+SuperSlim reads these lines, Slim does not. Brakeman parses templates with Slim: it reports such a template as an error and checks none of its Ruby.
+
+Flagged
+
+```slim
+= render Card.new(post:) # the card of the post
+```
+
+Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
+
+Clean
+
+```slim
+/ The card of the post
+= render Card.new(post:)
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [EmbeddedEngines](https://levups.github.io/super-slim/tools.html#EmbeddedEngines)
+
+Off by default
+
+Inline JavaScript and CSS are sent again with every page, cached nowhere, and blocked by a strict Content Security Policy.
+
+Flagged
+
+```slim
+javascript:
+  track("view")
+```
+
+The `javascript:` engine is forbidden here: move this code to a file of its own
+
+Clean
+
+```slim
+div data-controller="tracking"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+| `forbidden_engines` | `[]` | the engines to flag, such as `[javascript, css]` |
+
+##### [HardcodedText](https://levups.github.io/super-slim/tools.html#HardcodedText)
+
+Off by default
+
+Text written in the template cannot be translated. Turn the rule on with `include:` for the parts of the app that are translated.
+
+Flagged
+
+```slim
+h1 Welcome
+```
+
+Translate `Welcome` instead of writing it in the template
+
+Clean
+
+```slim
+h1 = t(".welcome")
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+#### Conditionals, from RuboCop
+
+##### [SoleNestedConditional](https://levups.github.io/super-slim/tools.html#SoleNestedConditional)
+
+On by default
+
+Two nested conditionals with no other branch are one condition: `&&` says it in one line, one level of indentation less. RuboCop's Style/SoleNestedConditional cannot see `-` lines.
+
+Flagged
+
+```slim
+- if post.published?
+  - if current_user.admin?
+    = link_to "Edit", edit_post_path(post)
+```
+
+Merge this `if` into the one around it with `&&`
+
+Clean
+
+```slim
+- if post.published? && current_user.admin?
+  = link_to "Edit", edit_post_path(post)
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [NegatedIfElseCondition](https://levups.github.io/super-slim/tools.html#NegatedIfElseCondition)
+
+On by default
+
+With an `else`, the `!` can go: swapping the branches puts the positive case first. `super-slim format` already turns an `if !` with no `else` into `unless`.
+
+Flagged
+
+```slim
+- if !post.draft?
+  p Published
+- else
+  p Draft
+```
+
+Write `if post.draft?` and swap the branches
+
+Clean
+
+```slim
+- if post.draft?
+  p Draft
+- else
+  p Published
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [UnlessElse](https://levups.github.io/super-slim/tools.html#UnlessElse)
+
+On by default
+
+`unless … else` reads as a double negation: `if` with the branches swapped says the same, plainly.
+
+Flagged
+
+```slim
+- unless post.draft?
+  p Published
+- else
+  p Draft
+```
+
+Write `if` instead of `unless`, and swap the branches
+
+Clean
+
+```slim
+- if post.draft?
+  p Draft
+- else
+  p Published
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+#### Rails conventions
+
+##### [InstanceVariables](https://levups.github.io/super-slim/tools.html#InstanceVariables)
+
+On by default
+
+A partial that reads instance variables depends on the controller that renders it: locals say what it needs. Checked in partials only.
+
+Flagged
+
+```slim
+p = @post.title
+```
+
+Pass `@post` to the partial as a local
+
+Clean
+
+```slim
+/# locals: (post:)
+p = post.title
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [StrictLocals](https://levups.github.io/super-slim/tools.html#StrictLocals)
+
+Off by default
+
+With a `locals:` comment, Rails 7.1 and later raise when a partial gets a local it does not declare, or misses a required one.
+
+Flagged
+
+```slim
+p = post.title
+```
+
+Declare the partial's locals: `/# locals: (name:)`
+
+Clean
+
+```slim
+/# locals: (post:)
+p = post.title
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+##### [UnusedLocals](https://levups.github.io/super-slim/tools.html#UnusedLocals)
+
+On by default
+
+Callers keep passing a local the partial no longer reads, and Rails accepts it: the `locals:` comment stops describing the partial. A template that reads `local_assigns` is left alone.
+
+Flagged
+
+```slim
+/# locals: (post:, form:)
+p = post.title
+```
+
+The local `form` is declared but never read
+
+Clean
+
+```slim
+/# locals: (post:)
+p = post.title
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+#### HTML and accessibility, from Herb and jsx-a11y
+
+##### [DuplicateId](https://levups.github.io/super-slim/tools.html#DuplicateId)
+
+On by default
+
+An `id` names one element of the page: labels, anchors, ARIA references and `getElementById` all find the first one only.
+
+Flagged
+
+```slim
+#menu
+#menu
+```
+
+The id `menu` is already used in this template
+
+Clean
+
+```slim
+#menu
+#footer-menu
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [ImageAlt](https://levups.github.io/super-slim/tools.html#ImageAlt)
+
+On by default
+
+Screen readers read `alt` in place of the image, and the file name without it. An empty `alt` tells them to skip a decorative image.
+
+Flagged
+
+```slim
+img src=post.image_url
+```
+
+Describe the image with `alt`, or mark it decorative with `alt=""`
+
+Clean
+
+```slim
+img src=post.image_url alt=post.title
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [IframeTitle](https://levups.github.io/super-slim/tools.html#IframeTitle)
+
+On by default
+
+Screen readers announce a frame by its `title`, so that users know what is inside before entering it.
+
+Flagged
+
+```slim
+iframe src=video_url
+```
+
+Name the frame with `title`
+
+Clean
+
+```slim
+iframe src=video_url title="Intro video"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [AnchorHref](https://levups.github.io/super-slim/tools.html#AnchorHref)
+
+On by default
+
+A link without `href` cannot be reached with the keyboard and is not announced as a link. One to `#` or to a `javascript:` URL is a button in disguise: screen readers announce a link, and opening it in a new tab leads nowhere.
+
+Flagged
+
+```slim
+a href="#" data-action="comments#add" Add a comment
+```
+
+`href="#"` goes nowhere: use a `button` for actions
+
+Clean
+
+```slim
+button data-action="comments#add" type="button" Add a comment
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [NestedLinks](https://levups.github.io/super-slim/tools.html#NestedLinks)
+
+On by default
+
+HTML forbids a link inside a link: browsers close the first one early, and the page is not built as written.
+
+Flagged
+
+```slim
+a href="/a"
+  a href="/b" B
+```
+
+Links cannot contain links
+
+Clean
+
+```slim
+a href="/a" A
+a href="/b" B
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [PositiveTabindex](https://levups.github.io/super-slim/tools.html#PositiveTabindex)
+
+On by default
+
+A positive `tabindex` moves the element ahead of everything else in keyboard order, away from where it stands on the screen.
+
+Flagged
+
+```slim
+button tabindex="3" type="button" Save
+```
+
+A positive `tabindex` breaks the reading order: use 0 or -1
+
+Clean
+
+```slim
+button tabindex="0" type="button" Save
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [BooleanAttributeValue](https://levups.github.io/super-slim/tools.html#BooleanAttributeValue)
+
+On by default
+
+In Slim, `true` renders a boolean attribute and `false` leaves it out, while any string renders it: `disabled="false"` disables.
+
+Flagged
+
+```slim
+input disabled="disabled"
+```
+
+Write `disabled=true`, or `disabled` alone inside an attribute list
+
+Clean
+
+```slim
+input disabled=true
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [AriaBooleanValue](https://levups.github.io/super-slim/tools.html#AriaBooleanValue)
+
+On by default
+
+ARIA states are the strings `"true"` and `"false"`: Slim renders `aria-*=true` without a value and leaves out `aria-*=false`.
+
+Flagged
+
+```slim
+.toast aria-atomic=true
+```
+
+Write `aria-atomic="true"`: Slim renders `aria-atomic=true` without a value
+
+Clean
+
+```slim
+.toast aria-atomic="true"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [AriaRole](https://levups.github.io/super-slim/tools.html#AriaRole)
+
+On by default
+
+Assistive technologies ignore a role they do not know, so a typo drops the meaning you added.
+
+Flagged
+
+```slim
+div role="buton"
+```
+
+`buton` is not an ARIA role
+
+Clean
+
+```slim
+div role="button"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [AriaAttribute](https://levups.github.io/super-slim/tools.html#AriaAttribute)
+
+On by default
+
+Assistive technologies ignore an `aria-*` attribute they do not know, so a typo does nothing.
+
+Flagged
+
+```slim
+button aria-lable="Close" type="button"
+```
+
+`aria-lable` is not an ARIA attribute
+
+Clean
+
+```slim
+button aria-label="Close" type="button"
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `true` | `true` runs the rule, `false` turns it off |
+
+##### [ButtonType](https://levups.github.io/super-slim/tools.html#ButtonType)
+
+Off by default
+
+A `button` without `type` submits its form: saying `button` or `submit` avoids a submission nobody meant.
+
+Flagged
+
+```slim
+button Save
+```
+
+Say what the button does with `type="button"` or `type="submit"`
+
+Clean
+
+```slim
+button type="submit" Save
+```
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `enabled` | `false` | `true` runs the rule, `false` turns it off |
+
+## SuperSlim Benchmarks
+
+<https://levups.github.io/super-slim/benchmarks.html>
+
+Regenerated by `rake bench` before each release, on a quiet machine. Every chart has its table, and every number can be reproduced on your own machine.
+
+### In short
+
+SuperSlim compiles templates several times faster than Slim, renders them faster, and allocates fewer objects doing both. These are template engine numbers, measured on templates alone. In a real request, the database and the network usually take longer than the template, so a page won’t get several times faster. Where the difference shows: the first requests after a deploy, every reload in development, and less work for the garbage collector on a busy server.
+
+Objects allocated are what we count rather than memory: they are exact and repeatable from one run to the next, where memory depends on the garbage collector’s timing. If you measure something different on your app, we would like to hear about it, [on GitHub](https://github.com/levups/super-slim/issues).
+
+### One page, five engines
+
+The latest numbers are in [benchmarks.json](https://levups.github.io/super-slim/benchmarks.json).
+
+Rendering is what a production server repeats on every request. Compiling happens once per template and process: it is the first requests after a deploy, and every page in development.
+
+### Whole apps
+
+Every `.slim` template compiled once, the way a fresh server process does on its first requests, counting only the templates both engines compile. Median of 7 runs.
+
+### Formatter and linter
+
+### Why it is faster
+
+**Compiling.** Slim parses a template into an S-expression, then runs it through about twenty Temple filters, each rebuilding the tree. SuperSlim parses each line once with a single `StringScanner` into a small tree, and one compiler walks it and writes Ruby.
+
+**Rendering.** The Ruby SuperSlim writes appends frozen strings to one buffer, escapes with `ERB::Escape`, the C function Rails itself uses, and inlines dynamic attributes as a `case` on their value, so a `true`, `false` or `nil` attribute costs no method call. Static attributes, classes and ids are merged at compile time.
+
+**Allocating.** Each parsed node is a `Struct` rather than a `Data` (two fewer objects, 2.8 times faster to build), and the parser never slices a line it can scan in place.
+
+### Reproduce
+
+```sh
+bundle exec rake corpus:fetch                       # the open-source corpus, .slim files only
+SUPER_SLIM_CORPUS=path/to/app/views bundle exec rake bench  # adds your own app
+```
+
+`bench/compare.rb` renders the same blog page from `bench/compare/` in Slim, Haml and ERB, fails if any engine renders different HTML, measures with `benchmark-ips` under YJIT, and writes `docs/benchmarks.json`, which every page of this site reads.

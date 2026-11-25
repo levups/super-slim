@@ -10,6 +10,9 @@ parser, so they never disagree with it about what a template means.
 
 Website and guide: https://levups.github.io/super-slim/
 
+Coding agents can start from <https://levups.github.io/super-slim/llms.txt>, or read this README and the
+website's pages as one Markdown file: <https://levups.github.io/super-slim/llms-full.txt>.
+
 ## Why SuperSlim
 
 A template engine does two jobs. It compiles each template into Ruby code, which Rails does the first time a

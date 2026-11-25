@@ -1,0 +1,21 @@
+# SuperSlim
+
+> A Slim template engine that compiles and renders faster, with a formatter and a linter
+
+Install with `gem "super-slim"` in the Gemfile.
+
+## Docs
+
+- [Everything in one file](https://levups.github.io/super-slim/llms-full.txt): the README, then every page below but the home page, in Markdown
+- [SuperSlim: your Slim templates, as they are, with a faster engine, a formatter and a linter](https://levups.github.io/super-slim/): SuperSlim is a new engine for Slim, the Ruby template language: your templates render the same HTML, byte for byte, faster and with fewer allocations, and it brings a formatter, a linter and Tailwind class names.
+- [SuperSlim Guide](https://levups.github.io/super-slim/guide.html): Install SuperSlim in Rails or plain Ruby, configure it, use Tailwind class names, and read what it adds to Slim.
+- [Switching from Slim to SuperSlim](https://levups.github.io/super-slim/migrate.html): Move a Ruby or Rails app from Slim to SuperSlim one small step at a time, each step useful on its own and easy to undo, by hand or with an AI coding agent.
+- [SuperSlim Testing](https://levups.github.io/super-slim/testing.html): How SuperSlim proves it renders what Slim renders: Slim's own suites, a fuzzer, golden snapshots, and 6,094 templates from 30 open-source projects.
+- [SuperSlim Formatter and Linter](https://levups.github.io/super-slim/tools.html): super-slim format rewrites Slim templates in one layout and cannot change a page; super-slim lint checks layout, Rails and accessibility rules.
+
+## Optional
+
+- [SuperSlim Benchmarks](https://levups.github.io/super-slim/benchmarks.html): SuperSlim against Slim, Haml, Erubi and Herb: compile and render speed, allocations, whole-app compile time, and lint time against slim-lint.
+- [Benchmark numbers](https://levups.github.io/super-slim/benchmarks.json): the latest measurements, as JSON
+- [Changelog](https://github.com/levups/super-slim/blob/main/CHANGELOG.md): what changed in each version
+- [Source code](https://github.com/levups/super-slim)
