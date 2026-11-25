@@ -753,36 +753,36 @@ Downloaded templates are never rendered: rendering runs their Ruby. A production
 
 `rake corpus:diff BASE=main` compares two revisions over the whole corpus (compiled Ruby, formatting, lint offenses), so a refactoring that changes nothing proves it.
 
-- [fjordllc/bootcamp](https://github.com/fjordllc/bootcamp)712
-- [shikimori/shikimori](https://github.com/shikimori/shikimori)555
-- [DFE-Digital/teaching-vacancies](https://github.com/DFE-Digital/teaching-vacancies)541
-- [betagouv/rdv-service-public](https://github.com/betagouv/rdv-service-public)491
-- [benwbrum/fromthepage](https://github.com/benwbrum/fromthepage)350
-- [solectrus/solectrus](https://github.com/solectrus/solectrus)281
-- [fairmondo/fairmondo](https://github.com/fairmondo/fairmondo)242
-- [tryzealot/zealot](https://github.com/tryzealot/zealot)239
-- [catarse/catarse](https://github.com/catarse/catarse)236
-- [nbgallery/nbgallery](https://github.com/nbgallery/nbgallery)175
-- [brave-intl/publishers](https://github.com/brave-intl/publishers)173
-- [openHPI/codeocean](https://github.com/openHPI/codeocean)170
-- [freeats/freeats](https://github.com/freeats/freeats)170
-- [wearefine/fae](https://github.com/wearefine/fae)165
-- [weg-li/weg-li](https://github.com/weg-li/weg-li)155
-- [pivorakmeetup/pivorak-web-app](https://github.com/pivorakmeetup/pivorak-web-app)146
-- [windy/cywin](https://github.com/windy/cywin)145
-- [hpyhacking/peatio](https://github.com/hpyhacking/peatio)137
-- [noosfero/noosfero](https://github.com/noosfero/noosfero)119
-- [ujh/fountainpencompanion](https://github.com/ujh/fountainpencompanion)112
-- [locomotivecms/engine](https://github.com/locomotivecms/engine)110
-- [asciidoctor/asciidoctor-backends](https://github.com/asciidoctor/asciidoctor-backends)109
-- [amahi/platform](https://github.com/amahi/platform)109
-- [square/shuttle](https://github.com/square/shuttle)102
-- [rubytoolbox/rubytoolbox](https://github.com/rubytoolbox/rubytoolbox)87
-- [chloerei/writings](https://github.com/chloerei/writings)77
-- [annict/annict](https://github.com/annict/annict)59
-- [Coursemology/coursemology2](https://github.com/Coursemology/coursemology2)55
-- [jirutka/asciidoctor-html5s](https://github.com/jirutka/asciidoctor-html5s)44
-- [codetriage/CodeTriage](https://github.com/codetriage/CodeTriage)31
+- [fjordllc/bootcamp](https://github.com/fjordllc/bootcamp) · 712
+- [shikimori/shikimori](https://github.com/shikimori/shikimori) · 555
+- [DFE-Digital/teaching-vacancies](https://github.com/DFE-Digital/teaching-vacancies) · 541
+- [betagouv/rdv-service-public](https://github.com/betagouv/rdv-service-public) · 491
+- [benwbrum/fromthepage](https://github.com/benwbrum/fromthepage) · 350
+- [solectrus/solectrus](https://github.com/solectrus/solectrus) · 281
+- [fairmondo/fairmondo](https://github.com/fairmondo/fairmondo) · 242
+- [tryzealot/zealot](https://github.com/tryzealot/zealot) · 239
+- [catarse/catarse](https://github.com/catarse/catarse) · 236
+- [nbgallery/nbgallery](https://github.com/nbgallery/nbgallery) · 175
+- [brave-intl/publishers](https://github.com/brave-intl/publishers) · 173
+- [openHPI/codeocean](https://github.com/openHPI/codeocean) · 170
+- [freeats/freeats](https://github.com/freeats/freeats) · 170
+- [wearefine/fae](https://github.com/wearefine/fae) · 165
+- [weg-li/weg-li](https://github.com/weg-li/weg-li) · 155
+- [pivorakmeetup/pivorak-web-app](https://github.com/pivorakmeetup/pivorak-web-app) · 146
+- [windy/cywin](https://github.com/windy/cywin) · 145
+- [hpyhacking/peatio](https://github.com/hpyhacking/peatio) · 137
+- [noosfero/noosfero](https://github.com/noosfero/noosfero) · 119
+- [ujh/fountainpencompanion](https://github.com/ujh/fountainpencompanion) · 112
+- [locomotivecms/engine](https://github.com/locomotivecms/engine) · 110
+- [asciidoctor/asciidoctor-backends](https://github.com/asciidoctor/asciidoctor-backends) · 109
+- [amahi/platform](https://github.com/amahi/platform) · 109
+- [square/shuttle](https://github.com/square/shuttle) · 102
+- [rubytoolbox/rubytoolbox](https://github.com/rubytoolbox/rubytoolbox) · 87
+- [chloerei/writings](https://github.com/chloerei/writings) · 77
+- [annict/annict](https://github.com/annict/annict) · 59
+- [Coursemology/coursemology2](https://github.com/Coursemology/coursemology2) · 55
+- [jirutka/asciidoctor-html5s](https://github.com/jirutka/asciidoctor-html5s) · 44
+- [codetriage/CodeTriage](https://github.com/codetriage/CodeTriage) · 31
 
 ### Every commit
 
