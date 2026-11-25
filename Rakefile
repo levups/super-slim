@@ -41,6 +41,7 @@ desc "Rewrite the linter rules of the website (docs/tools.html) from examples ch
 task :docs do
   ruby "-Ilib", "script/website_linter_rules.rb"
   Rake::Task["docs:highlight"].invoke
+  Rake::Task["docs:llms"].invoke
 end
 
 namespace :corpus do
@@ -67,5 +68,15 @@ namespace :docs do
   desc "Fail if a code block of docs/*.html is not highlighted"
   task "highlight:check" do
     ruby "script/highlight_docs.rb", "--check"
+  end
+
+  desc "Write docs/llms.txt and docs/llms-full.txt from docs/*.html and the README"
+  task :llms do
+    ruby "script/llms_docs.rb"
+  end
+
+  desc "Fail if docs/llms.txt or docs/llms-full.txt is out of date"
+  task "llms:check" do
+    ruby "script/llms_docs.rb", "--check"
   end
 end
