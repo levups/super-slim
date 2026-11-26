@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "open3"
+require "prism"
 require "rbconfig"
 require "super_slim"
 require "super_slim/linter"
@@ -44,6 +46,7 @@ class RactorTest < Minitest::Test
 
   def test_every_constant_can_be_shared
     require "super_slim/cli"
+    require "super_slim/formatter"
     unshareable = constants_of(SuperSlim).reject { |_name, value| Ractor.shareable?(value) }.map(&:first)
 
     # The formatter's caches stay mutable on the main Ractor: other Ractors fill caches of their own.
@@ -51,54 +54,65 @@ class RactorTest < Minitest::Test
   end
 
   def test_compiles_in_a_ractor
-    skip_unless_erb_escapes_in_ractors
+    skip_unless_ractors_can_escape_and_parse
     assert_equal SuperSlim.compile(SOURCE, file: "page.slim"), in_ractor { SuperSlim.compile(RactorTest::SOURCE, file: "page.slim") }
   end
 
   def test_renders_in_a_ractor
-    skip_unless_erb_escapes_in_ractors
+    skip_unless_ractors_can_escape_and_parse
     Page.class_eval("def render\n#{SuperSlim.compile(SOURCE, file: "page.slim")}\nend", __FILE__, __LINE__)
 
     assert_equal Page.new("Posts", Page.posts).render, in_ractor { RactorTest::Page.new("Posts", RactorTest::Page.posts).render }
   end
 
   def test_formats_in_a_ractor
-    skip_unless_erb_escapes_in_ractors
+    skip_unless_ractors_can_escape_and_parse
     expected = [SuperSlim::Formatter.call(NEGATED_IF), SuperSlim::Formatter.new(max_line_length: 60).call(LONG_LINE)]
 
     assert_equal expected, in_ractor { [SuperSlim::Formatter.call(RactorTest::NEGATED_IF), SuperSlim::Formatter.new(max_line_length: 60).call(RactorTest::LONG_LINE)] }
   end
 
+  def test_a_shareable_formatter_leaves_the_caches_mutable
+    Ractor.make_shareable(SuperSlim::Formatter.new)
+
+    assert_equal "- unless x\n  p Hi\n", SuperSlim::Formatter.call(NEGATED_IF)
+  end
+
   def test_lints_in_a_ractor
+    skip_unless_ractors_can_escape_and_parse
     expected = SuperSlim::Linter.new.call("page.slim", LINTED).map(&:to_s)
 
     assert_equal expected, in_ractor { SuperSlim::Linter.new.call("page.slim", RactorTest::LINTED).map(&:to_s) }
   end
 
-  # Nothing loaded on the main Ractor first: Ruby 3.3 can't autoload outside it.
+  # 2026-11: Ruby 3.3 can't autoload outside the main Ractor, so the README asks it to require the formatter first.
   def test_lints_and_formats_in_a_ractor_of_a_fresh_process
-    skip_unless_erb_escapes_in_ractors
+    skip_unless_ractors_can_escape_and_parse
     script = <<~RUBY
       Warning[:experimental] = false
       require "super_slim"
       require "super_slim/linter"
+      require "super_slim/formatter" if RUBY_VERSION < "3.4"
       ractor = Ractor.new do
         [SuperSlim::Linter.new.call("page.slim", #{LINTED.dump}).size, SuperSlim::Formatter.call(#{NEGATED_IF.dump})]
       end
       p(ractor.respond_to?(:value) ? ractor.value : ractor.take)
     RUBY
-    output = IO.popen([RbConfig.ruby, "-I", File.expand_path("../lib", __dir__), "-e", script], err: [:child, :out], &:read)
+    output, errors, status = Open3.capture3(RbConfig.ruby, "-I", File.expand_path("../lib", __dir__), "-e", script)
 
+    assert status.success?, errors
     assert_equal %([#{SuperSlim::Linter.new.call("page.slim", LINTED).size}, #{SuperSlim::Formatter.call(NEGATED_IF).dump}]\n), output
   end
 
   private
 
-  # Compiling escapes static attribute text, and rendering escapes values, with ERB::Escape: Ractor-safe since erb
-  # 5.0.2, which Ruby 3.3 and 3.4 don't ship (2026-11). Its VERSION is a private constant before erb 5.
-  def skip_unless_erb_escapes_in_ractors
-    version = ERB.const_get(:VERSION)
-    skip "erb #{version} can't escape outside the main Ractor" if Gem::Version.new(version) < Gem::Version.new("5.0.2")
+  # 2026-11: outside the main Ractor, escaping needs erb 5.0.2 and parsing Prism 1.5, which Ruby 3.3 doesn't ship.
+  # Compiling escapes static attribute text, rendering escapes values, formatting and linting parse Ruby.
+  # erb's VERSION is a private constant before erb 5.
+  def skip_unless_ractors_can_escape_and_parse
+    erb_version = ERB.const_get(:VERSION)
+    skip "erb #{erb_version} can't escape outside the main Ractor" if Gem::Version.new(erb_version) < Gem::Version.new("5.0.2")
+    skip "Prism #{Prism::VERSION} can't parse outside the main Ractor" if Gem::Version.new(Prism::VERSION) < Gem::Version.new("1.5.0")
   end
 
   def in_ractor(&block)

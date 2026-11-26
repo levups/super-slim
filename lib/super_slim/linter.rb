@@ -229,5 +229,3 @@ end
 
 require_relative "linter/presets"
 require_relative "linter/rules"
-# Rules read the formatter's constants. Ruby 3.3 can't autoload it outside the main Ractor.
-require_relative "formatter"
