@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# shareable_constant_value: experimental_everything
 
 require "tempfile"
 require_relative "../super_slim"

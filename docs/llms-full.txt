@@ -69,6 +69,11 @@ ruby_code = SuperSlim.compile(File.read("page.slim"), file: "page.slim") # file:
 html = eval(ruby_code, binding)
 ```
 
+SuperSlim compiles, renders, formats and lints from any Ractor. Outside the main Ractor, escaping needs erb 5.0.2
+or later and parsing Prism 1.5 or later: Ruby 4.0 ships both. Ruby 3.3 and 3.4 need `gem "erb"` in your Gemfile,
+and `gem "prism"` too when theirs is older (Ruby 3.4.0 ships Prism 1.2, Ruby 3.4.8 1.5.2). Ruby 3.3 also can't autoload outside the main Ractor: `require "super_slim/formatter"` there
+first. A `markdown:` block compiles on the main Ractor only, as markly can't leave it.
+
 ## A first template
 
 ```slim

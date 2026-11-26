@@ -418,13 +418,14 @@ module SuperSlim
     # a deep template would exhaust Ruby's.
     def same_node?(node, other_node)
       pending_values = [node, other_node]
+      comparator_by_node_class = Formatter.send(:ractor_cache, :COMPARATOR_BY_NODE_CLASS)
       until pending_values.empty?
         other_value = pending_values.pop
         value = pending_values.pop
         case value
         when Prism::Node
           if value.instance_of?(other_value.class)
-            return false unless node_comparator(value).call(value, other_value, pending_values)
+            return false unless node_comparator(value, comparator_by_node_class).call(value, other_value, pending_values)
           else
             pairs = negated_if_pairs(value, other_value) or return false
             pending_values.concat(pairs)
@@ -459,12 +460,20 @@ module SuperSlim
       [negation.receiver, unless_node.predicate, if_node.statements, unless_node.statements]
     end
 
-    def node_comparator(node)
-      COMPARATOR_BY_NODE_CLASS[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
+    def node_comparator(node, comparator_by_node_class)
+      comparator_by_node_class[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
     end
 
     class << self
       private
+
+      # The constant on the main Ractor, shared by every formatter. Another Ractor can't read a mutable constant: it
+      # fills caches of its own. TruffleRuby has no Ractor.
+      def ractor_cache(name)
+        return const_get(name) if !defined?(Ractor) || Ractor.current == Ractor.main
+
+        Ractor.current[:"super_slim_#{name.downcase}"] ||= {}
+      end
 
       # Compares what two nodes of one class hold besides their children, and pushes their children on `pending_values`.
       def comparator_for(node_class, field_names, located_names, flagged)
@@ -511,7 +520,7 @@ module SuperSlim
     # 2026-11: Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each
     # class. Prism 1.x keeps flags out of deconstruct_keys.
     def node_fields(node)
-      FIELDS_BY_NODE_CLASS[node.class] ||= begin
+      Formatter.send(:ractor_cache, :FIELDS_BY_NODE_CLASS)[node.class] ||= begin
         keys = node.deconstruct_keys(nil).keys
         located_names, field_names = (keys - %i[node_id flags location])
           .reject { _1.end_with?("_loc") }
