@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [3.8.0] — 2026-11-26
+
+SuperSlim now works from any Ractor, and the formatter and the linter load on their own.
+
+**New**
+- Compiling, rendering, formatting and linting work from any Ractor, with the same result as on the main one.
+  Outside the main Ractor, escaping needs erb 5.0.2 and parsing Prism 1.5, which Ruby 4.0 ships: Ruby 3.3 and 3.4
+  need `gem "erb"` in the Gemfile, and `gem "prism"` when theirs is older. Ruby 3.3, which can't autoload outside
+  the main Ractor, needs `require "super_slim/formatter"` on the main Ractor first. A `markdown:` block still
+  compiles on the main Ractor only. The constants under `SuperSlim` are now deeply frozen, nested values included.
+
+**Fixed**
+- `require "super_slim/formatter"` and `require "super_slim/linter"` work without `require "super_slim"` first: the
+  formatter raised `NameError` while loading, and the linter on its first call. Requiring the formatter after the
+  engine no longer warns of a circular require under `ruby -w`.
+
 ## [3.7.0] — 2026-11-24
 
 Faster rendering of splats and data hashes, faster compiling, and one fix.
@@ -345,7 +361,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.7.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.8.0...HEAD
+[3.8.0]: https://github.com/levups/super-slim/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/levups/super-slim/compare/v3.6.3...v3.7.0
 [3.6.3]: https://github.com/levups/super-slim/compare/v3.6.2...v3.6.3
 [3.6.2]: https://github.com/levups/super-slim/compare/v3.6.1...v3.6.2
