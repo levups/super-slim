@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "set" # rubocop:disable Lint/RedundantRequireStatement -- 2026-11: Ruby 3.3 can't autoload Set outside the main Ractor
 require "strscan"
 require_relative "parser/ruby_brackets"
 

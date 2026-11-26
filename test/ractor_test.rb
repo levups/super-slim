@@ -60,9 +60,16 @@ class RactorTest < Minitest::Test
 
   def test_renders_in_a_ractor
     skip_unless_ractors_can_escape_and_parse
-    Page.class_eval("def render\n#{SuperSlim.compile(SOURCE, file: "page.slim")}\nend", __FILE__, __LINE__)
+    # Both escapings, html_safe? being defined when another test loaded Active Support.
+    Page.class_eval("def render\n#{SuperSlim.compile(SOURCE, file: "page.slim", html_safe: false)}\nend", __FILE__, __LINE__)
+    Page.class_eval("def render_html_safe\n#{SuperSlim.compile(SOURCE, file: "page.slim", html_safe: true)}\nend", __FILE__, __LINE__)
+    page = Page.new("Posts", Page.posts)
+    expected = [page.render, *(page.render_html_safe if String.method_defined?(:html_safe?))]
 
-    assert_equal Page.new("Posts", Page.posts).render, in_ractor { RactorTest::Page.new("Posts", RactorTest::Page.posts).render }
+    assert_equal expected, in_ractor {
+      ractor_page = RactorTest::Page.new("Posts", RactorTest::Page.posts)
+      [ractor_page.render, *(ractor_page.render_html_safe if String.method_defined?(:html_safe?))]
+    }
   end
 
   def test_formats_in_a_ractor
@@ -73,9 +80,15 @@ class RactorTest < Minitest::Test
   end
 
   def test_a_shareable_formatter_leaves_the_caches_mutable
-    Ractor.make_shareable(SuperSlim::Formatter.new)
+    skip_unless_ractors_can_escape_and_parse
+    formatter = SuperSlim::Formatter.new
+    formatter.call(NEGATED_IF)
+    Ractor.make_shareable(formatter)
 
-    assert_equal "- unless x\n  p Hi\n", SuperSlim::Formatter.call(NEGATED_IF)
+    refute_predicate SuperSlim::Formatter::COMPARATOR_BY_NODE_CLASS, :frozen?
+    refute_predicate SuperSlim::Formatter::FIELDS_BY_NODE_CLASS, :frozen?
+    assert_equal "- unless x\n  p Hi\n", formatter.call(NEGATED_IF)
+    assert_equal "- unless x\n  p Hi\n", in_ractor(formatter) { _1.call(RactorTest::NEGATED_IF) }
   end
 
   def test_lints_in_a_ractor
@@ -85,26 +98,36 @@ class RactorTest < Minitest::Test
     assert_equal expected, in_ractor { SuperSlim::Linter.new.call("page.slim", RactorTest::LINTED).map(&:to_s) }
   end
 
-  # 2026-11: Ruby 3.3 can't autoload outside the main Ractor, so the README asks it to require the formatter first.
-  def test_lints_and_formats_in_a_ractor_of_a_fresh_process
+  # Nothing else loaded on the main Ractor first: whatever is left to autoload, such as Set, loads in the Ractor.
+  def test_formats_in_a_ractor_of_a_fresh_process
     skip_unless_ractors_can_escape_and_parse
+    assert_equal SuperSlim::Formatter.call(NEGATED_IF).inspect, in_fresh_ractor("SuperSlim::Formatter.call(#{NEGATED_IF.dump})")
+  end
+
+  def test_lints_in_a_ractor_of_a_fresh_process
+    skip_unless_ractors_can_escape_and_parse
+    expected = SuperSlim::Linter.new.call("page.slim", LINTED).map(&:to_s).inspect
+
+    assert_equal expected, in_fresh_ractor(%(SuperSlim::Linter.new.call("page.slim", #{LINTED.dump}).map(&:to_s)), "super_slim/linter")
+  end
+
+  private
+
+  # 2026-11: Ruby 3.3 can't autoload outside the main Ractor, so the README asks it to require the formatter first.
+  def in_fresh_ractor(code, *features)
     script = <<~RUBY
       Warning[:experimental] = false
       require "super_slim"
-      require "super_slim/linter"
+      #{features.map { "require #{_1.dump}" }.join("\n")}
       require "super_slim/formatter" if RUBY_VERSION < "3.4"
-      ractor = Ractor.new do
-        [SuperSlim::Linter.new.call("page.slim", #{LINTED.dump}).size, SuperSlim::Formatter.call(#{NEGATED_IF.dump})]
-      end
+      ractor = Ractor.new { #{code} }
       p(ractor.respond_to?(:value) ? ractor.value : ractor.take)
     RUBY
     output, errors, status = Open3.capture3(RbConfig.ruby, "-I", File.expand_path("../lib", __dir__), "-e", script)
 
     assert status.success?, errors
-    assert_equal %([#{SuperSlim::Linter.new.call("page.slim", LINTED).size}, #{SuperSlim::Formatter.call(NEGATED_IF).dump}]\n), output
+    output.chomp
   end
-
-  private
 
   # 2026-11: outside the main Ractor, escaping needs erb 5.0.2 and parsing Prism 1.5, which Ruby 3.3 doesn't ship.
   # Compiling escapes static attribute text, rendering escapes values, formatting and linting parse Ruby.
@@ -115,10 +138,10 @@ class RactorTest < Minitest::Test
     skip "Prism #{Prism::VERSION} can't parse outside the main Ractor" if Gem::Version.new(Prism::VERSION) < Gem::Version.new("1.5.0")
   end
 
-  def in_ractor(&block)
+  def in_ractor(*arguments, &block)
     experimental = Warning[:experimental]
     Warning[:experimental] = false
-    ractor = Ractor.new(&block)
+    ractor = Ractor.new(*arguments, &block)
     # 2026-11: Ruby 4.0 replaced Ractor#take with Ractor#value.
     ractor.respond_to?(:value) ? ractor.value : ractor.take
   ensure
