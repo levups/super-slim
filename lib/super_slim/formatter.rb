@@ -1,6 +1,14 @@
 # frozen_string_literal: true
 
 require "prism"
+require_relative "../super_slim"
+
+module SuperSlim
+  # Defined here before the files below reopen it: from them, the autoload of SuperSlim::Formatter would load this
+  # file again, a circular require.
+  class Formatter; end
+end
+
 require_relative "formatter/attribute_arranger"
 require_relative "formatter/code_wrapper"
 require_relative "formatter/line_wrapper"
