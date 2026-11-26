@@ -69,6 +69,9 @@ ruby_code = SuperSlim.compile(File.read("page.slim"), file: "page.slim") # file:
 html = eval(ruby_code, binding)
 ```
 
+SuperSlim compiles, renders, formats and lints from any Ractor. Outside the main Ractor, escaping needs erb 5.0.2
+or later: Ruby 4.0 ships it, and on Ruby 3.3 or 3.4 `gem "erb"` in your Gemfile brings it.
+
 ## A first template
 
 ```slim

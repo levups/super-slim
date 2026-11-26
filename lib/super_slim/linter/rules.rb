@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# shareable_constant_value: experimental_everything
 
 require "prism"
 
@@ -17,8 +18,9 @@ module SuperSlim
         DEFAULTS = {enabled: true}.freeze
         GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB | File::FNM_DOTMATCH
 
+        # Not memoized: a Ractor other than the main one can't set a class's instance variable.
         def self.rule_name
-          @rule_name ||= name.split("::").last
+          name.split("::").last
         end
 
         def initialize(options)
