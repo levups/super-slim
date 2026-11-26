@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
 require "minitest/autorun"
+require "rbconfig"
 require "super_slim"
 require "super_slim/linter"
-require "super_slim/rails_handler"
 require "erb/version"
-
-Warning[:experimental] = false # Ractor
 
 # Compiling, rendering, formatting and linting from a Ractor other than the main one, as Rails may one day do.
 class RactorTest < Minitest::Test
@@ -19,6 +17,10 @@ class RactorTest < Minitest::Test
           *{tag: post[:tag]} Hello
           li class=[post[:a], post[:b]] class="tag tag-#{post[:id]}"
   SLIM
+  # A rewrite the formatter checks against the compiled Ruby, and a line it wraps.
+  NEGATED_IF = "- if !x\n  p Hi\n"
+  LONG_LINE = %(a.btn.btn-primary.btn-lg href=post_path(post) title=post.title data-turbo-method="delete" data-confirm="Are you sure?" Delete\n)
+  LINTED = "div\n  p= title  \n  div.card Hello\n"
 
   class Page
     def initialize(title, posts)
@@ -42,15 +44,10 @@ class RactorTest < Minitest::Test
 
   def test_every_constant_can_be_shared
     require "super_slim/cli"
-    require "super_slim/formatter"
     unshareable = constants_of(SuperSlim).reject { |_name, value| Ractor.shareable?(value) }.map(&:first)
 
     # The formatter's caches stay mutable on the main Ractor: other Ractors fill caches of their own.
-    assert_equal %w[SuperSlim::Formatter::FIELDS_BY_NODE_CLASS SuperSlim::Formatter::COMPARATOR_BY_NODE_CLASS].sort, unshareable.sort
-  end
-
-  def test_the_rails_handler_can_be_shared
-    assert Ractor.shareable?(SuperSlim::RailsHandler.new.freeze)
+    assert_equal %w[SuperSlim::Formatter::COMPARATOR_BY_NODE_CLASS SuperSlim::Formatter::FIELDS_BY_NODE_CLASS], unshareable.sort
   end
 
   def test_compiles_in_a_ractor
@@ -67,16 +64,32 @@ class RactorTest < Minitest::Test
 
   def test_formats_in_a_ractor
     skip_unless_erb_escapes_in_ractors
-    source = "div\n  p= title\n  - if  posts.any?\n    span(class=\"a\")  Hello\n"
+    expected = [SuperSlim::Formatter.call(NEGATED_IF), SuperSlim::Formatter.new(max_line_length: 60).call(LONG_LINE)]
 
-    assert_equal SuperSlim::Formatter.call(source), in_ractor(source) { SuperSlim::Formatter.call(_1) }
+    assert_equal expected, in_ractor { [SuperSlim::Formatter.call(RactorTest::NEGATED_IF), SuperSlim::Formatter.new(max_line_length: 60).call(RactorTest::LONG_LINE)] }
   end
 
   def test_lints_in_a_ractor
-    source = "div\n  p= title  \n  div.card Hello\n"
-    expected = SuperSlim::Linter.new.call("page.slim", source).map(&:to_s)
+    expected = SuperSlim::Linter.new.call("page.slim", LINTED).map(&:to_s)
 
-    assert_equal expected, in_ractor(source) { SuperSlim::Linter.new.call("page.slim", _1).map(&:to_s) }
+    assert_equal expected, in_ractor { SuperSlim::Linter.new.call("page.slim", RactorTest::LINTED).map(&:to_s) }
+  end
+
+  # Nothing loaded on the main Ractor first: Ruby 3.3 can't autoload outside it.
+  def test_lints_and_formats_in_a_ractor_of_a_fresh_process
+    skip_unless_erb_escapes_in_ractors
+    script = <<~RUBY
+      Warning[:experimental] = false
+      require "super_slim"
+      require "super_slim/linter"
+      ractor = Ractor.new do
+        [SuperSlim::Linter.new.call("page.slim", #{LINTED.dump}).size, SuperSlim::Formatter.call(#{NEGATED_IF.dump})]
+      end
+      p(ractor.respond_to?(:value) ? ractor.value : ractor.take)
+    RUBY
+    output = IO.popen([RbConfig.ruby, "-I", File.expand_path("../lib", __dir__), "-e", script], err: [:child, :out], &:read)
+
+    assert_equal %([#{SuperSlim::Linter.new.call("page.slim", LINTED).size}, #{SuperSlim::Formatter.call(NEGATED_IF).dump}]\n), output
   end
 
   private
@@ -88,21 +101,24 @@ class RactorTest < Minitest::Test
     skip "erb #{version} can't escape outside the main Ractor" if Gem::Version.new(version) < Gem::Version.new("5.0.2")
   end
 
-  def in_ractor(*arguments, &block)
-    ractor = Ractor.new(*arguments, &block)
+  def in_ractor(&block)
+    experimental = Warning[:experimental]
+    Warning[:experimental] = false
+    ractor = Ractor.new(&block)
     # 2026-11: Ruby 4.0 replaced Ractor#take with Ractor#value.
     ractor.respond_to?(:value) ? ractor.value : ractor.take
+  ensure
+    Warning[:experimental] = experimental
   end
 
-  def constants_of(namespace, seen = {})
-    return [] if seen[namespace]
+  def constants_of(namespace, visited_namespaces = Set.new)
+    return [] unless visited_namespaces.add?(namespace)
 
-    seen[namespace] = true
     namespace.constants(false).flat_map do |name|
       next [] if namespace.autoload?(name)
 
       value = namespace.const_get(name, false)
-      next constants_of(value, seen) if value.is_a?(Module) && value.name&.start_with?("SuperSlim")
+      next constants_of(value, visited_namespaces) if value.is_a?(Module) && value.name&.start_with?("SuperSlim")
 
       [["#{namespace}::#{name}", value]]
     end

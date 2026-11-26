@@ -41,13 +41,6 @@ module SuperSlim
       new(**).call(source)
     end
 
-    # A Ractor other than the main one can't read a mutable constant: it fills caches of its own.
-    def self.cache(main_ractor_cache, name)
-      return main_ractor_cache if !defined?(Ractor) || Ractor.current == Ractor.main
-
-      Ractor.current[name] ||= {}
-    end
-
     # Slim's own test for a block: children that render something, a comment alone opens none.
     def self.block_opening_linenos(parser)
       parser.line_by_node.filter_map do |node, lineno|
@@ -68,6 +61,8 @@ module SuperSlim
     def initialize(tailwind_classes: SuperSlim.tailwind_classes, max_line_length: nil, attribute_delimiters: "()")
       @tailwind_classes = tailwind_classes
       @line_wrapper = LineWrapper.new(max_line_length, tailwind_classes:, attribute_delimiters:) if max_line_length
+      @fields_by_node_class = Formatter.send(:ractor_cache, :FIELDS_BY_NODE_CLASS)
+      @comparator_by_node_class = Formatter.send(:ractor_cache, :COMPARATOR_BY_NODE_CLASS)
     end
 
     # With max_line_length, a pass can leave work for the next: brackets it spread fit once joined back without the
@@ -459,11 +454,19 @@ module SuperSlim
     end
 
     def node_comparator(node)
-      Formatter.cache(COMPARATOR_BY_NODE_CLASS, :super_slim_comparator_by_node_class)[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
+      @comparator_by_node_class[node.class] ||= Formatter.send(:comparator_for, node.class, *node_fields(node))
     end
 
     class << self
       private
+
+      # The constant on the main Ractor, shared by every formatter. Another Ractor can't read a mutable constant: it
+      # fills caches of its own. TruffleRuby has no Ractor.
+      def ractor_cache(name)
+        return const_get(name) if !defined?(Ractor) || Ractor.current == Ractor.main
+
+        Ractor.current[:"super_slim_#{name.downcase}"] ||= {}
+      end
 
       # Compares what two nodes of one class hold besides their children, and pushes their children on `pending_values`.
       def comparator_for(node_class, field_names, located_names, flagged)
@@ -510,7 +513,7 @@ module SuperSlim
     # 2026-11: Prism 0.19 (Ruby 3.3) has no reflection API: the field names come from the first node of each
     # class. Prism 1.x keeps flags out of deconstruct_keys.
     def node_fields(node)
-      Formatter.cache(FIELDS_BY_NODE_CLASS, :super_slim_fields_by_node_class)[node.class] ||= begin
+      @fields_by_node_class[node.class] ||= begin
         keys = node.deconstruct_keys(nil).keys
         located_names, field_names = (keys - %i[node_id flags location])
           .reject { _1.end_with?("_loc") }

@@ -70,7 +70,8 @@ html = eval(ruby_code, binding)
 ```
 
 SuperSlim compiles, renders, formats and lints from any Ractor. Outside the main Ractor, escaping needs erb 5.0.2
-or later: Ruby 4.0 ships it, and on Ruby 3.3 or 3.4 `gem "erb"` in your Gemfile brings it.
+or later and parsing Prism 1.5 or later: Ruby 4.0 ships both, Ruby 3.4 needs `gem "erb"` in your Gemfile, and Ruby
+3.3 `gem "erb"` and `gem "prism"`. A `markdown:` block compiles on the main Ractor only, as markly can't leave it.
 
 ## A first template
 
