@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "yaml"
+require_relative "../super_slim"
 
 module SuperSlim
   class Linter
