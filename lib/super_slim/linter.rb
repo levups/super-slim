@@ -2,6 +2,7 @@
 # shareable_constant_value: experimental_everything
 
 require "yaml"
+require_relative "../super_slim"
 
 module SuperSlim
   class Linter
