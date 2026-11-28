@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [3.8.1] — 2026-11-28
+
+A `#` in a regexp or a character literal no longer breaks templates Slim renders, `super-slim format` takes negated conditions it used to refuse, and five lint rules give advice that holds.
+
+**Fixed**
+- A `#` inside a regexp, a %-literal or a character literal (`= name.split /#/`, `- when /#\d/`, `%w|a #b|`, `= name + ?#`, `= s.end_with? ?#`) no longer cuts the line of code: templates Slim renders no longer raise a SyntaxError.
+- `super-slim format` no longer refuses a template whose negated `- if !…` continues onto the next line, or holds a range, `in`, a subtraction or `; else`. An operator inside a string or brackets no longer stops it from becoming `- unless`.
+- SlimSyntax no longer reports comments on `-` lines that Slim reads (`- if post.published? # c`, `- count = 1 # c`), only those that hide the `do` or the `end` Slim adds.
+- UnnecessaryStringOutput and UnnecessaryInterpolation suggest text that renders the same: they keep the spaces from `=<`, `=>`, `'`, `|<` and `|>`, and put text Slim would read inline as an attribute or a tag (`x=1`, `: x`) on its own line under the tag.
+- SoleNestedConditional writes out the merged condition (`if !a && b`) instead of "merge with `&&`", which was wrong under an outer `unless` or around `||`. It suggests no condition when it can't write one that Ruby reads the same way.
+- NegatedIfElseCondition no longer suggests `if x in Integer` for `- if !x in Integer`, and now reports `- if !(a > b)` and conditions spread over lines.
+
 ## [3.8.0] — 2026-11-26
 
 SuperSlim now works from any Ractor, and the formatter and the linter load on their own.
@@ -361,7 +373,8 @@ renders what Slim 5 renders with `format: :html, sort_attrs: false`, byte for by
 - Ruby 3.3 or later, every Ruby still maintained, Rails 8.0 or 8.1 for the railtie, and strscan 3.1.1 or later,
   newer than the one Ruby 3.3 ships.
 
-[Unreleased]: https://github.com/levups/super-slim/compare/v3.8.0...HEAD
+[Unreleased]: https://github.com/levups/super-slim/compare/v3.8.1...HEAD
+[3.8.1]: https://github.com/levups/super-slim/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/levups/super-slim/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/levups/super-slim/compare/v3.6.3...v3.7.0
 [3.6.3]: https://github.com/levups/super-slim/compare/v3.6.2...v3.6.3
