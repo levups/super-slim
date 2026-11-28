@@ -1,0 +1,27 @@
+- case "#1"
+- when /#\d/
+  p A regexp after when
+- else
+  p Missed
+p = "a#b".split /#/
+p = "a#b".gsub /#/, "-"
+- if /#/ =~ "#"
+  p A regexp after if
+p = "a" unless /#/ =~ "b"
+- hash = ?#
+p = hash
+p = ?# + "a"
+- words = %w|a #b|
+p = words.join(" ")
+p = %q|#|
+p = %|#{number}|
+- case "#"
+- when ?#
+  p A character after when
+- width = 10
+p = width /2 + "/".size + "#".size
+p = [[7, 3].reduce(:%), "a)", "#b"].join
+- state = :ok?
+p = state == :ok? ?"#":"-"
+- count = number
+p = [count ?"#":"", ?#].join

@@ -8,9 +8,25 @@ module SuperSlim
     # in a %-literal and %-literals between other delimiters (`%|a(|`).
     class RubyBrackets
       PLAIN_RUBY = /[^()\[\]{}"'`#%\/]+/
+      PLAIN_RUBY_BEFORE_LITERALS = /[^()\[\]{}"'`#%\/?]+/
       QUOTED_TEXT_BY_DELIMITER = %w[" ` /].to_h { |delimiter| [delimiter, /(?:[^\\#{delimiter}#]|\\.|#(?!\{))*/m] }
         .merge("'" => /(?:[^\\']|\\.)*/m).freeze
       PERCENT_LITERAL_OPENING = /[qQwWiIrsx]?([(\[{<])/
+      # Other punctuation closes the %-literal it opens: `%w|a b|`.
+      SAME_DELIMITER_PERCENT_LITERAL_OPENING = /[qQwWiIrsx]?([^\w\s(\[{<=])/
+      CHARACTER_LITERAL = /\\?[^\s]/
+      ARGUMENT_START = /[^\s=]/
+      UNDERSCORE_BYTE = "_".ord
+      DOT_BYTE = ".".ord
+      EQUALS_BYTE = "=".ord
+      SIGIL_BYTES = "@$:".bytes.freeze
+      VALUE_OPENING_BYTES = "([{,".bytes.freeze
+      KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
+      DIGIT_ZERO_BYTE = "0".ord
+      DIGIT_NINE_BYTE = "9".ord
+      LOWER_A_BYTE = "a".ord
+      LOWER_Z_BYTE = "z".ord
+      NON_ASCII_BYTE = 0x80
       BYTES_BEFORE_REGEXP = "\n(,[{|&=!~;:?<>+-*%^".bytes.freeze
       LINE_END = /[ \t]*(?:\n|\z)/
       LINE_END_OR_COMMENT = /[ \t]*(?:[#\n]|\z)/
@@ -19,19 +35,37 @@ module SuperSlim
       PercentLiteral = Struct.new(:opening, :closing, :depth)
 
       # Where a comment that follows code on its line starts in code, nil when there is none. One alone on a line is
-      # left out: a backslash before it carries the code on to that line.
+      # left out: a backslash before it carries the code on to that line. A second reading takes a regexp, a %-literal
+      # or `?#` after `.split` or `when` for its argument: when only one reading finds a comment, the code stays whole,
+      # as Slim leaves it; when both do, the later `#` is the comment, the other one sits in a literal.
       def self.code_comment_offset(code)
         return unless code.include?("#")
 
         offset = new(code).trailing_comment_offset or return
-        code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
-        offset unless code_before.empty? || code_before.end_with?("\n")
+        return if alone_on_its_line?(code, offset)
+
+        second_reading = new(code, literals_after_words: true)
+        # Valid Ruby never ends in a literal: the second reading misread one.
+        return offset if second_reading.in_literal?
+
+        literal_offset = second_reading.trailing_comment_offset or return
+        (literal_offset > offset) ? literal_offset : offset
       end
+
+      def self.alone_on_its_line?(code, offset)
+        code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
+        code_before.empty? || code_before.end_with?("\n")
+      end
+      private_class_method :alone_on_its_line?
 
       # The byte offset of the comment that ends the code, if one does.
       attr_reader :trailing_comment_offset
 
-      def initialize(code)
+      # With `literals_after_words`, what follows a method or a keyword and a space reads as its first argument:
+      # `.split /#/`, `when ?#`, `.concat %w|#|`.
+      def initialize(code, literals_after_words: false)
+        @literals_after_words = literals_after_words
+        @plain_ruby = literals_after_words ? PLAIN_RUBY_BEFORE_LITERALS : PLAIN_RUBY
         @scanner = StringScanner.new(code.dup)
         # Whether each bracket still open ends its line.
         @open_brackets = []
@@ -52,6 +86,10 @@ module SuperSlim
         @open_brackets.any?
       end
 
+      def in_literal?
+        @literals.any?
+      end
+
       private
 
       def read
@@ -66,7 +104,7 @@ module SuperSlim
 
       def read_code(interpolation_depth)
         until @scanner.eos?
-          next if @scanner.skip(PLAIN_RUBY)
+          next if @scanner.skip(@plain_ruby)
 
           character = @scanner.getch
           case character
@@ -76,7 +114,8 @@ module SuperSlim
             return @literals.pop if interpolation_depth && @open_brackets.size < interpolation_depth
           when '"', "'", "`" then return @literals << character
           when "/" then return @literals << character if regexp_start?
-          when "%" then return open_percent_literal if @scanner.scan(PERCENT_LITERAL_OPENING)
+          when "%" then return open_percent_literal if scan_percent_literal_opening
+          when "?" then @scanner.skip(CHARACTER_LITERAL) if literal_start?
           when "#"
             comment_offset = @scanner.pos - 1
             @scanner.skip_until(LINE_END)
@@ -99,16 +138,61 @@ module SuperSlim
       end
 
       def regexp_start?
+        offset = offset_before_spaces
+        offset.negative? || BYTES_BEFORE_REGEXP.include?(@scanner.string.getbyte(offset)) || argument_start?(offset)
+      end
+
+      # Where the second reading opens a character literal or a %-literal between other delimiters: first in the code,
+      # after an opening bracket, a comma or ` = `, or as an argument. Elsewhere `?` and `%` may follow a value, after
+      # a symbol (`:ok? ?"a":"b"`) or a backslash that joins two lines.
+      def literal_start?
+        return false unless @literals_after_words
+
+        code = @scanner.string
+        offset = offset_before_spaces
+        offset.negative? || VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) ||
+          (byte == EQUALS_BYTE && offset.positive? && code.getbyte(offset - 1) == SPACE_BYTE) || argument_start?(offset)
+      end
+
+      # The offset of the byte before the character just read and the spaces before it.
+      def offset_before_spaces
         code = @scanner.string
         offset = @scanner.pos - 2
         offset -= 1 while offset >= 0 && (code.getbyte(offset) == SPACE_BYTE || code.getbyte(offset) == TAB_BYTE)
-        offset.negative? || BYTES_BEFORE_REGEXP.include?(code.getbyte(offset))
+        offset
+      end
+
+      # After a method called on a receiver (`.split /#/`) or a keyword (`when ?#`), and a space. A bare name may be a
+      # local variable, which Ruby divides (`total /2`) or questions (`x ?'a':'b'`).
+      def argument_start?(offset)
+        return false unless @literals_after_words && offset < @scanner.pos - 2 && @scanner.match?(ARGUMENT_START)
+
+        code = @scanner.string
+        word_end = offset
+        offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
+        return false if offset == word_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
+        return KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset)) if offset.negative?
+
+        case code.getbyte(offset)
+        when DOT_BYTE then offset.zero? || code.getbyte(offset - 1) != DOT_BYTE
+        when *SIGIL_BYTES then false
+        else KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
+        end
+      end
+
+      def word_byte?(byte)
+        byte == UNDERSCORE_BYTE || byte >= NON_ASCII_BYTE || (byte | 0x20).between?(LOWER_A_BYTE, LOWER_Z_BYTE) ||
+          byte.between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
+      end
+
+      def scan_percent_literal_opening
+        @scanner.scan(PERCENT_LITERAL_OPENING) || (literal_start? && @scanner.scan(SAME_DELIMITER_PERCENT_LITERAL_OPENING))
       end
 
       def open_percent_literal
         opening = @scanner[1]
         @open_brackets << @scanner.match?(LINE_END)
-        @literals << PercentLiteral.new(opening, DELIMITERS.fetch(opening, ">"), 1)
+        @literals << PercentLiteral.new(opening, DELIMITERS.fetch(opening) { (opening == "<") ? ">" : opening }, 1)
       end
 
       def read_percent_literal(literal)
@@ -116,14 +200,14 @@ module SuperSlim
           character = @scanner.getch
           if character == "\\"
             @scanner.getch
-          elsif character == literal.opening
-            literal.depth += 1
           elsif character == literal.closing
             literal.depth -= 1
             next unless literal.depth.zero?
 
             @open_brackets.pop
             return @literals.pop
+          elsif character == literal.opening
+            literal.depth += 1
           end
         end
       end

@@ -1,0 +1,93 @@
+~~~~~~~~ super_slim: html
+<p>A regexp after when</p><p>[&quot;a&quot;, &quot;b&quot;]</p><p>a-b</p><p>A regexp after if</p><p>a</p><p>#</p><p>#a</p><p>a #b</p><p>#</p><p>42</p><p>A character after when</p><p>7</p><p>1a)#b</p><p>#</p><p>##</p>
+~~~~~~~~ super_slim: tilt
+_buf = +""; case "#1"
+when /#\d/
+
+_buf << "<p>A regexp after when</p>".freeze; else
+
+_buf << "<p>Missed</p>".freeze; end; _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("a#b".split /#/))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("a#b".gsub /#/, "-"))
+_buf << "</p>".freeze; if /#/ =~ "#"
+
+_buf << "<p>A regexp after if</p>".freeze; end; _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("a" unless /#/ =~ "b"))
+_buf << "</p>".freeze; hash = ?#
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((hash))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((?# + "a"))
+_buf << "</p>".freeze; words = %w|a #b|
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((words.join(" ")))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((%q|#|))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((%|#{number}|))
+_buf << "</p>".freeze; case "#"
+when ?#
+
+_buf << "<p>A character after when</p>".freeze; end; width = 10
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((width /2 + "/".size + "#".size))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(([[7, 3].reduce(:%), "a)", "#b"].join))
+_buf << "</p>".freeze; state = :ok?
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((state == :ok? ?"#":"-"))
+_buf << "</p>".freeze; count = number
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(([count ?"#":"", ?#].join))
+_buf << "</p>".freeze; _buf
+~~~~~~~~ super_slim: rails
+@output_buffer = output_buffer || ActionView::OutputBuffer.new; case "#1"
+when /#\d/
+
+@output_buffer.safe_concat("<p>A regexp after when</p>".freeze); else
+
+@output_buffer.safe_concat("<p>Missed</p>".freeze); end; @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("a#b".split /#/)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("a#b".gsub /#/, "-")
+@output_buffer.safe_concat("</p>".freeze); if /#/ =~ "#"
+
+@output_buffer.safe_concat("<p>A regexp after if</p>".freeze); end; @output_buffer.safe_concat("<p>".freeze); @output_buffer << ("a" unless /#/ =~ "b")
+@output_buffer.safe_concat("</p>".freeze); hash = ?#
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (hash)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (?# + "a")
+@output_buffer.safe_concat("</p>".freeze); words = %w|a #b|
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (words.join(" "))
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (%q|#|)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (%|#{number}|)
+@output_buffer.safe_concat("</p>".freeze); case "#"
+when ?#
+
+@output_buffer.safe_concat("<p>A character after when</p>".freeze); end; width = 10
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (width /2 + "/".size + "#".size)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ([[7, 3].reduce(:%), "a)", "#b"].join)
+@output_buffer.safe_concat("</p>".freeze); state = :ok?
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (state == :ok? ?"#":"-")
+@output_buffer.safe_concat("</p>".freeze); count = number
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << ([count ?"#":"", ?#].join)
+@output_buffer.safe_concat("</p>".freeze); @output_buffer
+~~~~~~~~ super_slim: fmt
+- case "#1"
+- when /#\d/
+  p A regexp after when
+- else
+  p Missed
+p = "a#b".split /#/
+p = "a#b".gsub /#/, "-"
+- if /#/ =~ "#"
+  p A regexp after if
+p = "a" unless /#/ =~ "b"
+- hash = ?#
+p = hash
+p = ?# + "a"
+- words = %w|a #b|
+p = words.join(" ")
+p = %q|#|
+p = %|#{number}|
+- case "#"
+- when ?#
+  p A character after when
+- width = 10
+p = width /2 + "/".size + "#".size
+p = [[7, 3].reduce(:%), "a)", "#b"].join
+- state = :ok?
+p = state == :ok? ?"#":"-"
+- count = number
+p = [count ?"#":"", ?#].join
+~~~~~~~~ super_slim: lint
+3: [HardcodedText] Translate `A regexp after when` instead of writing it in the template
+5: [HardcodedText] Translate `Missed` instead of writing it in the template
+9: [HardcodedText] Translate `A regexp after if` instead of writing it in the template
+20: [HardcodedText] Translate `A character after when` instead of writing it in the template
