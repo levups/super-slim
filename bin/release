@@ -15,8 +15,9 @@
 # Used by the release workflow too:
 #
 #   bin/release --check v1.2.0     # fails unless the tag matches the gemspec's version and has notes
+#   bin/release --commit v1.2.0    # the release commit: the one that brought main the version and its notes
 #   bin/release --notes v1.2.0     # the GitHub release notes: the version's section of CHANGELOG.md
-#   bin/release --title v1.2.0     # the GitHub release title, "SuperSlim 1.2.0"
+#   bin/release --title v1.2.0     # the GitHub release title: the README's name, then 1.2.0
 
 require "date"
 require "json"
@@ -24,14 +25,15 @@ require "open3"
 require "optparse"
 require "rubygems"
 require "tempfile"
+require "tmpdir"
 
 CHANGELOG = "CHANGELOG.md"
 REFERENCE = /^\[([^\]]+)\]: (\S+)$/
 
 # Returns what the command writes on stdout: callers parse it (JSON, a branch, a commit), so whatever it writes on
 # stderr (gh's hints, git's progress) is shown only when it fails.
-def run(*command)
-  output, errors, status = Open3.capture3(*command)
+def run(*command, **options)
+  output, errors, status = Open3.capture3(*command, **options)
   abort "#{command.join(" ")} failed:\n#{output}#{errors}" unless status.success?
   output
 end
@@ -108,6 +110,7 @@ OptionParser.new do |parser|
   parser.on("--write", "Write the changes and stop, for a pull request opened by hand") { write_only = true }
   parser.on("--wait", "Wait for the release pull request of the version given to merge") { mode = :wait }
   parser.on("--check", "Fail unless the tag given matches the gemspec's version and has notes") { mode = :check }
+  parser.on("--commit", "Print the release commit of the tag given") { mode = :commit }
   parser.on("--notes", "Print the release notes of the tag given") { mode = :notes }
   parser.on("--title", "Print the release title of the tag given") { mode = :title }
 end.parse!
@@ -121,6 +124,32 @@ if mode != :release
     abort "Tag #{argument}, but #{spec.name}.gemspec says #{current}" unless version == current.to_s
     abort "#{CHANGELOG} has no notes for #{version}" if notes.empty?
     puts "#{argument} matches #{spec.name} #{current}"
+  when :commit
+    # Notes and version may reach main in separate commits: the release is the one that completes the pair, the
+    # oldest of the first-parent commits that, from HEAD back, all have both.
+    abort "Tag #{argument}, but #{spec.name}.gemspec says #{current}" unless version == current.to_s
+    abort "A shallow clone may not reach #{version}'s release commit: fetch the whole history" if run("git", "rev-parse", "--is-shallow-repository").strip == "true"
+    versions = {}
+    missing = lambda do |commit|
+      written = run("git", "show", "#{commit}:#{CHANGELOG}") unless run("git", "ls-tree", "--name-only", commit, "--", CHANGELOG).empty?
+      next "notes" if written.nil? || written.force_encoding(Encoding::UTF_8)[section(version), 1].to_s.strip.empty?
+      # The gemspec's version in that commit's own tree: the version file may have moved since, or hold several.
+      # Loaded once per state of lib/ and the gemspec, which most commits leave alone.
+      key = run("git", "ls-tree", commit).lines.grep(%r{\t(lib|[^/]*\.gemspec)$}).join
+      found = versions[key] ||= Dir.mktmpdir do |dir|
+        tree = File.join(dir, "tree")
+        run("git", "worktree", "add", "--quiet", "--detach", tree, commit)
+        run(RbConfig.ruby, "-e", 'Dir["*.gemspec"].first&.then { puts Gem::Specification.load(_1)&.version || exit(1) }', chdir: tree).strip
+      ensure
+        Open3.capture2e("git", "worktree", "remove", "--force", tree)
+      end
+      "version (#{found.empty? ? "no gemspec" : found})" unless found == version
+    end
+    commits = run("git", "rev-list", "--first-parent", "HEAD").split
+    gap = nil
+    release = commits.take_while { |commit| !(gap = missing.call(commit)) }.last
+    abort "HEAD #{commits.first[0, 7]} lacks #{version}'s #{gap}" unless release
+    puts release
   when :notes
     abort "#{CHANGELOG} has no notes for #{version}" if notes.empty?
     compare = changelog.scan(REFERENCE).to_h[version]
@@ -158,6 +187,33 @@ released = run("git", "tag", "--list", "v*").split.map { |name| Gem::Version.new
 abort "#{target} is not above #{released.max}, the last release" if released.any? && target <= released.max
 abort "#{target} is below #{current}, the gemspec's version" if target < current
 previous = released.max
+# The gemspec's version merged with its notes but unpublished: its release run waits for approval, or stopped.
+# Released once its GitHub release exists, as for release.yml. Its notes count as committed when releasing that same
+# version again (its release commit stays the earlier one) or once tagged (the tag is out), as they stand otherwise
+# (moved back under Unreleased, they go with the next version).
+pending_notes = (target == current || released.include?(current)) ? Open3.capture3("git", "show", "HEAD:#{CHANGELOG}").first.force_encoding(Encoding::UTF_8) : changelog
+unless pending_notes[section(current.to_s), 1].to_s.strip.empty?
+  tagged = released.include?(current)
+  published = tagged
+  if tagged # without gh (--write, for setups without it), the tag decides
+    path = "repos/#{repo_url.to_s[%r{github\.com/([^/]+/[^/#?]+?)(?:\.git)?/?\z}, 1] || "{owner}/{repo}"}/releases/tags/v#{current}"
+    output, status = begin
+      Open3.capture2e("gh", "api", path, "--silent")
+    rescue SystemCallError => exception
+      [exception.message, nil]
+    end
+    if status&.success? then published = true
+    elsif output.include?("HTTP 404") then published = false
+    elsif !write_only then abort "gh api #{path} failed:\n#{output}"
+    end
+  end
+  unless published
+    advice = tagged ? "Run it again" : "Approve it, or run it again; to release over it instead, reject it, move " \
+      "#{current}'s notes back under Unreleased and release the next version"
+    abort "#{current} is merged but not published: its release run (#{repo_url}/actions/workflows/release.yml) " \
+      "waits or stopped. #{advice}"
+  end
+end
 
 # The release pull request's own CI still runs before it merges: --write, for setups without gh, skips this check.
 runs = write_only ? [{"conclusion" => "success"}] : JSON.parse(run("gh", "run", "list", "--commit", head, "--workflow", "ci.yml", "--json", "status,conclusion,url"))
@@ -177,6 +233,7 @@ end
 
 # Reference links at the end: Unreleased compares with the new tag, then each version newest first.
 references = changelog.scan(REFERENCE).to_h
+references.delete(current.to_s) unless changelog.match?(section(current.to_s)) # its notes moved to the target
 references["Unreleased"] = "#{repo_url}/compare/#{tag}...HEAD"
 references[target.to_s] = previous ? "#{repo_url}/compare/v#{previous}...#{tag}" : "#{repo_url}/releases/tag/#{tag}"
 unreleased_link = references.delete("Unreleased")
@@ -205,7 +262,7 @@ if dry_run
     Tempfile.create do |file|
       file.write(text)
       file.flush
-      diff = Open3.capture2("git", "diff", "--no-index", "--src-prefix=", "--dst-prefix=", path, file.path).first
+      diff = Open3.capture2("git", "diff", "--no-index", "--src-prefix=", "--dst-prefix=", path, file.path).first.force_encoding(Encoding::UTF_8)
       puts diff.gsub(/\S*#{Regexp.escape(File.basename(file.path))}/, path)
     end
   end

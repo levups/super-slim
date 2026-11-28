@@ -2,8 +2,8 @@ name: Release
 
 # Publishes the version a release pull request brings to main: bin/release opens that pull request, and once it
 # merges this tags its commit vX.Y.Z, publishes the gem to RubyGems, then the GitHub release with its section
-# of CHANGELOG.md. A push to main whose version is already tagged, or has no notes yet, publishes nothing. RubyGems
-# trusts this workflow (trusted publishing): no API key is stored anywhere.
+# of CHANGELOG.md. A push to main whose version already has its GitHub release, or has no notes yet, publishes
+# nothing. RubyGems trusts this workflow (trusted publishing): no API key is stored anywhere.
 on:
   push:
     branches: [main]
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          fetch-depth: 0 # the commit that wrote the version's notes
+          fetch-depth: 0 # the commit that brought the version and its notes
           filter: blob:none
       - name: Set up Ruby
         uses: ruby/setup-ruby@20eb24b0d509e2b9ed9b6d42ddfeb992915e0564 # v1.341.0
@@ -43,9 +43,9 @@ jobs:
             echo "v$version is already released"; exit 0
           fi
           bin/release --check "v$version" || { echo "$version has no notes yet: nothing to release"; exit 0; }
-          # The release is the commit that wrote the version's notes: a later push publishes nothing, a dispatch
-          # publishes that commit again.
-          commit=$(git log -1 --format=%H -F -S "## [$version]" -- CHANGELOG.md)
+          # The release is the commit that gave main both the version and its notes: a later push publishes nothing,
+          # a dispatch publishes that commit again.
+          commit=$(bin/release --commit "v$version") || { echo "::error::No release commit found for $version"; exit 1; }
           if [ "$GITHUB_EVENT_NAME" = push ] && [ "$commit" != "$GITHUB_SHA" ]; then
             echo "v$version is ${commit:0:7}'s release, not this commit's: run its release again, or this workflow by hand"
             exit 0
@@ -57,7 +57,7 @@ jobs:
             [ "$merged" -gt 0 ] && break
             sleep 10
           done
-          test "$merged" -gt 0 || { echo "::error::No merged pull request brings ${commit:0:7}, which writes $version's notes"; exit 1; }
+          test "$merged" -gt 0 || { echo "::error::No merged pull request brings ${commit:0:7}, $version's release commit"; exit 1; }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
 
