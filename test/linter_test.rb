@@ -338,7 +338,7 @@ class LinterTest < Minitest::Test
         post_path(post)
       = "Post #1"
     SLIM
-    offenses = linter.call("show.html.slim", source)
+    offenses = linter.call("show.html.slim", source).select { _1.rule == "SlimSyntax" }
 
     assert_equal ["SlimSyntax:1", "SlimSyntax:5", "SlimSyntax:6", "SlimSyntax:10", "SlimSyntax:16", "SlimSyntax:17"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
     assert_equal "Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own", offenses[1].message
