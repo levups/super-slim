@@ -84,6 +84,13 @@ class LinterTest < Minitest::Test
     assert_offenses ["UnnecessaryInterpolation:1", "UnnecessaryStringOutput:2", "UnnecessaryInterpolation:4"], "| \#{title}\n= \"Hello\"\n= \" \"\nh1 \#{title}\n"
   end
 
+  def test_unnecessary_ruby_suggests_what_renders_the_same
+    source = "p\n  =< \"a\"\n  => \"b\"\n  =<> \"c\"\n  ' \#{d}\n  |< \#{e}\np =< \"f\"\np = \"g=1\"\np = \": h\"\n"
+    messages = SuperSlim::Linter.new.call("show.html.slim", source).map { "#{_1.lineno}: #{_1.message[/`[^`]+`/]}" }
+
+    assert_equal ["2: `|  a`", "3: `' b`", "4: `'  c`", "5: `=> d`", "6: `=< e`", "8: `| g=1`", "9: `| : h`"], messages
+  end
+
   def test_unnecessary_interpolation_of_code_holding_braces
     messages = SuperSlim::Linter.new.call("show.html.slim", "p \#{tags.map { |tag| tag.name }.join}\np \#{{raw}}\np \#{ }\n").map(&:message)
 
