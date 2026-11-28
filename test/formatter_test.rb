@@ -199,6 +199,15 @@ class FormatterTest < Minitest::Test
       "- if !foo(1,\n  2)\n  p e\n- if !foo?(a) { b }\n  p d\n- if !headers[\"Turbo-Frame\"]\n  p a\n- if !items[1..].any?(&:x)\n  p b\n- if !t(\"log in now\").empty?\n  p c\n"
   end
 
+  def test_a_negated_if_with_a_long_string_formats_in_linear_time
+    condition = "x(\"#{"\\\"" * 100_000}\")"
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    SuperSlim::Formatter.compound_condition?(condition)
+    SuperSlim::Formatter.compound_condition?(condition.tr("\"", "'"))
+
+    assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at, :<, 1
+  end
+
   def test_the_check_takes_a_negated_if_for_the_unless_it_reads_as
     assert same_ruby?("- if !x\n  p\n", "- unless x\n  p\n")
     refute same_ruby?("- if !x == y\n  p\n", "- unless x == y\n  p\n")

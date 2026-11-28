@@ -23,7 +23,6 @@ module SuperSlim
     NEGATED_IF = /\A- if !(?!=)\s*(\S.*)\z/
     COMPOUND_CONDITION = %r{[=<>+*/%&|^~#;-]|\.\.|\?\s|:\s|\b(?:and|or|not|then|do)\b|(?<=\s)in(?![\w?!])}
     # What a string or a pair of brackets holds can't change how far the `!` before them reaches.
-    STRING_LITERAL = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/
     # A regexp, a %-literal, a global like `$'` or a character literal like `?(` may hold quotes and brackets that
     # pair with others: such a condition keeps its `if`, as it did before strings and brackets were skipped.
     UNREADABLE_LITERAL = %r{[/%$]|(?<!\w)\?\S}
@@ -68,13 +67,23 @@ module SuperSlim
 
       top_level = +""
       depth = 0
-      condition.gsub(STRING_LITERAL, '""').each_char do |character|
+      quote = escaped = nil
+      condition.each_char do |character|
+        if quote
+          if escaped then escaped = false
+          elsif character == "\\" then escaped = true
+          elsif character == quote then quote = nil
+          end
+          next
+        end
+
         depth -= 1 if ")]}".include?(character)
         top_level << character if depth.zero?
         depth += 1 if "([{".include?(character)
+        quote = character if character == '"' || character == "'"
       end
-      # Brackets that don't pair up sit in a regexp or a literal this scan can't read: `/[^']+/`, `?(`.
-      !depth.zero? || top_level.match?(COMPOUND_CONDITION)
+      # Brackets or quotes that don't pair up sit in a literal this scan can't read.
+      quote || !depth.zero? || top_level.match?(COMPOUND_CONDITION)
     end
 
     # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a
