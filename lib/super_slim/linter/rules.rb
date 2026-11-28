@@ -792,7 +792,9 @@ module SuperSlim
             texts = node.children.grep(AST::Text)
             next unless texts.size == 1 && (code = lone_interpolation(texts.first.text))
 
-            offense(document, lineno, "Write `#{output_marker(document.lines[lineno - 1])} #{code}` instead of interpolating it alone")
+            line = document.lines[lineno - 1]
+            line = line.delete_prefix("\uFEFF") if lineno == 1
+            offense(document, lineno, "Write `#{output_marker(line)} #{code}` instead of interpolating it alone")
           end
         end
 
@@ -815,7 +817,7 @@ module SuperSlim
       end
 
       class UnnecessaryStringOutput < Rule
-        PLAIN_STRING = /\A(["'])([^"'\\#&<>\s](?:[^"'\\#&<>]*[^"'\\#&<>\s])?)\1\z/
+        PLAIN_STRING = /\A(["'])([^"'\\#&<>\s](?:[^"'\\#&<>\n]*[^"'\\#&<>\s])?)\1\z/
         # Text starting with one of these, written inline after a tag, reads as attributes, output or a nested tag:
         # `span (note)`, `p x=1`, `p : x`.
         READ_AS_SYNTAX_AFTER_TAG = /\A(?:[(\[{=*\/:]|[^\s=]*\s*=)/
@@ -827,10 +829,12 @@ module SuperSlim
 
             text = $2
             lineno = document.line_of(node)
-            inline = ancestors.last && document.line_of(ancestors.last) == lineno
             line = document.lines[lineno - 1]
-            info = document.outline[lineno]
-            markers = (inline && info&.output_column) ? line[info.output_column..][OUTPUT_MARKERS, 1] : line[OUTPUT_MARKERS, 1]
+            line = line.delete_prefix("\uFEFF") if lineno == 1
+            # Set for an output on its tag's line, the last line of its attributes.
+            output_column = document.outline[lineno]&.output_column
+            inline = !output_column.nil?
+            markers = (inline ? line[output_column..] : line)[OUTPUT_MARKERS, 1]
             # Inline, `=<` and `=>` put their space around the tag, which text can't.
             next if inline && markers.to_s.match?(/[<>]/)
 
@@ -842,7 +846,7 @@ module SuperSlim
 
         def message(text, inline, markers)
           if inline && text.match?(READ_AS_SYNTAX_AFTER_TAG)
-            "Write the text `| #{text}` on its own line, under the tag: inline, it would read as attributes"
+            "Write the text `| #{text}` on its own line, under the tag: inline, Slim would read it as attributes or a tag"
           else
             leading = markers.include?("<")
             "Write the text `#{markers.include?(">") ? "'" : "|"}#{leading ? "  " : " "}#{text}` instead of outputting a string"

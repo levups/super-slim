@@ -65,7 +65,7 @@ class LinterTest < Minitest::Test
   def test_string_output_inline_after_a_tag
     linter = SuperSlim::Linter.new
     messages = linter.call("show.html.slim", %(span.note = "(estimate)"\nspan = "Hello"\np\n  = "(alone)"\n)).map(&:message)
-    assert_equal ["Write the text `| (estimate)` on its own line, under the tag: inline, it would read as attributes",
+    assert_equal ["Write the text `| (estimate)` on its own line, under the tag: inline, Slim would read it as attributes or a tag",
       "Write the text `| Hello` instead of outputting a string",
       "Write the text `| (alone)` instead of outputting a string"], messages
   end
@@ -85,10 +85,13 @@ class LinterTest < Minitest::Test
   end
 
   def test_unnecessary_ruby_suggests_what_renders_the_same
-    source = "p\n  =< \"a\"\n  => \"b\"\n  =<> \"c\"\n  ' \#{d}\n  |< \#{e}\np =< \"f\"\np = \"g=1\"\np = \": h\"\n"
+    source = "\uFEFF=< \"z\"\np\n  =< \"a\"\n  => \"b\"\n  =<> \"c\"\n  ' \#{d}\n  |< \#{e}\np =< \"f\"\np(class=\"x\"\n  id=\"y\") => \"f\"\n"
     messages = SuperSlim::Linter.new.call("show.html.slim", source).map { "#{_1.lineno}: #{_1.message[/`[^`]+`/]}" }
 
-    assert_equal ["2: `|  a`", "3: `' b`", "4: `'  c`", "5: `=> d`", "6: `=< e`", "8: `| g=1`", "9: `| : h`"], messages
+    assert_equal ["1: `|  z`", "3: `|  a`", "4: `' b`", "5: `'  c`", "6: `=> d`", "7: `=< e`"], messages
+    under_the_tag = SuperSlim::Linter.new.call("show.html.slim", "p = \"g=1\"\np = \": h\"\n").map(&:message)
+    assert_equal ["Write the text `| g=1` on its own line, under the tag: inline, Slim would read it as attributes or a tag",
+      "Write the text `| : h` on its own line, under the tag: inline, Slim would read it as attributes or a tag"], under_the_tag
   end
 
   def test_unnecessary_interpolation_of_code_holding_braces
