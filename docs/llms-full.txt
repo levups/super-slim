@@ -1602,7 +1602,7 @@ Flagged
     = link_to "Edit", edit_post_path(post)
 ```
 
-Merge this `if` into the one around it with `&&`
+Merge this `if` into the one around it: `if post.published? && current_user.admin?`
 
 Clean
 

@@ -531,7 +531,7 @@ super-slim format <span class="nt">--check</span> <span class="o">[</span>PATHâ€
     <div><p class="example-label">Flagged</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">published?</span>
   <span class="p">-</span> <span class="k">if</span> <span class="n">current_user</span><span class="p">.</span><span class="nf">admin?</span>
     <span class="p">=</span> <span class="n">link_to</span> <span class="s2">"Edit"</span><span class="p">,</span> <span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
-</code></pre><p class="rule-output">Merge this <code>if</code> into the one around it with <code>&amp;&amp;</code></p></div>
+</code></pre><p class="rule-output">Merge this <code>if</code> into the one around it: <code>if post.published? &amp;&amp; current_user.admin?</code></p></div>
     <div><p class="example-label">Clean</p><pre><code class="language-slim"><span class="p">-</span> <span class="k">if</span> <span class="n">post</span><span class="p">.</span><span class="nf">published?</span> <span class="o">&amp;&amp;</span> <span class="n">current_user</span><span class="p">.</span><span class="nf">admin?</span>
   <span class="p">=</span> <span class="n">link_to</span> <span class="s2">"Edit"</span><span class="p">,</span> <span class="n">edit_post_path</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
 </code></pre></div>

@@ -889,13 +889,24 @@ module SuperSlim
         include Conditionals
 
         def offenses(document, _source)
-          enum_for(:each_conditional, document).filter_map do |_node, following, children|
+          enum_for(:each_conditional, document).filter_map do |node, following, children|
             next if branch?(following) || children.size != 1
             next unless (inner = children.first).is_a?(AST::Control) && inner.code.match?(CONDITIONAL)
 
             keyword = inner.code[/\w+/]
-            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it with `&&`")
+            merged = "if #{condition_of(node.code)} && #{condition_of(inner.code)}"
+            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it: `#{merged}`")
           end
+        end
+
+        private
+
+        # As RuboCop writes it: `unless a` reads `!a`, and a condition holding an operator takes parentheses.
+        def condition_of(code)
+          keyword, condition = code.strip.split(/\s+/, 2)
+          condition = condition.gsub(/\s*\n\s*/, " ")
+          condition = "(#{condition})" if Formatter.compound_condition?(condition)
+          (keyword == "unless") ? "!#{condition}" : condition
         end
       end
 
