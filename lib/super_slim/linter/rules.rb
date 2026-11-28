@@ -738,7 +738,7 @@ module SuperSlim
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
-            next unless (reason = reason_of(node))
+            next unless (reason = reason_of(document, node, ancestors))
 
             offense(document, line_near(document, node, ancestors), "#{MESSAGE} #{reason}")
           end
@@ -746,18 +746,20 @@ module SuperSlim
 
         private
 
-        def reason_of(node)
+        def reason_of(document, node, ancestors)
           code = node.code
           if !Parser.slim_continuation?(code.split("\n"))
             "code continued after an opening bracket: end each line but the last with a comma"
-          elsif (comment_offset = Parser::RubyBrackets.code_comment_offset(code)) && swallows_what_slim_adds?(node, code, comment_offset)
+          elsif (comment_offset = Parser::RubyBrackets.code_comment_offset(code)) &&
+              swallows_what_slim_adds?(document, node, ancestors, code, comment_offset)
             "a comment after code: move it to a line of its own"
           end
         end
 
         # Slim ends a `-` line with a newline: a comment there breaks the block only when it swallows the `do` Slim
-        # adds, or changes whether Slim closes it with `end`, which Slim decides on the code comment included.
-        def swallows_what_slim_adds?(node, code, comment_offset)
+        # adds, or changes whether Slim closes it with `end`, which Slim decides on the code comment included, unless
+        # the next line (`- else`, `- rescue`) closes it instead.
+        def swallows_what_slim_adds?(document, node, ancestors, code, comment_offset)
           return true if node.is_a?(AST::Output)
 
           code_before = code.byteslice(0, comment_offset).rstrip
@@ -765,7 +767,14 @@ module SuperSlim
           return true if children && !code_before.match?(Compiler::BLOCK_SELF_OPENING) && !code_before.match?(LOOP)
 
           slim_code = (children && !code.match?(Compiler::BLOCK_SELF_OPENING)) ? "#{code} do" : code
-          slim_code.match?(Compiler::BLOCK_OPENING) != (code_before.match?(Compiler::BLOCK_OPENING) || (children && code_before.match?(LOOP)))
+          slim_code.match?(Compiler::BLOCK_OPENING) != (code_before.match?(Compiler::BLOCK_OPENING) || (children && code_before.match?(LOOP))) &&
+            !next_sibling_continues_the_block?(document, node, ancestors)
+        end
+
+        def next_sibling_continues_the_block?(document, node, ancestors)
+          siblings = ancestors.last ? Document.children_of(ancestors.last) : document.nodes
+          next_sibling = siblings[(siblings.index { _1.equal?(node) } + 1)..].find { _1 != AST::NEWLINE }
+          next_sibling.is_a?(AST::Control) && next_sibling.code.match?(Compiler::BLOCK_CONTINUATION)
         end
       end
 

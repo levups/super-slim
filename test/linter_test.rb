@@ -331,6 +331,9 @@ class LinterTest < Minitest::Test
         p = post.title
       - posts.each do |post| # no children
       - authorize! # nothing else to do
+      - case post.state # nothing else to do
+      - when :draft
+        p Draft
       = link_to post.title,
         post_path(post)
       = "Post #1"
