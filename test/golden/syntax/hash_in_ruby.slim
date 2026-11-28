@@ -36,3 +36,8 @@ p = "a#b".tr ?a, ?#
 p = anchor
 p = [$! ?"a" : "b", ?#].join
 p = [3 == :+ ?"a" : "b", ?#].join
+p = [1,
+  ?#].join
+- mark=?#
+p = mark
+p = defined? ?#

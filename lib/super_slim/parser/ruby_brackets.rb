@@ -24,8 +24,9 @@ module SuperSlim
       # A value follows a binary or unary operator, a ternary's `?` or `:`, or `;`: `a + ?#`, `x == ?#`, `a ? ?# : ?!`.
       # `/` and `%` may close a literal instead.
       OPERATOR_BYTES = "+-*<>|&!~^=?:;".bytes.freeze
-      SUFFIX_BYTES = "?!=".bytes.freeze
       METHOD_SUFFIX_BYTES = "?!".bytes.freeze
+      NEWLINE_BYTE = "\n".ord
+      BACKSLASH_BYTE = "\\".ord
       COLON_BYTE = ":".ord
       DOLLAR_BYTE = "$".ord
       KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
@@ -162,10 +163,18 @@ module SuperSlim
         return true if offset.negative?
         return false if @literal_end && offset == @literal_end - 1
 
-        VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) || operator?(code, offset, byte) || argument_start?(offset)
+        return line_start?(code, offset) if (byte = code.getbyte(offset)) == NEWLINE_BYTE
+
+        VALUE_OPENING_BYTES.include?(byte) || operator?(code, offset, byte) || argument_start?(offset)
       end
 
-      # An operator, not the end of a name (`empty?`, `save!`, `name=`), a global (`$!`), an operator symbol (`:+`),
+      # A line starts a statement or carries on a list (`[1,\n?#]`), unless a backslash joins it to the one before.
+      def line_start?(code, offset)
+        offset -= 1 while offset.positive? && (code.getbyte(offset - 1) == SPACE_BYTE || code.getbyte(offset - 1) == TAB_BYTE)
+        offset.zero? || code.getbyte(offset - 1) != BACKSLASH_BYTE
+      end
+
+      # An operator, not the end of a name (`empty?`, `save!`, `:name=`), a global (`$!`), an operator symbol (`:+`),
       # nor a `::` or a `:` glued to a `?`.
       def operator?(code, offset, byte)
         return false unless OPERATOR_BYTES.include?(byte)
@@ -177,9 +186,16 @@ module SuperSlim
         return true if offset.zero?
 
         previous = code.getbyte(offset - 1)
-        return false if SUFFIX_BYTES.include?(byte) && word_byte?(previous)
+        return false if METHOD_SUFFIX_BYTES.include?(byte) && word_byte?(previous)
+        return !setter_symbol?(code, offset - 1) if byte == EQUALS_BYTE && word_byte?(previous)
 
         byte != COLON_BYTE || (previous != COLON_BYTE && offset < @scanner.pos - 2)
+      end
+
+      # `:name=` ends a symbol; `name=` and `.name=` assign.
+      def setter_symbol?(code, offset)
+        offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
+        offset >= 0 && code.getbyte(offset) == COLON_BYTE
       end
 
       # The offset of the byte before the character just read and the spaces before it.
@@ -197,17 +213,18 @@ module SuperSlim
 
         code = @scanner.string
         word_end = offset
-        # A method's `?` or `!`: `.end_with? ?#`.
-        offset -= 1 if offset.positive? && METHOD_SUFFIX_BYTES.include?(code.getbyte(offset)) && word_byte?(code.getbyte(offset - 1))
+        # A method's `?` or `!`, which no local variable ends with: `.end_with? ?#`, `foo? ?#`.
+        suffixed = offset.positive? && METHOD_SUFFIX_BYTES.include?(code.getbyte(offset)) && word_byte?(code.getbyte(offset - 1))
+        offset -= 1 if suffixed
         name_end = offset
         offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
         return false if offset == name_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
-        return KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset)) if offset.negative?
+        return suffixed || KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset)) if offset.negative?
 
         case code.getbyte(offset)
         when DOT_BYTE then offset.zero? || code.getbyte(offset - 1) != DOT_BYTE
         when *SIGIL_BYTES then false
-        else KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
+        else suffixed || KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
         end
       end
 
