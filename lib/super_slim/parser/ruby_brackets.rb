@@ -21,6 +21,12 @@ module SuperSlim
       EQUALS_BYTE = "=".ord
       SIGIL_BYTES = "@$:".bytes.freeze
       VALUE_OPENING_BYTES = "([{,".bytes.freeze
+      # A value follows a binary or unary operator, a ternary's `?` or `:`, or `;`: `a + ?#`, `x == ?#`, `a ? ?# : ?!`.
+      # `/` and `%` may close a literal instead.
+      OPERATOR_BYTES = "+-*<>|&!~^=?:;".bytes.freeze
+      SUFFIX_BYTES = "?!=".bytes.freeze
+      METHOD_SUFFIX_BYTES = "?!".bytes.freeze
+      COLON_BYTE = ":".ord
       KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
       DIGIT_ZERO_BYTE = "0".ord
       DIGIT_NINE_BYTE = "9".ord
@@ -36,8 +42,9 @@ module SuperSlim
 
       # Where a comment that follows code on its line starts in code, nil when there is none. One alone on a line is
       # left out: a backslash before it carries the code on to that line. A second reading takes a regexp, a %-literal
-      # or `?#` after `.split` or `when` for its argument: when only one reading finds a comment, the code stays whole,
-      # as Slim leaves it; when both do, the later `#` is the comment, the other one sits in a literal.
+      # or `?#` after `.split` or `when` for its argument, and `?#` after an operator for a value: when only one reading
+      # finds a comment, the code stays whole, as Slim leaves it; when both do, the later `#` is the comment, the other
+      # one sits in a literal.
       def self.code_comment_offset(code)
         return unless code.include?("#")
 
@@ -65,6 +72,7 @@ module SuperSlim
       # `.split /#/`, `when ?#`, `.concat %w|#|`.
       def initialize(code, literals_after_words: false)
         @literals_after_words = literals_after_words
+        @literal_end = nil
         @plain_ruby = literals_after_words ? PLAIN_RUBY_BEFORE_LITERALS : PLAIN_RUBY
         @scanner = StringScanner.new(code.dup)
         # Whether each bracket still open ends its line.
@@ -115,7 +123,7 @@ module SuperSlim
           when '"', "'", "`" then return @literals << character
           when "/" then return @literals << character if regexp_start?
           when "%" then return open_percent_literal if scan_percent_literal_opening
-          when "?" then @scanner.skip(CHARACTER_LITERAL) if literal_start?
+          when "?" then @literal_end = @scanner.pos if literal_start? && @scanner.skip(CHARACTER_LITERAL)
           when "#"
             comment_offset = @scanner.pos - 1
             @scanner.skip_until(LINE_END)
@@ -143,15 +151,28 @@ module SuperSlim
       end
 
       # Where the second reading opens a character literal or a %-literal between other delimiters: first in the code,
-      # after an opening bracket, a comma or ` = `, or as an argument. Elsewhere `?` and `%` may follow a value, after
-      # a symbol (`:ok? ?"a":"b"`) or a backslash that joins two lines.
+      # after an opening bracket, a comma or an operator, or as an argument. Elsewhere `?` and `%` may follow a value,
+      # after a symbol (`:ok? ?"a":"b"`), a character or %-literal (`?( %w|a|` divides) or a backslash that joins two lines.
       def literal_start?
         return false unless @literals_after_words
 
         code = @scanner.string
         offset = offset_before_spaces
-        offset.negative? || VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) ||
-          (byte == EQUALS_BYTE && offset.positive? && code.getbyte(offset - 1) == SPACE_BYTE) || argument_start?(offset)
+        return true if offset.negative?
+        return false if @literal_end && offset == @literal_end - 1
+
+        VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) || operator?(code, offset, byte) || argument_start?(offset)
+      end
+
+      # An operator, not the end of a name (`empty?`, `save!`, `name=`) nor a `::` or a `:` glued to a `?`.
+      def operator?(code, offset, byte)
+        return false unless OPERATOR_BYTES.include?(byte)
+        return true if offset.zero?
+
+        previous = code.getbyte(offset - 1)
+        return false if SUFFIX_BYTES.include?(byte) && word_byte?(previous)
+
+        byte != COLON_BYTE || (previous != COLON_BYTE && offset < @scanner.pos - 2)
       end
 
       # The offset of the byte before the character just read and the spaces before it.
@@ -169,8 +190,11 @@ module SuperSlim
 
         code = @scanner.string
         word_end = offset
+        # A method's `?` or `!`: `.end_with? ?#`.
+        offset -= 1 if offset.positive? && METHOD_SUFFIX_BYTES.include?(code.getbyte(offset)) && word_byte?(code.getbyte(offset - 1))
+        name_end = offset
         offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
-        return false if offset == word_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
+        return false if offset == name_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
         return KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset)) if offset.negative?
 
         case code.getbyte(offset)
@@ -205,6 +229,7 @@ module SuperSlim
             next unless literal.depth.zero?
 
             @open_brackets.pop
+            @literal_end = @scanner.pos
             return @literals.pop
           elsif character == literal.opening
             literal.depth += 1

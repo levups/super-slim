@@ -1,5 +1,5 @@
 ~~~~~~~~ super_slim: html
-<p>A regexp after when</p><p>[&quot;a&quot;, &quot;b&quot;]</p><p>a-b</p><p>A regexp after if</p><p>a</p><p>#</p><p>#a</p><p>a #b</p><p>#</p><p>42</p><p>A character after when</p><p>7</p><p>1a)#b</p><p>#</p><p>##</p>
+<p>A regexp after when</p><p>[&quot;a&quot;, &quot;b&quot;]</p><p>a-b</p><p>A regexp after if</p><p>a</p><p>#</p><p>#a</p><p>a #b</p><p>#</p><p>42</p><p>A character after when</p><p>7</p><p>1a)#b</p><p>#</p><p>##</p><p>a#</p><p>same</p><p>true</p><p>#</p><p>#</p><p>true</p><p>##b</p><p>a#</p>
 ~~~~~~~~ super_slim: tilt
 _buf = +""; case "#1"
 when /#\d/
@@ -28,6 +28,15 @@ _buf << "</p>".freeze; state = :ok?
 _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((state == :ok? ?"#":"-"))
 _buf << "</p>".freeze; count = number
 _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(([count ?"#":"", ?#].join))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("a" + ?#))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("#" == ?# ? "same" : "other"))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("a#".end_with? ?#))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(({mark: ?#}[:mark]))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((true ? ?# : ?!))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((!?#.empty?))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(("a#b".tr ?a, ?#))
+_buf << "</p>".freeze; anchor = "a" + ?#
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((anchor))
 _buf << "</p>".freeze; _buf
 ~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new; case "#1"
@@ -57,6 +66,15 @@ when ?#
 @output_buffer.safe_concat("<p>".freeze); @output_buffer << (state == :ok? ?"#":"-")
 @output_buffer.safe_concat("</p>".freeze); count = number
 @output_buffer.safe_concat("<p>".freeze); @output_buffer << ([count ?"#":"", ?#].join)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("a" + ?#)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("#" == ?# ? "same" : "other")
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("a#".end_with? ?#)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ({mark: ?#}[:mark])
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (true ? ?# : ?!)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (!?#.empty?)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ("a#b".tr ?a, ?#)
+@output_buffer.safe_concat("</p>".freeze); anchor = "a" + ?#
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (anchor)
 @output_buffer.safe_concat("</p>".freeze); @output_buffer
 ~~~~~~~~ super_slim: fmt
 - case "#1"
@@ -86,6 +104,15 @@ p = [[7, 3].reduce(:%), "a)", "#b"].join
 p = state == :ok? ?"#":"-"
 - count = number
 p = [count ?"#":"", ?#].join
+p = "a" + ?#
+p = "#" == ?# ? "same" : "other"
+p = "a#".end_with? ?#
+p = {mark: ?#}[:mark]
+p = true ? ?# : ?!
+p = !?#.empty?
+p = "a#b".tr ?a, ?#
+- anchor = "a" + ?# # an anchor
+p = anchor
 ~~~~~~~~ super_slim: lint
 3: [HardcodedText] Translate `A regexp after when` instead of writing it in the template
 5: [HardcodedText] Translate `Missed` instead of writing it in the template

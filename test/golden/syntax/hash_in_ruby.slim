@@ -25,3 +25,12 @@ p = [[7, 3].reduce(:%), "a)", "#b"].join
 p = state == :ok? ?"#":"-"
 - count = number
 p = [count ?"#":"", ?#].join
+p = "a" + ?#
+p = "#" == ?# ? "same" : "other"
+p = "a#".end_with? ?#
+p = {mark: ?#}[:mark]
+p = true ? ?# : ?!
+p = !?#.empty?
+p = "a#b".tr ?a, ?#
+- anchor = "a" + ?# # an anchor
+p = anchor
