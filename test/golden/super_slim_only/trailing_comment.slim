@@ -21,3 +21,7 @@ p = "#not a comment"
     "alice", # inside the call
     "bob",
   ) # after the call
+p = "a#b".split /#/ # a regexp before the comment
+- %w|a #b|.each do |word| # a %-literal before the comment:
+  p = word
+p = [?#, ?a].join # a character before the comment

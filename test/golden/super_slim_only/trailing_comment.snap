@@ -1,5 +1,5 @@
 ~~~~~~~~ super_slim: html
-Posts &amp; comments<i>safe</i><p>42</p><p>after a sibling</p>[&lt;span&gt;inside&lt;/span&gt;][&lt;span&gt;inside&lt;/span&gt;]<ul><li>one</li><li>one</li><li>one</li></ul><p>3</p><p>3</p><p>Posts &amp; comments # inside a string</p><p>#not a comment</p>alice and bob
+Posts &amp; comments<i>safe</i><p>42</p><p>after a sibling</p>[&lt;span&gt;inside&lt;/span&gt;][&lt;span&gt;inside&lt;/span&gt;]<ul><li>one</li><li>one</li><li>one</li></ul><p>3</p><p>3</p><p>Posts &amp; comments # inside a string</p><p>#not a comment</p>alice and bob<p>[&quot;a&quot;, &quot;b&quot;]</p><p>a</p><p>#b</p><p>#a</p>
 ~~~~~~~~ super_slim: tilt
 _buf = +""; _buf << ::ERB::Escape.html_escape((title))
 _buf << (safe_markup).to_s
@@ -24,7 +24,11 @@ _buf << "</p>".freeze; _buf << ::ERB::Escape.html_escape((format(
 "alice", # inside the call
 "bob",
 )))
-_buf
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(("a#b".split /#/))
+_buf << "</p>".freeze; %w|a #b|.each do |word|
+_buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((word))
+_buf << "</p>".freeze; end; _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape(([?#, ?a].join))
+_buf << "</p>".freeze; _buf
 ~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new; @output_buffer << (title)
 @output_buffer.safe_concat((safe_markup).to_s)
@@ -49,7 +53,11 @@ _buf
 "alice", # inside the call
 "bob",
 ))
-@output_buffer
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << ("a#b".split /#/)
+@output_buffer.safe_concat("</p>".freeze); %w|a #b|.each do |word|
+@output_buffer.safe_concat("<p>".freeze); @output_buffer << (word)
+@output_buffer.safe_concat("</p>".freeze); end; @output_buffer.safe_concat("<p>".freeze); @output_buffer << ([?#, ?a].join)
+@output_buffer.safe_concat("</p>".freeze); @output_buffer
 ~~~~~~~~ super_slim: fmt
 = title # rubocop:disable Style/Example -- a reason
 == safe_markup # unescaped
@@ -74,6 +82,10 @@ p = "#not a comment"
     "alice", # inside the call
     "bob",
   ) # after the call
+p = "a#b".split /#/ # a regexp before the comment
+- %w|a #b|.each do |word| # a %-literal before the comment:
+  p = word
+p = [?#, ?a].join # a character before the comment
 ~~~~~~~~ super_slim: lint
 1: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 2: [UnescapedOutput] `==` skips HTML escaping: output with `=`, or render HTML from a translation key ending in `_html`
@@ -87,3 +99,6 @@ p = "#not a comment"
 10: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 12: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 19: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
+24: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
+25: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
+27: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
