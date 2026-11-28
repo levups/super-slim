@@ -1,5 +1,5 @@
 ~~~~~~~~ super_slim: html
-<p>A regexp after when</p><p>[&quot;a&quot;, &quot;b&quot;]</p><p>a-b</p><p>A regexp after if</p><p>a</p><p>#</p><p>#a</p><p>a #b</p><p>#</p><p>42</p><p>A character after when</p><p>7</p><p>1a)#b</p><p>#</p><p>##</p><p>a#</p><p>same</p><p>true</p><p>#</p><p>#</p><p>true</p><p>##b</p><p>a#</p><p>b#</p><p>b#</p><p>1#</p><p>#</p><p>expression</p>
+<p>A regexp after when</p><p>[&quot;a&quot;, &quot;b&quot;]</p><p>a-b</p><p>A regexp after if</p><p>a</p><p>#</p><p>#a</p><p>a #b</p><p>#</p><p>42</p><p>A character after when</p><p>7</p><p>1a)#b</p><p>#</p><p>##</p><p>a#</p><p>same</p><p>true</p><p>#</p><p>#</p><p>true</p><p>##b</p><p>a#</p><p>b#</p><p>b#</p><p>1#</p><p>#</p><p>expression</p><p>false</p><p>##</p><p>#</p>
 ~~~~~~~~ super_slim: tilt
 _buf = +""; case "#1"
 when /#\d/
@@ -44,6 +44,10 @@ _buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(([1,
 _buf << "</p>".freeze; mark=?#
 _buf << "<p>".freeze; _buf << ::ERB::Escape.html_escape((mark))
 _buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((defined? ?#))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((respond_to? ?#))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape(([:a= ?"#":"-", ?#].join))
+_buf << "</p><p>".freeze; _buf << ::ERB::Escape.html_escape((true \
+?"#":"-"))
 _buf << "</p>".freeze; _buf
 ~~~~~~~~ super_slim: rails
 @output_buffer = output_buffer || ActionView::OutputBuffer.new; case "#1"
@@ -89,6 +93,10 @@ when ?#
 @output_buffer.safe_concat("</p>".freeze); mark=?#
 @output_buffer.safe_concat("<p>".freeze); @output_buffer << (mark)
 @output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (defined? ?#)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (respond_to? ?#)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << ([:a= ?"#":"-", ?#].join)
+@output_buffer.safe_concat("</p><p>".freeze); @output_buffer << (true \
+?"#":"-")
 @output_buffer.safe_concat("</p>".freeze); @output_buffer
 ~~~~~~~~ super_slim: fmt
 - case "#1"
@@ -134,6 +142,10 @@ p = [1,
 - mark=?#
 p = mark
 p = defined? ?#
+p = respond_to? ?#
+p = [:a= ?"#":"-", ?#].join
+p = true \
+  ?"#":"-"
 ~~~~~~~~ super_slim: lint
 3: [HardcodedText] Translate `A regexp after when` instead of writing it in the template
 5: [HardcodedText] Translate `Missed` instead of writing it in the template
