@@ -340,8 +340,9 @@ comment swallows the parenthesis that closes the output, or the `do` of a block.
 follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
 the line it is about.
 Slim still can't read such a template, and neither can Brakeman, which parses views with Slim: it reports the
-template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines; turn it off if you
-don't run Brakeman.
+template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines: a comment after `=`
+or `==`, and after `-` code when it hides the `do` or the `end` of a block. `- count = posts.size # c` and
+`- if post.draft? # c` read fine in Slim. Turn the rule off if you don't run Brakeman.
 
 ### Tailwind class names
 

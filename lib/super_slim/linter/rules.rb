@@ -732,6 +732,8 @@ module SuperSlim
       # Brakeman parses views with Slim, which refuses these lines: it reports the template and checks nothing in it.
       class SlimSyntax < Rule
         MESSAGE = "Slim, and so Brakeman, cannot read"
+        # Their `do` is optional.
+        LOOP = /\A(?:while|until|for)\b/
 
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
@@ -753,9 +755,17 @@ module SuperSlim
           end
         end
 
-        # Slim ends a `-` line with a newline, so a comment there only swallows the `do` Slim adds to open a block.
+        # Slim ends a `-` line with a newline: a comment there breaks the block only when it swallows the `do` Slim
+        # adds, or changes whether Slim closes it with `end`, which Slim decides on the code comment included.
         def swallows_what_slim_adds?(node, code, comment_offset)
-          node.is_a?(AST::Output) || (!AST.empty?(node.children) && !code.byteslice(0, comment_offset).rstrip.match?(Compiler::BLOCK_SELF_OPENING))
+          return true if node.is_a?(AST::Output)
+
+          code_before = code.byteslice(0, comment_offset).rstrip
+          children = !AST.empty?(node.children)
+          return true if children && !code_before.match?(Compiler::BLOCK_SELF_OPENING) && !code_before.match?(LOOP)
+
+          slim_code = (children && !code.match?(Compiler::BLOCK_SELF_OPENING)) ? "#{code} do" : code
+          slim_code.match?(Compiler::BLOCK_OPENING) != (code_before.match?(Compiler::BLOCK_OPENING) || (children && code_before.match?(LOOP)))
         end
       end
 
