@@ -217,6 +217,21 @@ class LinterTest < Minitest::Test
       "Merge this `if` into the one around it: `if (local_assigns.fetch :compact, false) && post.draft?`"], messages
   end
 
+  def test_conditions_with_a_comment_inside_or_spread_over_lines
+    source = "- if # TODO: a real check\n  - if post.draft?\n    p a\n" \
+      "- if post.published?\n  - if current_user.can?(\n      :edit, # the editors\n      post)\n    p b\n" \
+      "- if post.published?\n  - if current_user.can?(\n      :edit,\n      post)\n    p c\n" \
+      "- if !current_user.can?(\n    :edit, # the editors\n    post)\n  p d\n- else\n  p e\n" \
+      "- if !current_user.can?(\n    :edit,\n    post)\n  p f\n- else\n  p g\n"
+    offenses = SuperSlim::Linter.new.call("show.html.slim", source).reject { _1.rule == "SlimSyntax" }
+    messages = offenses.map { "#{_1.lineno}: #{_1.message}" }
+
+    assert_equal ["2: Merge this `if` into the one around it",
+      "5: Merge this `if` into the one around it",
+      "10: Merge this `if` into the one around it: `if post.published? && current_user.can?(:edit, post)`",
+      "20: Write `if current_user.can?(:edit, post)` and swap the branches"], messages
+  end
+
   def test_conditionals_with_another_branch_or_a_compound_condition_pass
     source = <<~SLIM
       - if a

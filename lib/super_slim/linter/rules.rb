@@ -883,6 +883,26 @@ module SuperSlim
         def branch?(node)
           node.is_a?(AST::Control) && node.code.match?(/\A\s*(?:else|elsif)\b/)
         end
+
+        # The keyword and the condition after it, on one line and without the comment that ends them; no condition
+        # when nothing follows the keyword or a comment sits on one of its lines, which would swallow the rest.
+        def keyword_and_condition(code)
+          comment_offset = Parser::RubyBrackets.code_comment_offset(code)
+          code = code.byteslice(0, comment_offset) if comment_offset
+          first_line, *lines = code.split("\n")
+          reader = Parser::RubyBrackets.new(first_line)
+          folded = +first_line.strip.delete_suffix("\\").rstrip
+          lines.each do |line|
+            return [folded[/\w+/], nil] if reader.trailing_comment_offset
+
+            reader << line
+            line = line.strip.delete_suffix("\\").rstrip
+            folded << " " unless folded.end_with?("(", "[") || line.start_with?(")", "]")
+            folded << line
+          end
+          keyword, condition = folded.split(/\s+/, 2)
+          [keyword, condition&.delete_suffix(" then")]
+        end
       end
 
       class SoleNestedConditional < Rule
@@ -897,9 +917,10 @@ module SuperSlim
             # A conditional written on one line holds its own branches.
             next if AST.empty?(inner.children)
 
-            keyword = inner.code[/\w+/]
-            merged = "if #{condition_of(node.code)} && #{condition_of(inner.code)}"
-            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it: `#{merged}`")
+            message = "Merge this `#{inner.code[/\w+/]}` into the one around it"
+            outer, nested = condition_of(node.code), condition_of(inner.code)
+            message += ": `if #{outer} && #{nested}`" if outer && nested
+            offense(document, document.line_of(inner), message)
           end
         end
 
@@ -908,12 +929,12 @@ module SuperSlim
         # As RuboCop writes it: `unless a` reads `!a`, and a condition holding an operator or a call's arguments
         # without parentheses (`fetch :compact, false`), which would take the `&&` in, gets them.
         def condition_of(code)
-          comment_offset = Parser::RubyBrackets.code_comment_offset(code)
-          code = code.byteslice(0, comment_offset) if comment_offset
-          keyword, condition = code.strip.split(/\s+/, 2)
-          condition = condition.gsub(/\s*\\?\n\s*/, " ").delete_suffix(" then")
-          bare = condition.gsub(BRACKETED_OR_QUOTED, "")
-          condition = "(#{condition})" if bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          keyword, condition = keyword_and_condition(code)
+          return if condition.nil? || condition.empty?
+
+          bare = condition
+          bare = bare.gsub(BRACKETED_OR_QUOTED, "") while bare.match?(BRACKETED_OR_QUOTED)
+          condition = "(#{condition})" if bare.strip.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
           (keyword == "unless") ? "!#{condition}" : condition
         end
       end
@@ -921,14 +942,17 @@ module SuperSlim
       class NegatedIfElseCondition < Rule
         include Conditionals
 
-        NEGATED_IF = /\A\s*if\s+!(?!=)\s*(\S.*)\z/m
+        NEGATED = /\A!(?!=)\s*(\S.*)\z/
 
         def offenses(document, _source)
           enum_for(:each_conditional, document).filter_map do |node, following|
-            next unless else?(following) && (condition = node.code[NEGATED_IF, 1])
+            next unless else?(following)
+
+            keyword, condition = keyword_and_condition(node.code)
+            next unless keyword == "if" && (condition = condition&.[](NEGATED, 1))
             next if Formatter.compound_condition?(condition)
 
-            offense(document, document.line_of(node), "Write `if #{condition.strip}` and swap the branches")
+            offense(document, document.line_of(node), "Write `if #{condition}` and swap the branches")
           end
         end
       end
