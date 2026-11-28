@@ -27,6 +27,7 @@ module SuperSlim
       SUFFIX_BYTES = "?!=".bytes.freeze
       METHOD_SUFFIX_BYTES = "?!".bytes.freeze
       COLON_BYTE = ":".ord
+      DOLLAR_BYTE = "$".ord
       KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
       DIGIT_ZERO_BYTE = "0".ord
       DIGIT_NINE_BYTE = "9".ord
@@ -164,9 +165,15 @@ module SuperSlim
         VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) || operator?(code, offset, byte) || argument_start?(offset)
       end
 
-      # An operator, not the end of a name (`empty?`, `save!`, `name=`) nor a `::` or a `:` glued to a `?`.
+      # An operator, not the end of a name (`empty?`, `save!`, `name=`), a global (`$!`), an operator symbol (`:+`),
+      # nor a `::` or a `:` glued to a `?`.
       def operator?(code, offset, byte)
         return false unless OPERATOR_BYTES.include?(byte)
+
+        start = offset
+        start -= 1 while start.positive? && OPERATOR_BYTES.include?(code.getbyte(start - 1))
+        return false if start.positive? && code.getbyte(start - 1) == DOLLAR_BYTE
+        return false if code.byteslice(start, offset - start).include?(":")
         return true if offset.zero?
 
         previous = code.getbyte(offset - 1)

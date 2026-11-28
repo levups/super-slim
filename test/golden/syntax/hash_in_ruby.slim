@@ -34,3 +34,5 @@ p = !?#.empty?
 p = "a#b".tr ?a, ?#
 - anchor = "a" + ?# # an anchor
 p = anchor
+p = [$! ?"a" : "b", ?#].join
+p = [3 == :+ ?"a" : "b", ?#].join
