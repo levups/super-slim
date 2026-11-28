@@ -322,13 +322,18 @@ class LinterTest < Minitest::Test
       p = post.title # the title
       - if post.published? # only then
         p Published
+      - count = posts.size # all of them
+      - posts.each_with_index # numbered
+        p = count
+      - posts.each do |post| # one by one
+        p = post.title
       = link_to post.title,
         post_path(post)
       = "Post #1"
     SLIM
     offenses = linter.call("show.html.slim", source)
 
-    assert_equal ["SlimSyntax:1", "SlimSyntax:5", "SlimSyntax:6", "SlimSyntax:7"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
+    assert_equal ["SlimSyntax:1", "SlimSyntax:5", "SlimSyntax:6", "SlimSyntax:10"], offenses.map { "#{_1.rule}:#{_1.lineno}" }
     assert_equal "Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own", offenses[1].message
   end
 

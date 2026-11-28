@@ -736,7 +736,7 @@ module SuperSlim
         def offenses(document, _source)
           document.enum_for(:each_node).filter_map do |node, ancestors|
             next unless node.is_a?(AST::Output) || node.is_a?(AST::Control)
-            next unless (reason = reason_of(node.code))
+            next unless (reason = reason_of(node))
 
             offense(document, line_near(document, node, ancestors), "#{MESSAGE} #{reason}")
           end
@@ -744,12 +744,18 @@ module SuperSlim
 
         private
 
-        def reason_of(code)
+        def reason_of(node)
+          code = node.code
           if !Parser.slim_continuation?(code.split("\n"))
             "code continued after an opening bracket: end each line but the last with a comma"
-          elsif Parser::RubyBrackets.code_comment_offset(code)
+          elsif (comment_offset = Parser::RubyBrackets.code_comment_offset(code)) && swallows_what_slim_adds?(node, code, comment_offset)
             "a comment after code: move it to a line of its own"
           end
+        end
+
+        # Slim ends a `-` line with a newline, so a comment there only swallows the `do` Slim adds to open a block.
+        def swallows_what_slim_adds?(node, code, comment_offset)
+          node.is_a?(AST::Output) || (!AST.empty?(node.children) && !code.byteslice(0, comment_offset).rstrip.match?(Compiler::BLOCK_SELF_OPENING))
         end
       end
 
