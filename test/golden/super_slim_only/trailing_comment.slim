@@ -25,3 +25,7 @@ p = "a#b".split /#/ # a regexp before the comment
 - %w|a #b|.each do |word| # a %-literal before the comment:
   p = word
 p = [?#, ?a].join # a character before the comment
+- count = number
+- third = count /3 \
+  # alone on a continued line, see /docs #2
+p = third

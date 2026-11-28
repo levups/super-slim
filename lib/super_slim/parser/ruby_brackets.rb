@@ -18,7 +18,8 @@ module SuperSlim
       ARGUMENT_START = /[^\s=]/
       UNDERSCORE_BYTE = "_".ord
       COLON_BYTE = ":".ord
-      SIGIL_BYTES = "@$:".bytes.freeze
+      DOT_BYTE = ".".ord
+      KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
       DIGIT_ZERO_BYTE = "0".ord
       DIGIT_NINE_BYTE = "9".ord
       LOWER_A_BYTE = "a".ord
@@ -33,23 +34,29 @@ module SuperSlim
 
       # Where a comment that follows code on its line starts in code, nil when there is none. One alone on a line is
       # left out: a backslash before it carries the code on to that line. A second reading takes a regexp, a %-literal
-      # or `?#` after a method name for its argument: when only one reading finds a comment, the code stays whole, as
-      # Slim leaves it; when both do, the later `#` is the comment, the other one sits in a literal.
+      # or `?#` after `.split` or `when` for its argument: when only one reading finds a comment, the code stays whole,
+      # as Slim leaves it; when both do, the later `#` is the comment, the other one sits in a literal.
       def self.code_comment_offset(code)
         return unless code.include?("#")
 
         offset = new(code).trailing_comment_offset or return
+        return if alone_on_its_line?(code, offset)
+
         literal_offset = new(code, literals_after_words: true).trailing_comment_offset or return
-        offset = literal_offset if literal_offset > offset
-        code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
-        offset unless code_before.empty? || code_before.end_with?("\n")
+        (literal_offset > offset) ? literal_offset : offset
       end
+
+      def self.alone_on_its_line?(code, offset)
+        code_before = code.byteslice(0, offset).sub(/[ \t]+\z/, "")
+        code_before.empty? || code_before.end_with?("\n")
+      end
+      private_class_method :alone_on_its_line?
 
       # The byte offset of the comment that ends the code, if one does.
       attr_reader :trailing_comment_offset
 
-      # With `literals_after_words`, what follows a word and a space reads as the first argument of a method called
-      # without parentheses, as Ruby reads it unless the word is a local variable: `split /#/`, `when ?#`, `%w|#|`.
+      # With `literals_after_words`, what follows a method or a keyword and a space reads as its first argument:
+      # `.split /#/`, `when ?#`, `.concat %w|#|`.
       def initialize(code, literals_after_words: false)
         @literals_after_words = literals_after_words
         @plain_ruby = literals_after_words ? PLAIN_RUBY_BEFORE_LITERALS : PLAIN_RUBY
@@ -97,7 +104,7 @@ module SuperSlim
             return @literals.pop if interpolation_depth && @open_brackets.size < interpolation_depth
           when '"', "'", "`" then return @literals << character
           when "/" then return @literals << character if regexp_start?
-          when "%" then return open_percent_literal if percent_literal_start?
+          when "%" then return open_percent_literal if scan_percent_literal_opening
           when "?" then @scanner.skip(CHARACTER_LITERAL) if literal_start?
           when "#"
             comment_offset = @scanner.pos - 1
@@ -126,16 +133,17 @@ module SuperSlim
         offset -= 1 while offset >= 0 && (code.getbyte(offset) == SPACE_BYTE || code.getbyte(offset) == TAB_BYTE)
         return true if offset.negative? || BYTES_BEFORE_REGEXP.include?(code.getbyte(offset))
 
-        @literals_after_words && offset < @scanner.pos - 2 && @scanner.match?(ARGUMENT_START) && method_name_end?(code, offset)
+        @literals_after_words && offset < @scanner.pos - 2 && @scanner.match?(ARGUMENT_START) && argument_taker_end?(code, offset)
       end
 
-      # Ruby divides after a number, an instance, class or global variable, and a symbol.
-      def method_name_end?(code, offset)
+      # A method called on a receiver (`.split`), or a keyword. A bare name may be a local variable, which Ruby divides
+      # (`total /2`) or questions (`x ?'a':'b'`).
+      def argument_taker_end?(code, offset)
         word_end = offset
         offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
-        return false if offset == word_end
+        return false if offset == word_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
 
-        !code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE) && (offset.negative? || !SIGIL_BYTES.include?(code.getbyte(offset)))
+        (offset >= 0 && code.getbyte(offset) == DOT_BYTE) || KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
       end
 
       def word_byte?(byte)
@@ -144,7 +152,7 @@ module SuperSlim
       end
 
       # `:%` is a symbol.
-      def percent_literal_start?
+      def scan_percent_literal_opening
         @scanner.scan(PERCENT_LITERAL_OPENING) || (literal_start? && (@scanner.pos < 2 || @scanner.string.getbyte(@scanner.pos - 2) != COLON_BYTE) &&
           @scanner.scan(SAME_DELIMITER_PERCENT_LITERAL_OPENING))
       end
