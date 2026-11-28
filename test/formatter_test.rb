@@ -189,6 +189,28 @@ class FormatterTest < Minitest::Test
     assert_formats untouched, untouched
   end
 
+  def test_a_negated_if_keeps_its_if_when_the_condition_goes_on_or_binds_looser
+    untouched = "- if !x \\\n  && y\n  p a\n- if !foo(1,\n  2) && bar\n  p b\n- if !a..b\n  p d\n" \
+      "- if !x in Integer\n  p e\n- if !page.number-1\n  p f\n- if !x; else\n  p g\n- if !name.match?(/[^']+/) || title == 'x'\n  p h\n" \
+      "- if !path.match?(/\\(/) && y\n  p i\n- if !x in[1, 2]\n  p j\n- if !q.match?(/\"/) && q.include?(\" \")\n  p k\n" \
+      "- if !label.match?(/\\(/) && label.match?(/\\)/)\n  p l\n- if !s.start_with?(?() && s.end_with?(?))\n  p m\n"
+    assert_formats untouched, untouched
+    assert_formats "- unless foo(1,\n  2)\n  p e\n- unless foo?(a) { b }\n  p d\n- unless headers[\"Turbo-Frame\"]\n  p a\n- unless items[1..].any?(&:x)\n  p b\n- unless t(\"log in now\").empty?\n  p c\n",
+      "- if !foo(1,\n  2)\n  p e\n- if !foo?(a) { b }\n  p d\n- if !headers[\"Turbo-Frame\"]\n  p a\n- if !items[1..].any?(&:x)\n  p b\n- if !t(\"log in now\").empty?\n  p c\n"
+  end
+
+  def test_the_negated_if_check_steps_over_strings
+    escaped_quotes = "x(\"#{"\\\"" * 100_000}\")"
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    refute SuperSlim::Formatter.compound_condition?(escaped_quotes)
+    refute SuperSlim::Formatter.compound_condition?(escaped_quotes.tr("\"", "'"))
+    assert SuperSlim::Formatter.compound_condition?(escaped_quotes.delete_suffix("\")"))
+    assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at, :<, 1
+    assert SuperSlim::Formatter.compound_condition?(%q("#{'"'}" == "#{'"'}"))
+    refute SuperSlim::Formatter.compound_condition?(%q(t("it's #1 = a").empty?))
+  end
+
   def test_the_check_takes_a_negated_if_for_the_unless_it_reads_as
     assert same_ruby?("- if !x\n  p\n", "- unless x\n  p\n")
     refute same_ruby?("- if !x == y\n  p\n", "- unless x == y\n  p\n")

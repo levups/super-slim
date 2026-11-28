@@ -217,6 +217,14 @@ class LinterTest < Minitest::Test
         p
       - elsif b
         p
+      - if !x in Integer
+        p
+      - else
+        p
+      - if !path.match?(/(/) && y
+        p
+      - else
+        p
     SLIM
     assert_offenses [], source
   end

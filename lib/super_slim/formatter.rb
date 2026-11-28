@@ -21,7 +21,11 @@ module SuperSlim
     INDENT_WIDTH = 2
     CONTROL = /\A-\s*/
     NEGATED_IF = /\A- if !(?!=)\s*(\S.*)\z/
-    COMPOUND_CONDITION = %r{[=<>+*/%&|^~#]|\?\s|\s-\s|:\s|\b(?:and|or|not|then|do)\b}
+    COMPOUND_CONDITION = %r{[=<>+*/%&|^~#;-]|\.\.|\?\s|:\s|\b(?:and|or|not|then|do)\b|(?<=\s)in(?![\w?!])}
+    # What a string or a pair of brackets holds can't change how far the `!` before them reaches.
+    # A regexp, a %-literal, a global like `$'` or a character literal like `?(` may hold quotes and brackets that
+    # pair with others: such a condition keeps its `if`, as it did before strings and brackets were skipped.
+    UNREADABLE_LITERAL = %r{[/%$]|(?<!\w)\?\S}
     ELSE_LINE = /\A\s*-\s*(?:else|elsif)\b/
     OUTPUT = /\A(==?)([<>]*)\s*/
     TAG_OUTPUT = /\A\s*(==?)(['<>]*)\s*/
@@ -54,6 +58,36 @@ module SuperSlim
       parser.line_by_node.filter_map do |node, lineno|
         lineno if (node.is_a?(AST::Output) || node.is_a?(AST::Control)) && !AST.empty?(node.children)
       end.to_set
+    end
+
+    # Whether `!condition` may negate less than all of it: an operator, a range, a ternary or a keyword outside strings
+    # and brackets. `!a == b` compares `!a`, `!a..b` is a flip-flop.
+    def self.compound_condition?(condition)
+      return true if condition.match?(UNREADABLE_LITERAL)
+
+      top_level = +""
+      depth = 0
+      quote = escaped = nil
+      previous_character = nil
+      condition.each_char do |character|
+        if quote
+          # An interpolation may hold quotes of its own.
+          return true if quote == '"' && character == "{" && previous_character == "#" && !escaped
+          if escaped then escaped = false
+          elsif character == "\\" then escaped = true
+          elsif character == quote then quote = nil
+          end
+          previous_character = character
+          next
+        end
+
+        depth -= 1 if ")]}".include?(character)
+        top_level << character if depth.zero?
+        depth += 1 if "([{".include?(character)
+        quote = character if character == '"' || character == "'"
+      end
+      # Brackets or quotes that don't pair up sit in a literal this scan can't read.
+      !quote.nil? || !depth.zero? || top_level.match?(COMPOUND_CONDITION)
     end
 
     # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a
@@ -205,12 +239,14 @@ module SuperSlim
     end
 
     # `- if !condition` reads as `- unless condition` when the `!` covers the whole condition and no `else` follows,
-    # as RuboCop's Style/NegatedIf asks. A condition holding an operator, a ternary or a keyword keeps its `!`:
-    # `!a == b` compares `!a`.
+    # as RuboCop's Style/NegatedIf asks, its lines read together.
     def unless_for_negated_if(content, lines, outline, lineno)
       condition = content[NEGATED_IF, 1]
-      return content if condition.nil? || condition.start_with?("(", "!") || condition.match?(COMPOUND_CONDITION)
-      return content if else_follows?(lines, outline, lineno)
+      return content if condition.nil? || condition.start_with?("(", "!")
+
+      continuation_lines = ((lineno + 1)...outline.size).take_while { outline[_1].kind == :continuation }.map! { lines[_1 - 1] }
+      whole_condition = [condition, *continuation_lines].map { _1.strip.delete_suffix("\\") }.join(" ")
+      return content if Formatter.compound_condition?(whole_condition) || else_follows?(lines, outline, lineno)
 
       "- unless #{condition}"
     end
