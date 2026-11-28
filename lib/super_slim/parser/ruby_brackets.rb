@@ -17,8 +17,10 @@ module SuperSlim
       CHARACTER_LITERAL = /\\?[^\s]/
       ARGUMENT_START = /[^\s=]/
       UNDERSCORE_BYTE = "_".ord
-      COLON_BYTE = ":".ord
       DOT_BYTE = ".".ord
+      EQUALS_BYTE = "=".ord
+      SIGIL_BYTES = "@$:".bytes.freeze
+      VALUE_OPENING_BYTES = "([{,".bytes.freeze
       KEYWORDS_BEFORE_ARGUMENT = %w[when if unless elsif while until and or not return in then].freeze
       DIGIT_ZERO_BYTE = "0".ord
       DIGIT_NINE_BYTE = "9".ord
@@ -128,22 +130,46 @@ module SuperSlim
       end
 
       def regexp_start?
+        offset = offset_before_spaces
+        offset.negative? || BYTES_BEFORE_REGEXP.include?(@scanner.string.getbyte(offset)) || argument_start?(offset)
+      end
+
+      # Where the second reading opens a character literal or a %-literal between other delimiters: first in the code,
+      # after an opening bracket, a comma or ` = `, or as an argument. Elsewhere `?` and `%` may follow a value, after
+      # a symbol (`:ok? ?"a":"b"`) or a backslash that joins two lines.
+      def literal_start?
+        return false unless @literals_after_words
+
+        code = @scanner.string
+        offset = offset_before_spaces
+        offset.negative? || VALUE_OPENING_BYTES.include?(byte = code.getbyte(offset)) ||
+          (byte == EQUALS_BYTE && offset.positive? && code.getbyte(offset - 1) == SPACE_BYTE) || argument_start?(offset)
+      end
+
+      # The offset of the byte before the character just read and the spaces before it.
+      def offset_before_spaces
         code = @scanner.string
         offset = @scanner.pos - 2
         offset -= 1 while offset >= 0 && (code.getbyte(offset) == SPACE_BYTE || code.getbyte(offset) == TAB_BYTE)
-        return true if offset.negative? || BYTES_BEFORE_REGEXP.include?(code.getbyte(offset))
-
-        @literals_after_words && offset < @scanner.pos - 2 && @scanner.match?(ARGUMENT_START) && argument_taker_end?(code, offset)
+        offset
       end
 
-      # A method called on a receiver (`.split`), or a keyword. A bare name may be a local variable, which Ruby divides
-      # (`total /2`) or questions (`x ?'a':'b'`).
-      def argument_taker_end?(code, offset)
+      # After a method called on a receiver (`.split /#/`) or a keyword (`when ?#`), and a space. A bare name may be a
+      # local variable, which Ruby divides (`total /2`) or questions (`x ?'a':'b'`).
+      def argument_start?(offset)
+        return false unless @literals_after_words && offset < @scanner.pos - 2 && @scanner.match?(ARGUMENT_START)
+
+        code = @scanner.string
         word_end = offset
         offset -= 1 while offset >= 0 && word_byte?(code.getbyte(offset))
         return false if offset == word_end || code.getbyte(offset + 1).between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
+        return KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset)) if offset.negative?
 
-        (offset >= 0 && code.getbyte(offset) == DOT_BYTE) || KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
+        case code.getbyte(offset)
+        when DOT_BYTE then offset.zero? || code.getbyte(offset - 1) != DOT_BYTE
+        when *SIGIL_BYTES then false
+        else KEYWORDS_BEFORE_ARGUMENT.include?(code.byteslice(offset + 1, word_end - offset))
+        end
       end
 
       def word_byte?(byte)
@@ -151,14 +177,8 @@ module SuperSlim
           byte.between?(DIGIT_ZERO_BYTE, DIGIT_NINE_BYTE)
       end
 
-      # `:%` is a symbol.
       def scan_percent_literal_opening
-        @scanner.scan(PERCENT_LITERAL_OPENING) || (literal_start? && (@scanner.pos < 2 || @scanner.string.getbyte(@scanner.pos - 2) != COLON_BYTE) &&
-          @scanner.scan(SAME_DELIMITER_PERCENT_LITERAL_OPENING))
-      end
-
-      def literal_start?
-        @literals_after_words && regexp_start?
+        @scanner.scan(PERCENT_LITERAL_OPENING) || (literal_start? && @scanner.scan(SAME_DELIMITER_PERCENT_LITERAL_OPENING))
       end
 
       def open_percent_literal
