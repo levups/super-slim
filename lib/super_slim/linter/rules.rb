@@ -858,6 +858,7 @@ module SuperSlim
 
       module Conditionals
         CONDITIONAL = /\A\s*(?:if|unless)\s/
+        CONDITION_PREFIX = "def _\n"
         ELSE = /\A\s*else\s*\z/
 
         private
@@ -884,21 +885,28 @@ module SuperSlim
           node.is_a?(AST::Control) && node.code.match?(/\A\s*(?:else|elsif)\b/)
         end
 
-        # The keyword and the condition after it, on one line and without the comment that ends them, as Prism reads
-        # them; no condition when it doesn't parse, a comment sits on a line but the last, or a string spans lines.
+        # The keyword, and the condition after it on one line and its Prism node, as Ruby reads them in a method
+        # body (`yield`); no condition when the line doesn't parse, holds a statement (`- if a; b`), a comment sits
+        # inside the condition, or a string spans its lines.
         def keyword_and_condition(code)
           keyword = code[/\w+/]
-          result = Prism.parse("#{code}\nend")
+          result = Prism.parse("#{CONDITION_PREFIX}#{code}\nend\nend")
           return [keyword, nil] unless result.success?
 
-          last_line_start = code.rindex("\n") || 0
-          if (comment = result.comments.first)
-            return [keyword, nil] if comment.location.start_offset < last_line_start
+          conditional = result.value.statements.body.first.body&.body&.first
+          return [keyword, nil] unless conditional.is_a?(Prism::IfNode) || conditional.is_a?(Prism::UnlessNode)
+          return [keyword, nil] if conditional.statements
 
-            code = code.byteslice(0, comment.location.start_offset)
-          end
-          return [keyword, nil] if result.value.statements.body.size != 1 || string_across_lines?(code)
+          predicate = conditional.predicate
+          return [keyword, nil] if result.comments.any? { _1.location.start_offset < predicate.location.end_offset }
 
+          condition = predicate.slice
+          return [keyword, nil] if string_across_lines?(condition)
+
+          [keyword, fold(condition), predicate]
+        end
+
+        def fold(code)
           folded = +""
           code.split("\n").each do |line|
             line = line.strip.delete_suffix("\\").rstrip
@@ -907,12 +915,11 @@ module SuperSlim
             folded << " " unless folded.empty? || folded.end_with?("(", "[") || line.start_with?(")", "]")
             folded << line
           end
-          condition = folded.split(/\s+/, 2)[1]&.sub(/\s+then\z/, "")
-          [keyword, (condition if condition && Prism.parse(condition).success?)]
+          folded
         end
 
         def string_across_lines?(code)
-          code.include?("\n") && Prism.lex("#{code}\nend").value.any? do |token,|
+          code.include?("\n") && Prism.lex("#{CONDITION_PREFIX}#{code}\nend").value.any? do |token,|
             token.type == :STRING_CONTENT && token.value.include?("\n")
           end
         end
@@ -942,12 +949,16 @@ module SuperSlim
         # As RuboCop writes it: `unless a` reads `!a`, and a condition holding an operator or a call's arguments
         # without parentheses (`fetch :compact, false`), which would take the `&&` in, gets them.
         def condition_of(code)
-          keyword, condition = keyword_and_condition(code)
-          return if condition.nil? || condition.empty?
+          keyword, condition, predicate = keyword_and_condition(code)
+          return if condition.nil?
 
           bare = condition
           bare = bare.gsub(BRACKETED_OR_QUOTED, "") while bare.match?(BRACKETED_OR_QUOTED)
-          condition = "(#{condition})" if bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          # `x.is_a?Foo` takes the `&&` in as well.
+          command = predicate.is_a?(Prism::CallNode) && predicate.arguments && predicate.opening_loc.nil?
+          if command || bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+            condition = "(#{condition})"
+          end
           (keyword == "unless") ? "!#{condition}" : condition
         end
       end
