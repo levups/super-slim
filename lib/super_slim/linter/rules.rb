@@ -887,7 +887,7 @@ module SuperSlim
 
         # The keyword, and the condition after it on one line and its Prism node, as Ruby reads them in a method
         # body (`yield`); no condition when the line doesn't parse, holds a statement (`- if a; b`), a comment sits
-        # inside the condition, or a string spans its lines.
+        # inside the condition, or one of its line breaks means something (`(a\n b)`, a string across lines).
         def keyword_and_condition(code)
           keyword = code[/\w+/]
           result = Prism.parse("#{CONDITION_PREFIX}#{code}\nend\nend")
@@ -901,9 +901,12 @@ module SuperSlim
           return [keyword, nil] if result.comments.any? { _1.location.start_offset < predicate.location.end_offset }
 
           condition = predicate.slice
-          return [keyword, nil] if string_across_lines?(condition)
+          return [keyword, nil] if meaningful_line_break?(condition)
 
-          [keyword, fold(condition), predicate]
+          condition = fold(condition)
+          return [keyword, nil] unless Prism.parse("#{CONDITION_PREFIX}#{condition}\nend").success?
+
+          [keyword, condition, predicate]
         end
 
         def fold(code)
@@ -918,10 +921,18 @@ module SuperSlim
           folded
         end
 
-        def string_across_lines?(code)
-          code.include?("\n") && Prism.lex("#{CONDITION_PREFIX}#{code}\nend").value.any? do |token,|
-            token.type == :STRING_CONTENT && token.value.include?("\n")
+        def meaningful_line_break?(code)
+          code.include?("\n") && Prism.lex(code).value.any? do |token,|
+            token.type == :NEWLINE || (token.type == :STRING_CONTENT && token.value.include?("\n"))
           end
+        end
+
+        # A call or `defined?` without parentheses, which would take an `&&` after it in: `x.is_a?Foo`, `!defined?x`.
+        def command?(node)
+          return true if node.is_a?(Prism::CallNode) && node.arguments && node.opening_loc.nil? && node.name.match?(/\A\w/)
+          return true if node.is_a?(Prism::DefinedNode) && node.lparen_loc.nil?
+
+          node.compact_child_nodes.any? { command?(_1) }
         end
       end
 
@@ -954,9 +965,7 @@ module SuperSlim
 
           bare = condition
           bare = bare.gsub(BRACKETED_OR_QUOTED, "") while bare.match?(BRACKETED_OR_QUOTED)
-          # `x.is_a?Foo` takes the `&&` in as well.
-          command = predicate.is_a?(Prism::CallNode) && predicate.arguments && predicate.opening_loc.nil?
-          if command || bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          if command?(predicate) || bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
             condition = "(#{condition})"
           end
           (keyword == "unless") ? "!#{condition}" : condition
