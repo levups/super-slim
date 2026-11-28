@@ -109,8 +109,6 @@ p = third
 7: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 8: [HardcodedText] Translate `inside` instead of writing it in the template
 10: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
-12: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 19: [SlimSyntax] Slim, and so Brakeman, cannot read code continued after an opening bracket: end each line but the last with a comma
 24: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
-25: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own
 27: [SlimSyntax] Slim, and so Brakeman, cannot read a comment after code: move it to a line of its own

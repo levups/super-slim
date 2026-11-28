@@ -238,7 +238,7 @@ linters, so most will look familiar:
 | DeprecatedClasses (`classes: {old: new}`, `old-*: new-*` for a prefix), DeprecatedAttributes (`attributes: {old: new}`), both with `preset: bootstrap5` | erb_lint | on, but empty |
 | UnescapedOutput (`==`, `html_safe`, `raw`, `#{{}}`) | Brakeman, erb_lint | off |
 | DatabaseQueries (`where`, `find_by`, `pluck`, `exists?`, `Model.all`, `Model.order`… in a template) | Rails guides | off |
-| SlimSyntax (code continued after an opening bracket, a comment after code: Slim and Brakeman can't read them) | Brakeman | on |
+| SlimSyntax (code continued after an opening bracket, a comment after code that Slim and Brakeman can't read) | Brakeman | on |
 | EmbeddedEngines (`forbidden_engines: [javascript, css]`) | slim-lint | off |
 | HardcodedText (text that should be translated) | erb_lint | off |
 | UnnecessaryInterpolation, UnnecessaryStringOutput | haml-lint | on |
@@ -339,9 +339,10 @@ Slim compiles `= render CardComponent.new(post:) # rubocop:disable Some/Cop -- r
 comment swallows the parenthesis that closes the output, or the `do` of a block. SuperSlim leaves a comment that
 follows code on its line out of the compiled Ruby, after `=`, `==` and `-` alike, so a RuboCop directive can sit on
 the line it is about.
-Slim still can't read such a template, and neither can Brakeman, which parses views with Slim: it reports the
-template as an error and checks nothing in it. The `SlimSyntax` linter rule flags these lines; turn it off if you
-don't run Brakeman.
+Slim still can't read most such lines, and neither can Brakeman, which parses views with Slim: it reports the
+template as an error and checks nothing in it. The `SlimSyntax` linter rule flags them: a comment after `=` or `==`,
+and after `-` code when it swallows the `do` Slim adds or changes whether Slim closes the block with `end`.
+`- count = posts.size # c` and `- if post.draft? # c` read fine in Slim. Turn the rule off if you don't run Brakeman.
 
 ### Tailwind class names
 
