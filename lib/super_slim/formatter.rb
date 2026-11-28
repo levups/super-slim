@@ -68,12 +68,16 @@ module SuperSlim
       top_level = +""
       depth = 0
       quote = escaped = nil
+      previous_character = nil
       condition.each_char do |character|
         if quote
+          # An interpolation may hold quotes of its own.
+          return true if quote == '"' && character == "{" && previous_character == "#" && !escaped
           if escaped then escaped = false
           elsif character == "\\" then escaped = true
           elsif character == quote then quote = nil
           end
+          previous_character = character
           next
         end
 
@@ -83,7 +87,7 @@ module SuperSlim
         quote = character if character == '"' || character == "'"
       end
       # Brackets or quotes that don't pair up sit in a literal this scan can't read.
-      quote || !depth.zero? || top_level.match?(COMPOUND_CONDITION)
+      !quote.nil? || !depth.zero? || top_level.match?(COMPOUND_CONDITION)
     end
 
     # Slim opens a block when Ruby code has children, but only `do` shows that the call takes one. A `#` may start a

@@ -199,13 +199,16 @@ class FormatterTest < Minitest::Test
       "- if !foo(1,\n  2)\n  p e\n- if !foo?(a) { b }\n  p d\n- if !headers[\"Turbo-Frame\"]\n  p a\n- if !items[1..].any?(&:x)\n  p b\n- if !t(\"log in now\").empty?\n  p c\n"
   end
 
-  def test_a_negated_if_with_a_long_string_formats_in_linear_time
-    condition = "x(\"#{"\\\"" * 100_000}\")"
+  def test_the_negated_if_check_steps_over_strings
+    escaped_quotes = "x(\"#{"\\\"" * 100_000}\")"
     started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    SuperSlim::Formatter.compound_condition?(condition)
-    SuperSlim::Formatter.compound_condition?(condition.tr("\"", "'"))
 
+    refute SuperSlim::Formatter.compound_condition?(escaped_quotes)
+    refute SuperSlim::Formatter.compound_condition?(escaped_quotes.tr("\"", "'"))
+    assert SuperSlim::Formatter.compound_condition?(escaped_quotes.delete_suffix("\")"))
     assert_operator Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at, :<, 1
+    assert SuperSlim::Formatter.compound_condition?(%q("#{'"'}" == "#{'"'}"))
+    refute SuperSlim::Formatter.compound_condition?(%q(t("it's #1 = a").empty?))
   end
 
   def test_the_check_takes_a_negated_if_for_the_unless_it_reads_as
