@@ -44,7 +44,11 @@ module SuperSlim
         offset = new(code).trailing_comment_offset or return
         return if alone_on_its_line?(code, offset)
 
-        literal_offset = new(code, literals_after_words: true).trailing_comment_offset or return
+        second_reading = new(code, literals_after_words: true)
+        # Valid Ruby never ends in a literal: the second reading misread one.
+        return offset if second_reading.in_literal?
+
+        literal_offset = second_reading.trailing_comment_offset or return
         (literal_offset > offset) ? literal_offset : offset
       end
 
@@ -80,6 +84,10 @@ module SuperSlim
 
       def open_at_line_end?
         @open_brackets.any?
+      end
+
+      def in_literal?
+        @literals.any?
       end
 
       private

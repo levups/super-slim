@@ -15,6 +15,7 @@ class TrailingCommentTest < Minitest::Test
     assert_equal "5", render("- count = 10\n= (1..count /2).count # half, see #12\n")
     assert_equal "2", render("- @in = 4\n= @in /2 # c\n")
     assert_equal "a", render("- state = :ok?\n= state == :ok? ?'a':'b' # c\n")
+    assert_equal "alice/", render("- name = \"alice\"\n= name.end_with?(?/) ? name : name + ?/ # trailing slash\n")
   end
 
   def test_slim_syntax_reports_the_comment_after_a_regexp
