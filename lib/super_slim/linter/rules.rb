@@ -888,14 +888,33 @@ module SuperSlim
       class SoleNestedConditional < Rule
         include Conditionals
 
+        BRACKETED_OR_QUOTED = /\([^()]*\)|\[[^\[\]]*\]|\{[^{}]*\}|"[^"]*"|'[^']*'/
+
         def offenses(document, _source)
-          enum_for(:each_conditional, document).filter_map do |_node, following, children|
+          enum_for(:each_conditional, document).filter_map do |node, following, children|
             next if branch?(following) || children.size != 1
             next unless (inner = children.first).is_a?(AST::Control) && inner.code.match?(CONDITIONAL)
+            # A conditional written on one line holds its own branches.
+            next if AST.empty?(inner.children)
 
             keyword = inner.code[/\w+/]
-            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it with `&&`")
+            merged = "if #{condition_of(node.code)} && #{condition_of(inner.code)}"
+            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it: `#{merged}`")
           end
+        end
+
+        private
+
+        # As RuboCop writes it: `unless a` reads `!a`, and a condition holding an operator or a call's arguments
+        # without parentheses (`fetch :compact, false`), which would take the `&&` in, gets them.
+        def condition_of(code)
+          comment_offset = Parser::RubyBrackets.code_comment_offset(code)
+          code = code.byteslice(0, comment_offset) if comment_offset
+          keyword, condition = code.strip.split(/\s+/, 2)
+          condition = condition.gsub(/\s*\\?\n\s*/, " ").delete_suffix(" then")
+          bare = condition.gsub(BRACKETED_OR_QUOTED, "")
+          condition = "(#{condition})" if bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          (keyword == "unless") ? "!#{condition}" : condition
         end
       end
 
