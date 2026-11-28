@@ -232,6 +232,18 @@ class LinterTest < Minitest::Test
       "20: Write `if current_user.can?(:edit, post)` and swap the branches"], messages
   end
 
+  def test_merged_conditions_read_as_ruby_reads_them
+    source = "- if feature \"beta\"\n  - if post.draft?\n    p a\n- if x == ?#\n  - if e\n    p b\n" \
+      "- if x  then\n  - if d\n    p c\n- if a.tr(?#,\n    \"\")\n  - if b\n    p d\n" \
+      "- if !starts_with ?#\n  p e\n- else\n  p f\n- if !a.tr(?#,\n    \"\").empty?\n  p g\n- else\n  p h\n"
+    offenses = SuperSlim::Linter.new.call("show.html.slim", source).reject { _1.rule == "SlimSyntax" }
+
+    assert_equal ["2: Merge this `if` into the one around it: `if (feature \"beta\") && post.draft?`",
+      "5: Merge this `if` into the one around it: `if (x == ?#) && e`",
+      "8: Merge this `if` into the one around it: `if x && d`",
+      "12: Merge this `if` into the one around it: `if (a.tr(?#, \"\")) && b`"], offenses.map { "#{_1.lineno}: #{_1.message}" }
+  end
+
   def test_conditionals_with_another_branch_or_a_compound_condition_pass
     source = <<~SLIM
       - if a

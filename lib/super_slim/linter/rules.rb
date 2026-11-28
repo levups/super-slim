@@ -884,24 +884,37 @@ module SuperSlim
           node.is_a?(AST::Control) && node.code.match?(/\A\s*(?:else|elsif)\b/)
         end
 
-        # The keyword and the condition after it, on one line and without the comment that ends them; no condition
-        # when nothing follows the keyword or a comment sits on one of its lines, which would swallow the rest.
+        # The keyword and the condition after it, on one line and without the comment that ends them, as Prism reads
+        # them; no condition when it doesn't parse, a comment sits on a line but the last, or a string spans lines.
         def keyword_and_condition(code)
-          comment_offset = Parser::RubyBrackets.code_comment_offset(code)
-          code = code.byteslice(0, comment_offset) if comment_offset
-          first_line, *lines = code.split("\n")
-          reader = Parser::RubyBrackets.new(first_line)
-          folded = +first_line.strip.delete_suffix("\\").rstrip
-          lines.each do |line|
-            return [folded[/\w+/], nil] if reader.trailing_comment_offset
+          keyword = code[/\w+/]
+          result = Prism.parse("#{code}\nend")
+          return [keyword, nil] unless result.success?
 
-            reader << line
+          last_line_start = code.rindex("\n") || 0
+          if (comment = result.comments.first)
+            return [keyword, nil] if comment.location.start_offset < last_line_start
+
+            code = code.byteslice(0, comment.location.start_offset)
+          end
+          return [keyword, nil] if result.value.statements.body.size != 1 || string_across_lines?(code)
+
+          folded = +""
+          code.split("\n").each do |line|
             line = line.strip.delete_suffix("\\").rstrip
-            folded << " " unless folded.end_with?("(", "[") || line.start_with?(")", "]")
+            next if line.empty?
+
+            folded << " " unless folded.empty? || folded.end_with?("(", "[") || line.start_with?(")", "]")
             folded << line
           end
-          keyword, condition = folded.split(/\s+/, 2)
-          [keyword, condition&.delete_suffix(" then")]
+          condition = folded.split(/\s+/, 2)[1]&.sub(/\s+then\z/, "")
+          [keyword, (condition if condition && Prism.parse(condition).success?)]
+        end
+
+        def string_across_lines?(code)
+          code.include?("\n") && Prism.lex("#{code}\nend").value.any? do |token,|
+            token.type == :STRING_CONTENT && token.value.include?("\n")
+          end
         end
       end
 
@@ -934,7 +947,7 @@ module SuperSlim
 
           bare = condition
           bare = bare.gsub(BRACKETED_OR_QUOTED, "") while bare.match?(BRACKETED_OR_QUOTED)
-          condition = "(#{condition})" if bare.strip.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          condition = "(#{condition})" if bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
           (keyword == "unless") ? "!#{condition}" : condition
         end
       end
