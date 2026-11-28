@@ -852,7 +852,7 @@ module SuperSlim
         def offenses(document, _source)
           enum_for(:each_conditional, document).filter_map do |node, following|
             next unless else?(following) && (condition = node.code[NEGATED_IF, 1])
-            next if condition.match?(Formatter::COMPOUND_CONDITION)
+            next if Formatter.compound_condition?(condition)
 
             offense(document, document.line_of(node), "Write `if #{condition.strip}` and swap the branches")
           end
