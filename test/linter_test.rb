@@ -217,6 +217,41 @@ class LinterTest < Minitest::Test
       "Merge this `if` into the one around it: `if (local_assigns.fetch :compact, false) && post.draft?`"], messages
   end
 
+  def test_conditions_with_a_comment_inside_or_spread_over_lines
+    source = "- if # TODO: a real check\n  - if post.draft?\n    p a\n" \
+      "- if post.published?\n  - if current_user.can?(\n      :edit, # the editors\n      post)\n    p b\n" \
+      "- if post.published?\n  - if current_user.can?(\n      :edit,\n      post)\n    p c\n" \
+      "- if !current_user.can?(\n    :edit, # the editors\n    post)\n  p d\n- else\n  p e\n" \
+      "- if !current_user.can?(\n    :edit,\n    post)\n  p f\n- else\n  p g\n"
+    offenses = SuperSlim::Linter.new.call("show.html.slim", source).reject { _1.rule == "SlimSyntax" }
+    messages = offenses.map { "#{_1.lineno}: #{_1.message}" }
+
+    assert_equal ["2: Merge this `if` into the one around it",
+      "5: Merge this `if` into the one around it",
+      "10: Merge this `if` into the one around it: `if post.published? && current_user.can?(:edit, post)`",
+      "20: Write `if current_user.can?(:edit, post)` and swap the branches"], messages
+  end
+
+  def test_merged_conditions_read_as_ruby_reads_them
+    source = "- if feature \"beta\"\n  - if post.draft?\n    p a\n- if x == ?#\n  - if e\n    p b\n" \
+      "- if x  then\n  - if d\n    p c\n- if a.tr(?#,\n    \"\")\n  - if b\n    p d\n" \
+      "- if !starts_with ?#\n  p e\n- else\n  p f\n- if !a.tr(?#,\n    \"\").empty?\n  p g\n- else\n  p h\n" \
+      "- if !yield(:sidebar).nil?\n  p i\n- else\n  p j\n- if a; b\n  - if c\n    p k\n- if x.is_a?Foo\n  - if b\n    p l\n" \
+      "- if (\n    a\n    b)\n  - if c\n    p m\n- if !x.is_a?Foo\n  - if b\n    p n\n- if defined?x\n  - if b\n    p o\n"
+    offenses = SuperSlim::Linter.new.call("show.html.slim", source).reject { _1.rule == "SlimSyntax" }
+
+    assert_equal ["2: Merge this `if` into the one around it: `if (feature \"beta\") && post.draft?`",
+      "5: Merge this `if` into the one around it: `if (x == ?#) && e`",
+      "8: Merge this `if` into the one around it: `if x && d`",
+      "12: Merge this `if` into the one around it: `if (a.tr(?#, \"\")) && b`",
+      "23: Write `if yield(:sidebar).nil?` and swap the branches",
+      "28: Merge this `if` into the one around it",
+      "31: Merge this `if` into the one around it: `if (x.is_a?Foo) && b`",
+      "36: Merge this `if` into the one around it",
+      "39: Merge this `if` into the one around it: `if (!x.is_a?Foo) && b`",
+      "42: Merge this `if` into the one around it: `if (defined?x) && b`"], offenses.map { "#{_1.lineno}: #{_1.message}" }
+  end
+
   def test_conditionals_with_another_branch_or_a_compound_condition_pass
     source = <<~SLIM
       - if a

@@ -858,6 +858,7 @@ module SuperSlim
 
       module Conditionals
         CONDITIONAL = /\A\s*(?:if|unless)\s/
+        CONDITION_PREFIX = "def _\n"
         ELSE = /\A\s*else\s*\z/
 
         private
@@ -883,6 +884,56 @@ module SuperSlim
         def branch?(node)
           node.is_a?(AST::Control) && node.code.match?(/\A\s*(?:else|elsif)\b/)
         end
+
+        # The keyword, and the condition after it on one line and its Prism node, as Ruby reads them in a method
+        # body (`yield`); no condition when the line doesn't parse, holds a statement (`- if a; b`), a comment sits
+        # inside the condition, or one of its line breaks means something (`(a\n b)`, a string across lines).
+        def keyword_and_condition(code)
+          keyword = code[/\w+/]
+          result = Prism.parse("#{CONDITION_PREFIX}#{code}\nend\nend")
+          return [keyword, nil] unless result.success?
+
+          conditional = result.value.statements.body.first.body&.body&.first
+          return [keyword, nil] unless conditional.is_a?(Prism::IfNode) || conditional.is_a?(Prism::UnlessNode)
+          return [keyword, nil] if conditional.statements
+
+          predicate = conditional.predicate
+          return [keyword, nil] if result.comments.any? { _1.location.start_offset < predicate.location.end_offset }
+
+          condition = predicate.slice
+          return [keyword, nil] if meaningful_line_break?(condition)
+
+          condition = fold(condition)
+          return [keyword, nil] unless Prism.parse("#{CONDITION_PREFIX}#{condition}\nend").success?
+
+          [keyword, condition, predicate]
+        end
+
+        def fold(code)
+          folded = +""
+          code.split("\n").each do |line|
+            line = line.strip.delete_suffix("\\").rstrip
+            next if line.empty?
+
+            folded << " " unless folded.empty? || folded.end_with?("(", "[") || line.start_with?(")", "]")
+            folded << line
+          end
+          folded
+        end
+
+        def meaningful_line_break?(code)
+          code.include?("\n") && Prism.lex(code).value.any? do |token,|
+            token.type == :NEWLINE || (token.type == :STRING_CONTENT && token.value.include?("\n"))
+          end
+        end
+
+        # A call or `defined?` without parentheses, which would take an `&&` after it in: `x.is_a?Foo`, `!defined?x`.
+        def command?(node)
+          return true if node.is_a?(Prism::CallNode) && node.arguments && node.opening_loc.nil? && node.name.match?(/\A\w/)
+          return true if node.is_a?(Prism::DefinedNode) && node.lparen_loc.nil?
+
+          node.compact_child_nodes.any? { command?(_1) }
+        end
       end
 
       class SoleNestedConditional < Rule
@@ -897,9 +948,10 @@ module SuperSlim
             # A conditional written on one line holds its own branches.
             next if AST.empty?(inner.children)
 
-            keyword = inner.code[/\w+/]
-            merged = "if #{condition_of(node.code)} && #{condition_of(inner.code)}"
-            offense(document, document.line_of(inner), "Merge this `#{keyword}` into the one around it: `#{merged}`")
+            message = "Merge this `#{inner.code[/\w+/]}` into the one around it"
+            outer, nested = condition_of(node.code), condition_of(inner.code)
+            message += ": `if #{outer} && #{nested}`" if outer && nested
+            offense(document, document.line_of(inner), message)
           end
         end
 
@@ -908,12 +960,14 @@ module SuperSlim
         # As RuboCop writes it: `unless a` reads `!a`, and a condition holding an operator or a call's arguments
         # without parentheses (`fetch :compact, false`), which would take the `&&` in, gets them.
         def condition_of(code)
-          comment_offset = Parser::RubyBrackets.code_comment_offset(code)
-          code = code.byteslice(0, comment_offset) if comment_offset
-          keyword, condition = code.strip.split(/\s+/, 2)
-          condition = condition.gsub(/\s*\\?\n\s*/, " ").delete_suffix(" then")
-          bare = condition.gsub(BRACKETED_OR_QUOTED, "")
-          condition = "(#{condition})" if bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+          keyword, condition, predicate = keyword_and_condition(code)
+          return if condition.nil?
+
+          bare = condition
+          bare = bare.gsub(BRACKETED_OR_QUOTED, "") while bare.match?(BRACKETED_OR_QUOTED)
+          if command?(predicate) || bare.match?(/\s/) || Formatter.compound_condition?(condition.gsub("&.", "."))
+            condition = "(#{condition})"
+          end
           (keyword == "unless") ? "!#{condition}" : condition
         end
       end
@@ -921,14 +975,17 @@ module SuperSlim
       class NegatedIfElseCondition < Rule
         include Conditionals
 
-        NEGATED_IF = /\A\s*if\s+!(?!=)\s*(\S.*)\z/m
+        NEGATED = /\A!(?!=)\s*(\S.*)\z/
 
         def offenses(document, _source)
           enum_for(:each_conditional, document).filter_map do |node, following|
-            next unless else?(following) && (condition = node.code[NEGATED_IF, 1])
+            next unless else?(following)
+
+            keyword, condition = keyword_and_condition(node.code)
+            next unless keyword == "if" && (condition = condition&.[](NEGATED, 1))
             next if Formatter.compound_condition?(condition)
 
-            offense(document, document.line_of(node), "Write `if #{condition.strip}` and swap the branches")
+            offense(document, document.line_of(node), "Write `if #{condition}` and swap the branches")
           end
         end
       end
