@@ -208,11 +208,13 @@ class LinterTest < Minitest::Test
   end
 
   def test_sole_nested_conditional_writes_the_merged_condition
-    source = "- unless post.draft?\n  - if current_user.can?(:edit, post)\n    p a\n- if a || b\n  - unless c == d\n    p b\n"
+    source = "- unless post.draft?\n  - if current_user.can?(:edit, post)\n    p a\n- if a || b\n  - unless c == d\n    p b\n" \
+      "- if local_assigns.fetch :compact, false # c\n  - if post.draft?\n    p c\n- if a\n  - if b then x = 1 else x = 2 end\n"
     messages = SuperSlim::Linter.new.call("show.html.slim", source).map(&:message)
 
     assert_equal ["Merge this `if` into the one around it: `if !post.draft? && current_user.can?(:edit, post)`",
-      "Merge this `unless` into the one around it: `if (a || b) && !(c == d)`"], messages
+      "Merge this `unless` into the one around it: `if (a || b) && !(c == d)`",
+      "Merge this `if` into the one around it: `if (local_assigns.fetch :compact, false) && post.draft?`"], messages
   end
 
   def test_conditionals_with_another_branch_or_a_compound_condition_pass
